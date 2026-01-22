@@ -1,0 +1,2 @@
+web: python app.py
+worker: python extraction_orchestrator.py 8

@@ -1,0 +1,1821 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Glassdoor Review Dashboard - Financial Services Companies</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #f5f7fa;
+            color: #2c3e50;
+            line-height: 1.6;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .header h1 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1rem;
+        }
+        
+        .cache-status {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px 15px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .cache-status.updating {
+            background: #fef3c7;
+            color: #92400e;
+            border: 1px solid #fcd34d;
+        }
+        
+        .cache-status.updated {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #6ee7b7;
+        }
+        
+        .cache-status.error {
+            background: #fee2e2;
+            color: #7f1d1d;
+            border: 1px solid #fca5a5;
+        }
+        
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+            animation: pulse 2s infinite;
+        }
+        
+        .cache-status.updating .status-dot {
+            background: #f59e0b;
+        }
+        
+        .cache-status.updated .status-dot {
+            background: #10b981;
+            animation: none;
+        }
+        
+        .cache-status.error .status-dot {
+            background: #ef4444;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        .main-nav-tabs {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            border-bottom: 2px solid #e0e0e0;
+            flex-wrap: wrap;
+        }
+        
+        .main-tab-button {
+            padding: 1rem;
+            border: none;
+            background: none;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            color: #7f8c8d;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+        }
+        
+        .main-tab-button:hover {
+            color: #667eea;
+        }
+        
+        .main-tab-button.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+        
+        .sub-nav-tabs {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            border-bottom: 2px solid #e0e0e0;
+            flex-wrap: wrap;
+        }
+        
+        .tab-button {
+            padding: 1rem;
+            border: none;
+            background: none;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            color: #7f8c8d;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+        }
+        
+        .tab-button:hover {
+            color: #667eea;
+        }
+        
+        .tab-button.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+        
+        .tab-content {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            transition: transform 0.2s;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+        }
+        
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #667eea;
+            margin: 0.5rem 0;
+        }
+        
+        .stat-label {
+            color: #7f8c8d;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .chart-container {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            margin-bottom: 2rem;
+            max-width: 100%;
+            overflow-x: auto;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        
+        .chart-container canvas {
+            max-width: 100% !important;
+            height: auto !important;
+        }
+        
+        .charts-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+            height: 600px;
+        }
+        
+        .charts-row .chart-container {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+        
+        .charts-row .chart-container canvas {
+            flex: 1;
+            height: 100% !important;
+        }
+        
+        @media (max-width: 1024px) {
+            .charts-row {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .chart-title {
+            font-size: 1.5rem;
+            margin-bottom: 1.5rem;
+            color: #2c3e50;
+        }
+        
+        .controls-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+            max-width: 100%;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        
+        .control-group {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .control-group label {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: #2c3e50;
+            font-size: 0.95rem;
+        }
+        
+        .control-group select {
+            padding: 0.75rem;
+            border: 1px solid #bdc3c7;
+            border-radius: 6px;
+            font-size: 1rem;
+            background: white;
+            cursor: pointer;
+            transition: border-color 0.2s;
+        }
+        
+        .control-group select:hover {
+            border-color: #667eea;
+        }
+        
+        .control-group select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 3rem;
+            color: #7f8c8d;
+        }
+        
+        .export-button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background 0.2s;
+        }
+        
+        .export-button:hover {
+            background: #764ba2;
+        }
+        
+        .company-item {
+            padding: 1rem;
+            border-bottom: 1px solid #ecf0f1;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .company-item:last-child {
+            border-bottom: none;
+        }
+        
+        .company-name {
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        .company-stats {
+            display: flex;
+            gap: 2rem;
+            color: #7f8c8d;
+            font-size: 0.9rem;
+        }
+        
+        #companyListContainer {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #ecf0f1;
+            border-radius: 8px;
+            background: white;
+        }
+        
+        .chart-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: #2c3e50;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="container">
+            <h1>📊 Glassdoor Review Dashboard</h1>
+            <p>Financial Services Companies - Employee Review Analysis</p>
+        </div>
+    </div>
+    
+    <div class="container">
+        <div id="loading" class="loading">
+            <h2>Loading data...</h2>
+        </div>
+        
+        <!-- Main Navigation -->
+        <div id="mainNav" class="main-nav-tabs" style="display: none;">
+            <button class="main-tab-button active" onclick="switchMainTab('overview', event)">📊 Overview</button>
+            <button class="main-tab-button" onclick="switchMainTab('trends', event)">📈 Quarterly Trends</button>
+            <button class="main-tab-button" onclick="switchMainTab('hofstede', event)">🎯 Hofstede Framework</button>
+            <button class="main-tab-button" onclick="switchMainTab('mit', event)">📊 MIT Framework</button>
+        </div>
+        
+        <!-- Overview Tab -->
+        <div id="overviewTab" class="tab-content">
+            <div id="dashboard" style="display: none;">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-label">Total Reviews</div>
+                        <div class="stat-value" id="totalReviews">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Companies</div>
+                        <div class="stat-value" id="totalCompanies">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Average Rating</div>
+                        <div class="stat-value" id="avgRating">0.0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Export Data</div>
+                        <button class="export-button" onclick="exportToCSV()">📥 Download CSV</button>
+                    </div>
+                </div>
+                
+                <!-- Side-by-side charts -->
+
+                <div class="chart-container" id="companyDetailsContainer">
+                    <h2 class="chart-title">Company Details</h2>
+                    <div id="companyListContainer"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Quarterly Trends Tab -->
+        <div id="trendsTab" class="tab-content" style="display: none;">
+            <div class="chart-container">
+                <h2 class="chart-title">📈 Quarterly Trends Analysis</h2>
+                <div class="controls-grid">
+                    <div class="control-group">
+                        <label for="trendCompany">Company:</label>
+                        <select id="trendCompany" onchange="updateTrendsChart()">
+                            <option value="">Select a company...</option>
+                        </select>
+                    </div>
+                    <div class="control-group">
+                        <label for="trendRating">Rating Dimension:</label>
+                        <select id="trendRating" onchange="updateTrendsChart()">
+                            <option value="overall">Overall Rating</option>
+                            <option value="culture">Culture & Values</option>
+                            <option value="worklife">Work-Life Balance</option>
+                            <option value="compensation">Compensation & Benefits</option>
+                            <option value="career">Career Opportunities</option>
+                            <option value="management">Senior Management</option>
+                            <option value="diversity">Diversity & Inclusion</option>
+                            <option value="ceo">CEO Rating</option>
+                            <option value="outlook">Business Outlook</option>
+                            <option value="recommend">Recommendation</option>
+                        </select>
+                    </div>
+                    <div class="control-group">
+                        <label for="comparatorCompany">Compare with (Optional):</label>
+                        <select id="comparatorCompany" onchange="updateTrendsChart()">
+                            <option value="">-- None --</option>
+                            <option value="Industry Average">Industry Average</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="trendsChartContainer" style="display: none;">
+                    <canvas id="trendsChart"></canvas>
+                </div>
+                <div id="trendsMessage" style="text-align: center; color: #7f8c8d; padding: 2rem;">
+                    Select a company to view quarterly trends
+                </div>
+            </div>
+        </div>
+        
+        <!-- Culture Analysis Tab -->
+        <div id="hofstedeTab" class="tab-content" style="display: none;">
+            <!-- Hofstede Framework -->
+            
+            <!-- Profile Sub-Tab -->
+            <div id="hofstedeProfileTab" class="tab-content">
+                <div class="chart-container">
+                    <h3>Select Company</h3>
+                    <div class="controls-grid">
+                        <div class="control-group">
+                            <label for="cultureCompanySelect">Company:</label>
+                            <select id="hofstedeCompanySelect" onchange="loadCultureProfile('hofstede')">
+                                <option value="">Select a company...</option>
+                            </select>
+                        </div>
+                        <div class="control-group">
+                            <label for="cultureComparisonSelect">Compare with:</label>
+                            <select id="hofstedeComparisonSelect" onchange="loadCultureProfile('hofstede')">
+                                <option value="">None</option>
+                                <option value="Industry Average">Industry Average</option>
+                                <option value="AllianceBernstein">AllianceBernstein</option>
+                                <option value="Allianz Group">Allianz Group</option>
+                                <option value="Ameriprise Financial">Ameriprise Financial</option>
+                                <option value="Amundi">Amundi</option>
+                                <option value="Apollo Global Management">Apollo Global Management</option>
+                                <option value="Ares Management">Ares Management</option>
+                                <option value="AXA Group">AXA Group</option>
+                                <option value="BlackRock">BlackRock</option>
+                                <option value="Blackstone">Blackstone</option>
+                                <option value="BNP Paribas">BNP Paribas</option>
+                                <option value="BNY Investments">BNY Investments</option>
+                                <option value="Brookfield">Brookfield</option>
+                                <option value="Capital Group">Capital Group</option>
+                                <option value="Carlyle Group">Carlyle Group</option>
+                                <option value="CVC Capital Partners">CVC Capital Partners</option>
+                                <option value="Dimensional Fund Advisors">Dimensional Fund Advisors</option>
+                                <option value="Equitable Holdings">Equitable Holdings</option>
+                                <option value="Eurazeo">Eurazeo</option>
+                                <option value="Federated Hermes">Federated Hermes</option>
+                                <option value="Fidelity International">Fidelity International</option>
+                                <option value="Fidelity Investments">Fidelity Investments</option>
+                                <option value="Franklin Templeton">Franklin Templeton</option>
+                                <option value="Goldman Sachs Group">Goldman Sachs Group</option>
+                                <option value="HDFC Asset Management">HDFC Asset Management</option>
+                                <option value="Invesco">Invesco</option>
+                                <option value="J.P. Morgan Chase">J.P. Morgan Chase</option>
+                                <option value="Julius Baer">Julius Baer</option>
+                                <option value="KKR">KKR</option>
+                                <option value="Legal & General Group">Legal & General Group</option>
+                                <option value="M&G plc">M&G plc</option>
+                                <option value="Morgan Stanley Inv. Mgmt.">Morgan Stanley Inv. Mgmt.</option>
+                                <option value="Natixis Investment Managers">Natixis Investment Managers</option>
+                                <option value="Northern Trust">Northern Trust</option>
+                                <option value="Nuveen">Nuveen</option>
+                                <option value="Partners Group">Partners Group</option>
+                                <option value="PIMCO">PIMCO</option>
+                                <option value="Robeco">Robeco</option>
+                                <option value="Schroders">Schroders</option>
+                                <option value="Sofina">Sofina</option>
+                                <option value="State Street">State Street</option>
+                                <option value="T. Rowe Price">T. Rowe Price</option>
+                                <option value="UBS Group">UBS Group</option>
+                                <option value="Vanguard Group">Vanguard Group</option>
+                                <option value="Wellington Mgmt.">Wellington Mgmt.</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="hofstedeProfileContainer" style="display: none;">
+                    <div class="chart-container">
+                        <h3>Hofstede Culture Dimensions</h3>
+                        <p style="color: #7f8c8d; font-size: 0.9rem; margin-bottom: 1.5rem;">Six dimensions - position shows company's stance on each spectrum</p>
+                        <div id="hofstedeDimensionsContainer" style="display: flex; flex-direction: column; gap: 2.5rem; margin-top: 2rem;"></div>
+                    </div>
+                </div>
+                    
+                    
+                
+                <div id="hofstedeMessage" style="text-align: center; color: #7f8c8d; padding: 3rem;">
+                    Select a company to view its complete culture profile
+                </div>
+            </div>
+            
+            <!-- Trends Sub-Tab -->
+            <div id="hofstedeTrendsTab" class="tab-content" style="display: none;">
+                <div class="chart-container">
+                    <h3>Culture Evolution Over Time</h3>
+                    <div class="controls-grid">
+                        <div class="control-group">
+                            <label for="trendsCompanySelect">Company:</label>
+                            <select id="hofstedeTrendsCompanySelect" onchange="loadCultureTrends('hofstede')">
+                                <option value="">Select a company...</option>
+                            </select>
+                        </div>
+                        <div class="control-group">
+                            <label for="trendsComparisonSelect2">Compare with:</label>
+                            <select id="hofstedeTrendsComparisonSelect" onchange="loadCultureTrends('hofstede')">
+                                <option value="">None</option>
+                                <option value="Industry Average">Industry Average</option>
+                                <option value="AllianceBernstein">AllianceBernstein</option>
+                                <option value="Allianz Group">Allianz Group</option>
+                                <option value="Ameriprise Financial">Ameriprise Financial</option>
+                                <option value="Amundi">Amundi</option>
+                                <option value="Apollo Global Management">Apollo Global Management</option>
+                                <option value="Ares Management">Ares Management</option>
+                                <option value="AXA Group">AXA Group</option>
+                                <option value="BlackRock">BlackRock</option>
+                                <option value="Blackstone">Blackstone</option>
+                                <option value="BNP Paribas">BNP Paribas</option>
+                                <option value="BNY Investments">BNY Investments</option>
+                                <option value="Brookfield">Brookfield</option>
+                                <option value="Capital Group">Capital Group</option>
+                                <option value="Carlyle Group">Carlyle Group</option>
+                                <option value="CVC Capital Partners">CVC Capital Partners</option>
+                                <option value="Dimensional Fund Advisors">Dimensional Fund Advisors</option>
+                                <option value="Equitable Holdings">Equitable Holdings</option>
+                                <option value="Eurazeo">Eurazeo</option>
+                                <option value="Federated Hermes">Federated Hermes</option>
+                                <option value="Fidelity International">Fidelity International</option>
+                                <option value="Fidelity Investments">Fidelity Investments</option>
+                                <option value="Franklin Templeton">Franklin Templeton</option>
+                                <option value="Goldman Sachs Group">Goldman Sachs Group</option>
+                                <option value="HDFC Asset Management">HDFC Asset Management</option>
+                                <option value="Invesco">Invesco</option>
+                                <option value="J.P. Morgan Chase">J.P. Morgan Chase</option>
+                                <option value="Julius Baer">Julius Baer</option>
+                                <option value="KKR">KKR</option>
+                                <option value="Legal & General Group">Legal & General Group</option>
+                                <option value="M&G plc">M&G plc</option>
+                                <option value="Morgan Stanley Inv. Mgmt.">Morgan Stanley Inv. Mgmt.</option>
+                                <option value="Natixis Investment Managers">Natixis Investment Managers</option>
+                                <option value="Northern Trust">Northern Trust</option>
+                                <option value="Nuveen">Nuveen</option>
+                                <option value="Partners Group">Partners Group</option>
+                                <option value="PIMCO">PIMCO</option>
+                                <option value="Robeco">Robeco</option>
+                                <option value="Schroders">Schroders</option>
+                                <option value="Sofina">Sofina</option>
+                                <option value="State Street">State Street</option>
+                                <option value="T. Rowe Price">T. Rowe Price</option>
+                                <option value="UBS Group">UBS Group</option>
+                                <option value="Vanguard Group">Vanguard Group</option>
+                                <option value="Wellington Mgmt.">Wellington Mgmt.</option>
+                            </select>
+                        </div>
+                        <div class="control-group">
+                            <label for="trendsDimensionSelect">Dimension:</label>
+                            <select id="hofstedeTrendsDimensionSelect" onchange="loadCultureTrends('hofstede')">
+                                <option value="">Select a dimension...</option>
+                                <option value="process_results">Process vs Results</option>
+                                <option value="job_employee">Job vs Employee</option>
+                                <option value="professional_parochial">Professional vs Parochial</option>
+                                <option value="open_closed">Open vs Closed</option>
+                                <option value="tight_loose">Tight vs Loose</option>
+                                <option value="pragmatic_normative">Pragmatic vs Normative</option>
+                                <option value="agility">Agility</option>
+                                <option value="collaboration">Collaboration</option>
+                                <option value="customer_orientation">Customer Orientation</option>
+                                <option value="diversity">Diversity</option>
+                                <option value="execution">Execution</option>
+                                <option value="innovation">Innovation</option>
+                                <option value="integrity">Integrity</option>
+                                <option value="performance">Performance</option>
+                                <option value="respect">Respect</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="hofstedeTrendsChartContainer" style="display: none;" class="chart-container">
+                    <canvas id="cultureQuarterlyChart" style="max-height: 400px;"></canvas>
+                </div>
+                
+                <div id="hofstedeTrendsMessage" style="text-align: center; color: #7f8c8d; padding: 3rem;">
+                    Select a company and dimension to view quarterly trends
+                </div>
+            </div>
+
+                </div>
+            </div>
+        </div>
+    <div id="mitTab" class="tab-content" style="display: none;">
+            <!-- MIT Framework -->
+            
+            <!-- Profile Sub-Tab -->
+            <div id="mitProfileTab" class="tab-content">
+                <div class="chart-container">
+                    <h3>Select Company</h3>
+                    <div class="controls-grid">
+                        <div class="control-group">
+                            <label for="cultureCompanySelect">Company:</label>
+                            <select id="mitCompanySelect" onchange="loadCultureProfile('mit')">
+                                <option value="">Select a company...</option>
+                            </select>
+                        </div>
+                        <div class="control-group">
+                            <label for="cultureComparisonSelect">Compare with:</label>
+                            <select id="mitComparisonSelect" onchange="loadCultureProfile('mit')">
+                                <option value="">None</option>
+                                <option value="Industry Average">Industry Average</option>
+                                <option value="AllianceBernstein">AllianceBernstein</option>
+                                <option value="Allianz Group">Allianz Group</option>
+                                <option value="Ameriprise Financial">Ameriprise Financial</option>
+                                <option value="Amundi">Amundi</option>
+                                <option value="Apollo Global Management">Apollo Global Management</option>
+                                <option value="Ares Management">Ares Management</option>
+                                <option value="AXA Group">AXA Group</option>
+                                <option value="BlackRock">BlackRock</option>
+                                <option value="Blackstone">Blackstone</option>
+                                <option value="BNP Paribas">BNP Paribas</option>
+                                <option value="BNY Investments">BNY Investments</option>
+                                <option value="Brookfield">Brookfield</option>
+                                <option value="Capital Group">Capital Group</option>
+                                <option value="Carlyle Group">Carlyle Group</option>
+                                <option value="CVC Capital Partners">CVC Capital Partners</option>
+                                <option value="Dimensional Fund Advisors">Dimensional Fund Advisors</option>
+                                <option value="Equitable Holdings">Equitable Holdings</option>
+                                <option value="Eurazeo">Eurazeo</option>
+                                <option value="Federated Hermes">Federated Hermes</option>
+                                <option value="Fidelity International">Fidelity International</option>
+                                <option value="Fidelity Investments">Fidelity Investments</option>
+                                <option value="Franklin Templeton">Franklin Templeton</option>
+                                <option value="Goldman Sachs Group">Goldman Sachs Group</option>
+                                <option value="HDFC Asset Management">HDFC Asset Management</option>
+                                <option value="Invesco">Invesco</option>
+                                <option value="J.P. Morgan Chase">J.P. Morgan Chase</option>
+                                <option value="Julius Baer">Julius Baer</option>
+                                <option value="KKR">KKR</option>
+                                <option value="Legal & General Group">Legal & General Group</option>
+                                <option value="M&G plc">M&G plc</option>
+                                <option value="Morgan Stanley Inv. Mgmt.">Morgan Stanley Inv. Mgmt.</option>
+                                <option value="Natixis Investment Managers">Natixis Investment Managers</option>
+                                <option value="Northern Trust">Northern Trust</option>
+                                <option value="Nuveen">Nuveen</option>
+                                <option value="Partners Group">Partners Group</option>
+                                <option value="PIMCO">PIMCO</option>
+                                <option value="Robeco">Robeco</option>
+                                <option value="Schroders">Schroders</option>
+                                <option value="Sofina">Sofina</option>
+                                <option value="State Street">State Street</option>
+                                <option value="T. Rowe Price">T. Rowe Price</option>
+                                <option value="UBS Group">UBS Group</option>
+                                <option value="Vanguard Group">Vanguard Group</option>
+                                <option value="Wellington Mgmt.">Wellington Mgmt.</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="mitProfileContainer" style="display: none;">
+                    <div class="chart-container">
+                        <h3>MIT Big 9 Culture Dimensions</h3>
+                        <p style="color: #7f8c8d; font-size: 0.9rem; margin-bottom: 1.5rem;">Nine dimensions on a 0-10 scale (higher = stronger presence)</p>
+                        <div style="position: relative; width: 100%; max-width: 100%; display: block; overflow-x: hidden;">
+                            <canvas id="mitChart" style="max-height: 400px; width: 100% !important; height: auto !important; display: block;"></canvas>
+                        </div>
+                    </div>
+                </div>
+                    
+                    
+                
+                <div id="mitMessage" style="text-align: center; color: #7f8c8d; padding: 3rem;">
+                    Select a company to view its complete culture profile
+                </div>
+            </div>
+            
+            <!-- Trends Sub-Tab -->
+            <div id="mitTrendsTab" class="tab-content" style="display: none;">
+                <div class="chart-container">
+                    <h3>Culture Evolution Over Time</h3>
+                    <div class="controls-grid">
+                        <div class="control-group">
+                            <label for="trendsCompanySelect">Company:</label>
+                            <select id="mitTrendsCompanySelect" onchange="loadCultureTrends('mit')">
+                                <option value="">Select a company...</option>
+                            </select>
+                        </div>
+                        <div class="control-group">
+                            <label for="trendsComparisonSelect2">Compare with:</label>
+                            <select id="mitTrendsComparisonSelect" onchange="loadCultureTrends('mit')">
+                                <option value="">None</option>
+                                <option value="Industry Average">Industry Average</option>
+                                <option value="AllianceBernstein">AllianceBernstein</option>
+                                <option value="Allianz Group">Allianz Group</option>
+                                <option value="Ameriprise Financial">Ameriprise Financial</option>
+                                <option value="Amundi">Amundi</option>
+                                <option value="Apollo Global Management">Apollo Global Management</option>
+                                <option value="Ares Management">Ares Management</option>
+                                <option value="AXA Group">AXA Group</option>
+                                <option value="BlackRock">BlackRock</option>
+                                <option value="Blackstone">Blackstone</option>
+                                <option value="BNP Paribas">BNP Paribas</option>
+                                <option value="BNY Investments">BNY Investments</option>
+                                <option value="Brookfield">Brookfield</option>
+                                <option value="Capital Group">Capital Group</option>
+                                <option value="Carlyle Group">Carlyle Group</option>
+                                <option value="CVC Capital Partners">CVC Capital Partners</option>
+                                <option value="Dimensional Fund Advisors">Dimensional Fund Advisors</option>
+                                <option value="Equitable Holdings">Equitable Holdings</option>
+                                <option value="Eurazeo">Eurazeo</option>
+                                <option value="Federated Hermes">Federated Hermes</option>
+                                <option value="Fidelity International">Fidelity International</option>
+                                <option value="Fidelity Investments">Fidelity Investments</option>
+                                <option value="Franklin Templeton">Franklin Templeton</option>
+                                <option value="Goldman Sachs Group">Goldman Sachs Group</option>
+                                <option value="HDFC Asset Management">HDFC Asset Management</option>
+                                <option value="Invesco">Invesco</option>
+                                <option value="J.P. Morgan Chase">J.P. Morgan Chase</option>
+                                <option value="Julius Baer">Julius Baer</option>
+                                <option value="KKR">KKR</option>
+                                <option value="Legal & General Group">Legal & General Group</option>
+                                <option value="M&G plc">M&G plc</option>
+                                <option value="Morgan Stanley Inv. Mgmt.">Morgan Stanley Inv. Mgmt.</option>
+                                <option value="Natixis Investment Managers">Natixis Investment Managers</option>
+                                <option value="Northern Trust">Northern Trust</option>
+                                <option value="Nuveen">Nuveen</option>
+                                <option value="Partners Group">Partners Group</option>
+                                <option value="PIMCO">PIMCO</option>
+                                <option value="Robeco">Robeco</option>
+                                <option value="Schroders">Schroders</option>
+                                <option value="Sofina">Sofina</option>
+                                <option value="State Street">State Street</option>
+                                <option value="T. Rowe Price">T. Rowe Price</option>
+                                <option value="UBS Group">UBS Group</option>
+                                <option value="Vanguard Group">Vanguard Group</option>
+                                <option value="Wellington Mgmt.">Wellington Mgmt.</option>
+                            </select>
+                        </div>
+                        <div class="control-group">
+                            <label for="trendsDimensionSelect">Dimension:</label>
+                            <select id="mitTrendsDimensionSelect" onchange="loadCultureTrends('mit')">
+                                <option value="">Select a dimension...</option>
+                                <option value="process_results">Process vs Results</option>
+                                <option value="job_employee">Job vs Employee</option>
+                                <option value="professional_parochial">Professional vs Parochial</option>
+                                <option value="open_closed">Open vs Closed</option>
+                                <option value="tight_loose">Tight vs Loose</option>
+                                <option value="pragmatic_normative">Pragmatic vs Normative</option>
+                                <option value="agility">Agility</option>
+                                <option value="collaboration">Collaboration</option>
+                                <option value="customer_orientation">Customer Orientation</option>
+                                <option value="diversity">Diversity</option>
+                                <option value="execution">Execution</option>
+                                <option value="innovation">Innovation</option>
+                                <option value="integrity">Integrity</option>
+                                <option value="performance">Performance</option>
+                                <option value="respect">Respect</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="mitTrendsChartContainer" style="display: none;" class="chart-container">
+                    <canvas id="cultureQuarterlyChart" style="max-height: 400px;"></canvas>
+                </div>
+                
+                <div id="mitTrendsMessage" style="text-align: center; color: #7f8c8d; padding: 3rem;">
+                    Select a company and dimension to view quarterly trends
+                </div>
+            </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        window.companyChart = null;
+        window.ratingChart = null;
+        window.trendsChart = null;
+        window.hofstedeChart = null;
+        window.mitChart = null;
+        window.cultureQuarterlyChart = null;
+        window.comparisonChart = null;
+        window.hofstedeBenchmarkChart = null;
+        window.mitBenchmarkChart = null;
+        
+                function switchMainTab(tab, event) {
+            document.getElementById('overviewTab').style.display = 'none';
+            document.getElementById('trendsTab').style.display = 'none';
+            document.getElementById('hofstedeTab').style.display = 'none';
+            document.getElementById('mitTab').style.display = 'none';
+            
+            document.querySelectorAll('.main-tab-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            if (tab === 'overview') {
+                document.getElementById('overviewTab').style.display = 'block';
+            } else if (tab === 'trends') {
+                document.getElementById('trendsTab').style.display = 'block';
+            } else if (tab === 'hofstede') {
+                document.getElementById('hofstedeTab').style.display = 'block';
+                loadCultureCompanies('hofstede');
+            } else if (tab === 'mit') {
+                document.getElementById('mitTab').style.display = 'block';
+                loadCultureCompanies('mit');
+            }
+            
+            event.target.classList.add('active');
+        }
+        
+        function switchCultureTab(tab, event) {
+            document.getElementById('profileTab').style.display = 'none';
+            document.getElementById('cultureTrendsTab').style.display = 'none';
+            document.getElementById('comparisonTab').style.display = 'none';
+            document.getElementById('benchmarkingTab').style.display = 'none';
+            
+            document.querySelectorAll('.tab-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            if (tab === 'profile') {
+                document.getElementById('profileTab').style.display = 'block';
+                event.target.classList.add('active');
+            } else if (tab === 'trends') {
+                document.getElementById('cultureTrendsTab').style.display = 'block';
+                event.target.classList.add('active');
+                loadCultureCompanies('trends');
+            } else if (tab === 'comparison') {
+                document.getElementById('comparisonTab').style.display = 'block';
+                event.target.classList.add('active');
+                loadCultureCompanies('comparison');
+            } else if (tab === 'benchmarking') {
+                document.getElementById('benchmarkingTab').style.display = 'block';
+                event.target.classList.add('active');
+                loadCultureCompanies('benchmarking');
+            }
+        }
+        
+        // Track cache status
+        let cacheStatus = {};
+        
+        function updateCacheStatusDisplay() {
+            const statusDiv = document.getElementById('cacheStatus');
+            const statusText = document.getElementById('cacheStatusText');
+            
+            if (!statusDiv) return;
+            
+            const cachedCompanies = Object.keys(cacheStatus).filter(k => cacheStatus[k] === 'cached').length;
+            const updatingCompanies = Object.keys(cacheStatus).filter(k => cacheStatus[k] === 'updating').length;
+            const totalCompanies = Object.keys(cacheStatus).length;
+            
+            if (updatingCompanies > 0) {
+                statusDiv.className = 'cache-status updating';
+                statusText.textContent = `Updating data... (${cachedCompanies}/${totalCompanies} companies cached)`;
+                statusDiv.style.display = 'flex';
+            } else if (totalCompanies > 0 && cachedCompanies === totalCompanies) {
+                statusDiv.className = 'cache-status updated';
+                statusText.textContent = 'All data cached and up to date';
+                statusDiv.style.display = 'flex';
+            } else if (totalCompanies > 0) {
+                statusDiv.className = 'cache-status updating';
+                statusText.textContent = `Loading... (${cachedCompanies}/${totalCompanies} companies cached)`;
+                statusDiv.style.display = 'flex';
+            }
+        }
+        
+        async function loadData() {
+            try {
+                const response = await fetch('/api/stats');
+                const data = await response.json();
+                
+                document.getElementById('totalReviews').textContent = data.total_reviews.toLocaleString();
+                document.getElementById('totalCompanies').textContent = data.total_companies;
+                document.getElementById('avgRating').textContent = data.avg_rating.toFixed(2);
+                
+                // Charts removed from Overview page
+            // createCharts(data.companies);
+                createCompanyList(data.companies);
+                
+                // Load companies for culture framework dropdowns
+                await loadCultureCompanies('hofstede');
+                await loadCultureCompanies('mit');
+                
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('mainNav').style.display = 'flex';
+                document.getElementById('overviewTab').style.display = 'block';
+                document.getElementById('dashboard').style.display = 'block';
+            } catch (error) {
+                console.error('Error loading data:', error);
+                document.getElementById('loading').innerHTML = '<h2>Error loading data. Please refresh the page.</h2>';
+            }
+        }
+        
+        async function loadCultureCompanies(framework = 'hofstede') {
+            try {
+                const response = await fetch('/api/companies-list');
+                const data = await response.json();
+                
+                // Handle framework parameter (hofstede or mit)
+                if (framework === 'hofstede' || framework === 'mit') {
+                    const prefix = framework;
+                    // Populate main company select
+                    const mainSelect = document.getElementById(prefix + 'CompanySelect');
+                    if (mainSelect) {
+                        mainSelect.innerHTML = '<option value="">Select a company...</option>';
+                        data.companies.forEach(company => {
+                            const option = document.createElement('option');
+                            option.value = company;
+                            option.textContent = company;
+                            mainSelect.appendChild(option);
+                        });
+                    }
+                    // Populate comparison select
+                    const compSelect = document.getElementById(prefix + 'ComparisonSelect');
+                    if (compSelect) {
+                        compSelect.innerHTML = '<option value="">None</option><option value="Industry Average">Industry Average</option>';
+                        data.companies.forEach(company => {
+                            const option = document.createElement('option');
+                            option.value = company;
+                            option.textContent = company;
+                            compSelect.appendChild(option);
+                        });
+                    }
+                    // Populate trends company select
+                    const trendsSelect = document.getElementById(prefix + 'TrendsCompanySelect');
+                    if (trendsSelect) {
+                        trendsSelect.innerHTML = '<option value="">Select a company...</option>';
+                        data.companies.forEach(company => {
+                            const option = document.createElement('option');
+                            option.value = company;
+                            option.textContent = company;
+                            trendsSelect.appendChild(option);
+                        });
+                    }
+                    // Populate trends comparison select
+                    const trendsCompSelect = document.getElementById(prefix + 'TrendsComparisonSelect');
+                    if (trendsCompSelect) {
+                        trendsCompSelect.innerHTML = '<option value="">None</option><option value="Industry Average">Industry Average</option>';
+                        data.companies.forEach(company => {
+                            const option = document.createElement('option');
+                            option.value = company;
+                            option.textContent = company;
+                            trendsCompSelect.appendChild(option);
+                        });
+                    }
+                } else if (framework === 'profile') {
+                    // Legacy support for old parameter
+                    const select = document.getElementById('cultureCompanySelect');
+                    if (select) {
+                        select.innerHTML = '<option value="">Select a company...</option>';
+                        data.companies.forEach(company => {
+                            const option = document.createElement('option');
+                            option.value = company;
+                            option.textContent = company;
+                            select.appendChild(option);
+                        });
+                    }
+                } else if (framework === 'trends') {
+                    // Legacy support for old parameter
+                    const select = document.getElementById('trendsCompanySelect');
+                    if (select) {
+                        select.innerHTML = '<option value="">Select a company...</option>';
+                        data.companies.forEach(company => {
+                            const option = document.createElement('option');
+                            option.value = company;
+                            option.textContent = company;
+                            select.appendChild(option);
+                        });
+                    }
+                } else if (framework === 'comparison') {
+                    // Legacy support
+                    ['compareCompanies1', 'compareCompanies2', 'compareCompanies3'].forEach(selectId => {
+                        const select = document.getElementById(selectId);
+                        if (select) {
+                            select.innerHTML = '<option value="">Select...</option>';
+                            data.companies.forEach(company => {
+                                const option = document.createElement('option');
+                                option.value = company;
+                                option.textContent = company;
+                                select.appendChild(option);
+                            });
+                        }
+                    });
+                } else if (framework === 'benchmarking') {
+                    // Legacy support
+                    const select = document.getElementById('benchmarkCompanySelect');
+                    if (select) {
+                        select.innerHTML = '<option value="">Select a company...</option>';
+                        data.companies.forEach(company => {
+                            const option = document.createElement('option');
+                            option.value = company;
+                            option.textContent = company;
+                            select.appendChild(option);
+                        });
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading companies:', error);
+            }
+        }
+        
+        async function loadCultureProfile(framework = 'hofstede') {
+            const prefix = framework === 'mit' ? 'mit' : 'hofstede';
+            const company = document.getElementById(prefix + 'CompanySelect').value;
+            const comparison = document.getElementById(prefix + 'ComparisonSelect').value;
+            if (!company) return;
+            
+            try {
+                cacheStatus[company] = 'updating';
+                updateCacheStatusDisplay();
+                
+                let url = company === 'Industry Average' ? '/api/industry-average' : `/api/culture-profile/${encodeURIComponent(company)}`;
+                const response = await fetch(url);
+                if (!response.ok) {
+                    document.getElementById(prefix + 'Message').textContent = 'Culture profile not available yet. Scoring in progress...';
+                    document.getElementById(prefix + 'ProfileContainer').style.display = 'none';
+                    return;
+                }
+                
+                const profile = await response.json();
+                cacheStatus[company] = 'cached';
+                updateCacheStatusDisplay();
+                
+                // Load comparison profile if selected
+                let comparisonProfile = null;
+                if (comparison) {
+                    let compUrl = comparison === 'Industry Average' ? '/api/industry-average' : `/api/culture-profile/${encodeURIComponent(comparison)}`;
+                    const compResponse = await fetch(compUrl);
+                    if (compResponse.ok) {
+                        comparisonProfile = await compResponse.json();
+                    }
+                }
+                
+                displayCultureProfile(profile, comparisonProfile, framework);
+            } catch (error) {
+                console.error('Error loading culture profile:', error);
+                document.getElementById(prefix + 'Message').textContent = 'Error loading culture data';
+            }
+        }
+        
+        function displayCultureProfile(profile, comparisonProfile, framework = 'hofstede') {
+            const hofstedeDims = [
+                {key: 'process_results', label: 'Process vs Results'},
+                {key: 'job_employee', label: 'Job vs Employee'},
+                {key: 'professional_parochial', label: 'Professional vs Parochial'},
+                {key: 'open_closed', label: 'Open vs Closed'},
+                {key: 'tight_loose', label: 'Tight vs Loose'},
+                {key: 'pragmatic_normative', label: 'Pragmatic vs Normative'}
+            ];
+            
+            const mitDims = [
+                {key: 'agility', label: 'Agility'},
+                {key: 'collaboration', label: 'Collaboration'},
+                {key: 'customer_orientation', label: 'Customer Orientation'},
+                {key: 'diversity', label: 'Diversity'},
+                {key: 'execution', label: 'Execution'},
+                {key: 'innovation', label: 'Innovation'},
+                {key: 'integrity', label: 'Integrity'},
+                {key: 'performance', label: 'Performance'},
+                {key: 'respect', label: 'Respect'}
+            ];
+            
+            const prefix = framework === 'mit' ? 'mit' : 'hofstede';
+            
+            // Only display the relevant framework
+            if (framework === 'hofstede') {
+                displayHofstedeProfile(profile, comparisonProfile, hofstedeDims);
+            } else if (framework === 'mit') {
+                displayMitProfile(profile, comparisonProfile, mitDims);
+            }
+        }
+        
+        function displayHofstedeProfile(profile, comparisonProfile, hofstedeDims) {
+            const hofstedeLabels = hofstedeDims.map(d => d.label);
+                const hofstedeData = hofstedeDims.map(d => {
+                let mean;
+                if (profile.hofstede && profile.hofstede[d.key]) {
+                    mean = profile.hofstede[d.key].value;
+                } else {
+                    mean = profile[`${d.key}_mean`];
+                }
+                return mean ? ((mean + 1) * 50) : 50;
+            });
+            
+            // Create 6 horizontal dimension pair charts
+            const container = document.getElementById('hofstedeDimensionsContainer');
+            if (!container) {
+                console.error('Container not found: hofstedeDimensionsContainer');
+                return;
+            }
+            container.innerHTML = '';
+            
+            const dimensionPairs = [
+                { left: 'process_results', leftLabel: 'Process', rightLabel: 'Results' },
+                { left: 'job_employee', leftLabel: 'Job', rightLabel: 'Employee' },
+                { left: 'professional_parochial', leftLabel: 'Professional', rightLabel: 'Parochial' },
+                { left: 'open_closed', leftLabel: 'Open', rightLabel: 'Closed' },
+                { left: 'tight_loose', leftLabel: 'Tight', rightLabel: 'Loose' },
+                { left: 'pragmatic_normative', leftLabel: 'Pragmatic', rightLabel: 'Normative' }
+            ];
+            
+            // Define min/max for each dimension (calculated from all companies)
+            const dimensionRanges = {
+                'process_results': { min: -0.980, max: 1.000 },
+                'job_employee': { min: -0.950, max: 0.990 },
+                'professional_parochial': { min: -0.990, max: 0.960 },
+                'open_closed': { min: -0.940, max: 0.960 },
+                'tight_loose': { min: -0.960, max: 0.980 },
+                'pragmatic_normative': { min: -0.990, max: 0.990 }
+            };
+            
+            dimensionPairs.forEach((pair, idx) => {
+                // Handle both old format (with _mean suffix) and new format (with nested structure)
+                let mainValue, mainConfidence, mainConfidenceLevel;
+                let compValue = null, compConfidence = null, compConfidenceLevel = null;
+                
+                // Check if using new API format (nested with value and confidence)
+                if (profile.hofstede && profile.hofstede[pair.left]) {
+                    mainValue = profile.hofstede[pair.left].value || 0;
+                    mainConfidence = profile.hofstede[pair.left].confidence_score || 0;
+                    mainConfidenceLevel = profile.hofstede[pair.left].confidence_level || 'Unknown';
+                } else {
+                    // Fall back to old format
+                    mainValue = profile[`${pair.left}_mean`] || 0;
+                    mainConfidence = 0;
+                    mainConfidenceLevel = 'Unknown';
+                }
+                
+                if (comparisonProfile) {
+                    if (comparisonProfile.hofstede && comparisonProfile.hofstede[pair.left]) {
+                        compValue = comparisonProfile.hofstede[pair.left].value || 0;
+                        compConfidence = comparisonProfile.hofstede[pair.left].confidence_score || 0;
+                        compConfidenceLevel = comparisonProfile.hofstede[pair.left].confidence_level || 'Unknown';
+                    } else {
+                        compValue = comparisonProfile[`${pair.left}_mean`] || 0;
+                        compConfidence = 0;
+                        compConfidenceLevel = 'Unknown';
+                    }
+                }
+                
+                // Get the range for this dimension
+                const range = dimensionRanges[pair.left];
+                const minVal = range.min;
+                const maxVal = range.max;
+                const rangeSize = maxVal - minVal;
+                
+                // Calculate percentages FIRST before using them
+                const mainPercent = ((mainValue - minVal) / rangeSize) * 100;
+                const compPercent = compValue !== null ? ((compValue - minVal) / rangeSize) * 100 : null;
+                
+                // Normalize values to 0-100% based on actual min/max
+                // Clamp percentages to keep dots within visible bounds (5-95%)
+                const clampedMainPercent = Math.max(5, Math.min(95, mainPercent));
+                const clampedCompPercent = compPercent !== null ? Math.max(5, Math.min(95, compPercent)) : null;
+                
+                // Calculate if dots are too close and need vertical offset
+                const dotDistance = Math.abs(clampedMainPercent - (clampedCompPercent || clampedMainPercent));
+                const needsOffset = compValue !== null && dotDistance < 15;
+                const mainDotTop = needsOffset ? "35%" : "50%";
+                const compDotTop = needsOffset ? "65%" : "50%";
+                
+                // Determine confidence gauge color
+                const getConfidenceColor = (conf) => {
+                    if (conf >= 70) return '#10b981'; // Green for High
+                    if (conf >= 40) return '#f59e0b'; // Yellow for Medium
+                    return '#ef4444'; // Red for Low
+                };
+                
+                const mainConfColor = getConfidenceColor(mainConfidence);
+                const compConfColor = compConfidence ? getConfidenceColor(compConfidence) : null;
+                const mainDotColor = '#667eea';
+                const compDotColor = '#a0aec0';
+                
+                const html = `
+                    <div style="margin-bottom: 1.5rem;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                            <span style="font-weight: 600; font-size: 0.9rem;">${pair.leftLabel}</span>
+                            <span style="font-weight: 600; font-size: 0.9rem;">${pair.rightLabel}</span>
+                        </div>
+                        <div style="position: relative; height: 60px; background: linear-gradient(to right, #e8f4f8, #f0f0f0, #f8e8e8); border-radius: 8px; display: flex; align-items: center; overflow: visible; padding: 0 10px;">
+                            <div style="position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 2px; height: 100%; background: #ccc;"></div>
+                            <div style="position: absolute; left: ${clampedMainPercent}%; top: ${mainDotTop}; transform: translate(-50%, -50%); width: 20px; height: 20px; background: ${mainDotColor}; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.1);"></div>
+                            ${compValue !== null ? `<div style="position: absolute; left: ${clampedCompPercent}%; top: ${compDotTop}; transform: translate(-50%, -50%); width: 20px; height: 20px; background: ${compDotColor}; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.1); z-index: 1;"></div>` : ''}
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-top: 0.5rem; font-size: 0.8rem; color: #7f8c8d;">
+                            <div>
+                                <span style="color: ${mainDotColor}; font-weight: 600;">${profile.company_name || 'Company'}: ${mainValue.toFixed(2)}</span>
+                                <div style="display: flex; align-items: center; gap: 0.5rem; margin-top: 0.25rem;">
+                                    <span style="font-size: 0.75rem; font-weight: 500;">${mainConfidence.toFixed(0)}%</span>
+                                    <div style="width: 60px; height: 8px; background: #e5e7eb; border-radius: 4px; overflow: visible;">
+                                        <div style="width: ${mainConfidence}%; height: 100%; background: ${mainConfColor}; transition: width 0.3s ease;"></div>
+                                    </div>
+                                    <span style="font-size: 0.7rem; color: #6b7280;">${mainConfidenceLevel}</span>
+                                </div>
+                            </div>
+                            ${comparisonProfile ? `<div>
+                                <span style="color: ${compDotColor}; font-weight: 600;">${comparisonProfile.company_name || 'Comparison'}: ${compValue.toFixed(2)}</span>
+                                <div style="display: flex; align-items: center; gap: 0.5rem; margin-top: 0.25rem;">
+                                    <span style="font-size: 0.75rem; font-weight: 500;">${compConfidence.toFixed(0)}%</span>
+                                    <div style="width: 60px; height: 8px; background: #e5e7eb; border-radius: 4px; overflow: visible;">
+                                        <div style="width: ${compConfidence}%; height: 100%; background: ${compConfColor}; transition: width 0.3s ease;"></div>
+                                    </div>
+                                    <span style="font-size: 0.7rem; color: #6b7280;">${compConfidenceLevel}</span>
+                                </div>
+                            </div>` : ''}
+                        </div>
+                    </div>
+                `;
+                container.insertAdjacentHTML('beforeend', html);
+            });
+            
+            // Show the Hofstede profile container
+            document.getElementById('hofstedeProfileContainer').style.display = 'block';
+            document.getElementById('hofstedeMessage').style.display = 'none';
+        }
+        
+        function displayMitProfile(profile, comparisonProfile, mitDims) {
+            const mitLabels = mitDims.map(d => d.label);
+            // MIT values are already on 0-10 scale, no rescaling needed
+            const mitData = mitDims.map(d => {
+                // Handle both old and new format
+                if (profile.mit_big_9 && profile.mit_big_9[d.key]) {
+                    return profile.mit_big_9[d.key].value || 0;
+                }
+                if (profile.mit && profile.mit[d.key]) {
+                    return profile.mit[d.key].value || 0;
+                }
+                return profile[`${d.key}_mean`] || 0;
+            });
+            // Extract confidence scores for MIT dimensions
+            const mitConfidence = mitDims.map(d => {
+                if (profile.mit_big_9 && profile.mit_big_9[d.key]) {
+                    return profile.mit_big_9[d.key].confidence_score || 0;
+                }
+                return 0;
+            });
+            
+            const mitCtx = document.getElementById('mitChart').getContext('2d');
+            if (window.mitChart) window.mitChart.destroy();
+            
+            const mitDatasets = [{
+                label: profile.company_name,
+                data: mitData,
+                backgroundColor: '#667eea',
+                borderRadius: 8,
+                confidence: mitConfidence
+            }];
+            
+            if (comparisonProfile) {
+                // MIT values are already on 0-10 scale, no rescaling needed
+                const comparisonMitData = mitDims.map(d => {
+                    // Handle both old and new format
+                    if (comparisonProfile.mit_big_9 && comparisonProfile.mit_big_9[d.key]) {
+                        return comparisonProfile.mit_big_9[d.key].value || 0;
+                    }
+                    if (comparisonProfile.mit && comparisonProfile.mit[d.key]) {
+                        return comparisonProfile.mit[d.key].value || 0;
+                    }
+                    return comparisonProfile[`${d.key}_mean`] || 0;
+                });
+                mitDatasets.push({
+                    label: comparisonProfile.company_name,
+                    data: comparisonMitData,
+                    backgroundColor: '#a0aec0',
+                    borderRadius: 8,
+                    opacity: 0.7
+                });
+            }
+            
+            window.mitChart = new Chart(mitCtx, {
+                type: 'bar',
+                data: {
+                    labels: mitLabels,
+                    datasets: mitDatasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    aspectRatio: 2.5,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 10
+                        },
+                        x: {
+                            ticks: {
+                                font: {
+                                    size: 12
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Show the MIT profile container
+            document.getElementById('mitProfileContainer').style.display = 'block';
+            document.getElementById('mitMessage').style.display = 'none';
+        }
+        
+        async function loadClaudeInsights(company) {
+            try {
+                const response = await fetch(`/api/claude-insights/${encodeURIComponent(company)}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    document.getElementById('claudeInsights').textContent = data.insights;
+                } else {
+                    document.getElementById('claudeInsights').textContent = 'AI validation in progress...';
+                }
+            } catch (error) {
+                console.error('Error loading Claude insights:', error);
+                document.getElementById('claudeInsights').textContent = 'Unable to load AI insights at this time';
+            }
+        }
+        
+        async function loadCultureTrends(framework = 'hofstede') {
+            const prefix = framework === 'mit' ? 'mit' : 'hofstede';
+            const company = document.getElementById(prefix + 'TrendsCompanySelect').value;
+            const comparison = document.getElementById(prefix + 'TrendsComparisonSelect').value;
+            const dimension = document.getElementById(prefix + 'TrendsDimensionSelect').value;
+            
+            if (!company || !dimension) return;
+            
+            try {
+                const response = await fetch(`/api/culture-trends/${encodeURIComponent(company)}?dimension=${dimension}`);
+                if (!response.ok) {
+                    document.getElementById(prefix + 'TrendsMessage').textContent = 'Trends data not available yet';
+                    document.getElementById(prefix + 'TrendsChartContainer').style.display = 'none';
+                    return;
+                }
+                
+                const data = await response.json();
+                
+                // Load comparison trends if selected
+                let comparisonData = null;
+                if (comparison) {
+                    const compResponse = await fetch(`/api/culture-trends/${encodeURIComponent(comparison)}?dimension=${dimension}`);
+                    if (compResponse.ok) {
+                        comparisonData = await compResponse.json();
+                    }
+                }
+                
+                displayCultureTrends(data, comparisonData);
+            } catch (error) {
+                console.error('Error loading trends:', error);
+                document.getElementById(prefix + 'TrendsMessage').textContent = 'Error loading trends data';
+            }
+        }
+        
+        function displayCultureTrends(data, comparisonData) {
+            const ctx = document.getElementById('cultureQuarterlyChart').getContext('2d');
+            if (window.cultureQuarterlyChart) window.cultureQuarterlyChart.destroy();
+            
+            const datasets = [{
+                label: data.company,
+                data: data.values,
+                borderColor: '#667eea',
+                backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                borderWidth: 2,
+                tension: 0.4,
+                fill: true
+            }];
+            
+            if (comparisonData) {
+                datasets.push({
+                    label: comparisonData.company,
+                    data: comparisonData.values,
+                    borderColor: '#f093fb',
+                    backgroundColor: 'rgba(240, 147, 251, 0.1)',
+                    borderWidth: 2,
+                    tension: 0.4,
+                    fill: true
+                });
+            }
+            
+            window.cultureQuarterlyChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.quarters,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 10
+                        }
+                    }
+                }
+            });
+            
+            document.getElementById('trendsChartContainer2').style.display = 'block';
+            document.getElementById('trendsMessage2').style.display = 'none';
+        }
+        
+        async function loadComparisonMatrix() {
+            const company1 = document.getElementById('compareCompanies1').value;
+            const company2 = document.getElementById('compareCompanies2').value;
+            const company3 = document.getElementById('compareCompanies3').value;
+            
+            if (!company1 || !company2) return;
+            
+            try {
+                const companies = [company1, company2];
+                if (company3) companies.push(company3);
+                
+                const response = await fetch(`/api/culture-comparison?companies=${companies.join(',')}`);
+                if (!response.ok) {
+                    document.getElementById('comparisonMessage').textContent = 'Comparison data not available yet';
+                    document.getElementById('comparisonMatrixContainer').style.display = 'none';
+                    return;
+                }
+                
+                const data = await response.json();
+                displayComparisonMatrix(data);
+            } catch (error) {
+                console.error('Error loading comparison:', error);
+                document.getElementById('comparisonMessage').textContent = 'Error loading comparison data';
+            }
+        }
+        
+        function displayComparisonMatrix(data) {
+            const tbody = document.getElementById('comparisonTableBody');
+            tbody.innerHTML = '';
+            
+            data.dimensions.forEach(dim => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td style="padding: 1rem; border-bottom: 1px solid #ecf0f1; font-weight: 600;">${dim.name}</td>
+                    <td style="padding: 1rem; border-bottom: 1px solid #ecf0f1; text-align: center;">${dim.values[0].toFixed(2)}</td>
+                    <td style="padding: 1rem; border-bottom: 1px solid #ecf0f1; text-align: center;">${dim.values[1].toFixed(2)}</td>
+                    ${data.companies.length > 2 ? `<td style="padding: 1rem; border-bottom: 1px solid #ecf0f1; text-align: center;">${dim.values[2].toFixed(2)}</td>` : ''}
+                `;
+                tbody.appendChild(row);
+            });
+            
+            document.getElementById('comparisonMatrixContainer').style.display = 'block';
+            document.getElementById('comparisonMessage').style.display = 'none';
+        }
+        
+        async function loadBenchmarking() {
+            const company = document.getElementById('benchmarkCompanySelect').value;
+            if (!company) return;
+            
+            try {
+                const response = await fetch(`/api/culture-benchmarking/${encodeURIComponent(company)}`);
+                if (!response.ok) {
+                    document.getElementById('benchmarkingMessage').textContent = 'Benchmarking data not available yet';
+                    document.getElementById('benchmarkingContainer').style.display = 'none';
+                    return;
+                }
+                
+                const data = await response.json();
+                displayBenchmarking(data);
+            } catch (error) {
+                console.error('Error loading benchmarking:', error);
+                document.getElementById('benchmarkingMessage').textContent = 'Error loading benchmarking data';
+            }
+        }
+        
+        function displayBenchmarking(data) {
+            const hofstedeCtx = document.getElementById('hofstedeBenchmarkChart').getContext('2d');
+            if (window.hofstedeBenchmarkChart) window.hofstedeBenchmarkChart.destroy();
+            
+            window.hofstedeBenchmarkChart = new Chart(hofstedeCtx, {
+                type: 'bar',
+                data: {
+                    labels: data.hofstede_labels,
+                    datasets: [
+                        {
+                            label: data.company,
+                            data: data.hofstede_company,
+                            backgroundColor: '#667eea'
+                        },
+                        {
+                            label: 'Industry Average',
+                            data: data.hofstede_industry,
+                            backgroundColor: '#bdc3c7'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100
+                        }
+                    }
+                }
+            });
+            
+            const mitCtx = document.getElementById('mitBenchmarkChart').getContext('2d');
+            if (window.mitBenchmarkChart) window.mitBenchmarkChart.destroy();
+            
+            window.mitBenchmarkChart = new Chart(mitCtx, {
+                type: 'bar',
+                data: {
+                    labels: data.mit_labels,
+                    datasets: [
+                        {
+                            label: data.company,
+                            data: data.mit_company,
+                            backgroundColor: '#667eea'
+                        },
+                        {
+                            label: 'Industry Average',
+                            data: data.mit_industry,
+                            backgroundColor: '#bdc3c7'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 10
+                        }
+                    }
+                }
+            });
+            
+            const percentileHtml = data.percentiles.map(p => `
+                <div style="background: #f5f7fa; padding: 1rem; border-radius: 8px;">
+                    <div style="font-weight: 600; margin-bottom: 0.5rem;">${p.dimension}</div>
+                    <div style="font-size: 1.5rem; color: #667eea; font-weight: bold;">${p.percentile}th percentile</div>
+                    <div style="color: #7f8c8d; font-size: 0.9rem; margin-top: 0.5rem;">${p.interpretation}</div>
+                </div>
+            `).join('');
+            
+            document.getElementById('percentileRankings').innerHTML = percentileHtml;
+            document.getElementById('benchmarkingContainer').style.display = 'block';
+            document.getElementById('benchmarkingMessage').style.display = 'none';
+        }
+        
+        function createCharts(companies) {
+            const names = companies.map(c => c.name || c.company_name || 'Unknown');
+            const reviews = companies.map(c => c.total_reviews || c.count || 0);
+            const ratings = companies.map(c => c.overall_rating || c.avg_rating || 0);
+            
+            const companyCtx = document.getElementById('companyChart').getContext('2d');
+            if (window.companyChart) window.companyChart.destroy();
+            window.companyChart = new Chart(companyCtx, {
+                type: 'bar',
+                data: {
+                    labels: names,
+                    datasets: [{
+                        label: 'Number of Reviews',
+                        data: reviews,
+                        backgroundColor: '#667eea',
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'y',
+                    scales: {
+                        x: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+            
+            const ratingCtx = document.getElementById('ratingChart').getContext('2d');
+            if (window.ratingChart) window.ratingChart.destroy();
+            window.ratingChart = new Chart(ratingCtx, {
+                type: 'bar',
+                data: {
+                    labels: names,
+                    datasets: [{
+                        label: 'Average Rating',
+                        data: ratings,
+                        backgroundColor: '#764ba2',
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'y',
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            max: 5
+                        }
+                    }
+                }
+            });
+        }
+        
+        function createCompanyList(companies) {
+            const html = companies.map(c => `
+                <div class="company-item">
+                    <div class="company-name">${c.name || c.company_name}</div>
+                    <div class="company-stats">
+                        <span>📊 ${(c.count || c.total_reviews || 0).toLocaleString()} reviews</span>
+                        <span>⭐ ${(parseFloat(c.avg_rating || c.overall_rating) || 0).toFixed(2)}/5.0</span>
+                    </div>
+                </div>
+            `).join('');
+            
+            document.getElementById('companyListContainer').innerHTML = html;
+        }
+        
+        function exportToCSV() {
+            fetch('/api/stats')
+                .then(r => r.json())
+                .then(data => {
+                    const csv = 'Company,Reviews,Average Rating\n' + 
+                        data.companies.map(c => `"${c.name || c.company_name}",${c.total_reviews || c.count || 0},${(parseFloat(c.avg_rating || c.overall_rating) || 0).toFixed(2)}`).join('\n');
+                    
+                    const blob = new Blob([csv], {type: 'text/csv'});
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'glassdoor-reviews.csv';
+                    a.click();
+                });
+        }
+        
+        async function loadCompaniesForTrends() {
+            try {
+                const response = await fetch('/api/companies-list');
+                const data = await response.json();
+                
+                const select = document.getElementById('trendCompany');
+                const comparator = document.getElementById('comparatorCompany');
+                
+                select.innerHTML = '<option value="">Select a company...</option>';
+                comparator.innerHTML = '<option value="">-- None --</option>';
+                
+                data.companies.forEach(company => {
+                    const option1 = document.createElement('option');
+                    option1.value = company;
+                    option1.textContent = company;
+                    select.appendChild(option1);
+                    
+                    const option2 = document.createElement('option');
+                    option2.value = company;
+                    option2.textContent = company;
+                    comparator.appendChild(option2);
+                });
+            } catch (error) {
+                console.error('Error loading companies:', error);
+            }
+        }
+        
+        async function updateTrendsChart() {
+            const company = document.getElementById('trendCompany').value;
+            const rating = document.getElementById('trendRating').value;
+            const comparator = document.getElementById('comparatorCompany').value;
+            
+            if (!company) return;
+            
+            try {
+                const response = await fetch(`/api/quarterly-trends?company=${encodeURIComponent(company)}&dimension=${encodeURIComponent(rating)}`);
+                if (!response.ok) {
+                    document.getElementById('trendsMessage').textContent = 'Trends data not available';
+                    document.getElementById('trendsChartContainer').style.display = 'none';
+                    return;
+                }
+                
+                const data = await response.json();
+                
+                // Extract quarters and ratings from main_trends
+                const quarters = data.main_trends.map(t => t.quarter);
+                const ratings = data.main_trends.map(t => parseFloat(t.avg_rating));
+                const reviewCounts = data.main_trends.map(t => t.review_count);
+                
+                // Format quarters as MMM/YY
+                const formattedQuarters = quarters.map(q => {
+                    const match = q.match(/Q(\d) (\d{4})/);
+                    if (match) {
+                        const quarter = parseInt(match[1]);
+                        const year = parseInt(match[2]);
+                        const months = ['Jan', 'Apr', 'Jul', 'Oct'];
+                        return months[quarter - 1] + ' ' + year.toString().slice(-2);
+                    }
+                    return q;
+                });
+                
+                const datasets = [{
+                    label: data.company,
+                    data: ratings,
+                    borderColor: '#667eea',
+                    backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                    borderWidth: 2,
+                    tension: 0.4,
+                    fill: true,
+                    pointRadius: 4,
+                    pointHoverRadius: 6,
+                    reviewCounts: reviewCounts
+                }];
+                
+                if (comparator && comparator !== '-- None --') {
+                    const compResponse = await fetch(`/api/quarterly-trends?company=${encodeURIComponent(comparator)}&dimension=${encodeURIComponent(rating)}`);
+                    if (compResponse.ok) {
+                        const compData = await compResponse.json();
+                        const compRatings = compData.main_trends.map(t => parseFloat(t.avg_rating));
+                        const compReviewCounts = compData.main_trends.map(t => t.review_count);
+                        
+                        datasets.push({
+                            label: compData.company,
+                            data: compRatings,
+                            borderColor: '#f39c12',
+                            backgroundColor: 'rgba(243, 156, 18, 0.1)',
+                            borderWidth: 2,
+                            tension: 0.4,
+                            fill: true,
+                            pointRadius: 4,
+                            pointHoverRadius: 6,
+                            reviewCounts: compReviewCounts
+                        });
+                    }
+                }
+                
+                const ctx = document.getElementById('trendsChart').getContext('2d');
+                if (window.trendsChart) window.trendsChart.destroy();
+                window.trendsChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: formattedQuarters,
+                        datasets: datasets
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        plugins: {
+                            tooltip: {
+                                callbacks: {
+                                    afterLabel: function(context) {
+                                        const dataset = context.dataset;
+                                        const dataIndex = context.dataIndex;
+                                        const reviewCount = dataset.reviewCounts ? dataset.reviewCounts[dataIndex] : 0;
+                                        return 'Reviews: ' + (reviewCount || 0);
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                ticks: {
+                                    callback: function(value, index) {
+                                        const step = Math.ceil(formattedQuarters.length / 8);
+                                        return index % step === 0 ? this.getLabelForValue(value) : '';
+                                    }
+                                }
+                            },
+                            y: {
+                                beginAtZero: true,
+                                max: 5
+                            }
+                        }
+                    }
+                });
+                
+                document.getElementById('trendsChartContainer').style.display = 'block';
+                document.getElementById('trendsMessage').style.display = 'none';
+            } catch (error) {
+                console.error('Error loading trends:', error);
+                document.getElementById('trendsMessage').textContent = 'Error loading trends data';
+            }
+        }
+        
+        loadData();
+        loadCompaniesForTrends();
+        setInterval(loadData, 60000);
+    </script>
+</body>
+</html>

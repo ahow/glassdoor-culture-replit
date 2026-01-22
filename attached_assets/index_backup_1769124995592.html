@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Glassdoor Review Dashboard - Financial Services Companies</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #f5f7fa;
+            color: #2c3e50;
+            line-height: 1.6;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .header h1 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1rem;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            transition: transform 0.2s;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+        }
+        
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #667eea;
+            margin: 0.5rem 0;
+        }
+        
+        .stat-label {
+            color: #7f8c8d;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .chart-container {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            margin-bottom: 2rem;
+        }
+        
+        .chart-title {
+            font-size: 1.5rem;
+            margin-bottom: 1.5rem;
+            color: #2c3e50;
+        }
+        
+        .company-list {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        
+        .company-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            border-bottom: 1px solid #ecf0f1;
+            transition: background 0.2s;
+        }
+        
+        .company-item:hover {
+            background: #f8f9fa;
+        }
+        
+        .company-item:last-child {
+            border-bottom: none;
+        }
+        
+        .company-name {
+            font-weight: 600;
+            font-size: 1.1rem;
+            color: #2c3e50;
+        }
+        
+        .company-stats {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+        }
+        
+        .company-rating {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .rating-value {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #f39c12;
+        }
+        
+        .rating-stars {
+            color: #f39c12;
+        }
+        
+        .review-count {
+            color: #7f8c8d;
+            font-size: 0.9rem;
+        }
+        
+        .export-btn {
+            background: #667eea;
+            color: white;
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin: 1rem 0;
+        }
+        
+        .export-btn:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 3rem;
+            color: #7f8c8d;
+        }
+        
+        .status-badge {
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+        
+        .status-completed {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status-progress {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .trends-section {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            margin-bottom: 2rem;
+        }
+        
+        .trends-controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        
+        .control-group {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .control-group label {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: #2c3e50;
+            font-size: 0.95rem;
+        }
+        
+        .control-group select {
+            padding: 0.75rem;
+            border: 1px solid #bdc3c7;
+            border-radius: 6px;
+            font-size: 1rem;
+            background: white;
+            cursor: pointer;
+            transition: border-color 0.2s;
+        }
+        
+        .control-group select:hover {
+            border-color: #667eea;
+        }
+        
+        .control-group select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="container">
+            <h1>📊 Glassdoor Review Dashboard</h1>
+            <p>Financial Services Companies - Employee Review Analysis</p>
+        </div>
+    </div>
+    
+    <div class="container">
+        <div id="loading" class="loading">
+            <h2>Loading data...</h2>
+        </div>
+        
+        <div id="dashboard" style="display: none;">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-label">Total Reviews</div>
+                    <div class="stat-value" id="totalReviews">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Companies</div>
+                    <div class="stat-value" id="totalCompanies">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Average Rating</div>
+                    <div class="stat-value" id="avgRating">0.0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Data Export</div>
+                    <button class="export-btn" onclick="exportData()">📥 Export CSV</button>
+                </div>
+            </div>
+            
+            <div class="chart-container">
+                <h2 class="chart-title">Reviews by Company</h2>
+                <canvas id="companyChart"></canvas>
+            </div>
+            
+            <div class="chart-container">
+                <h2 class="chart-title">Average Ratings by Company</h2>
+                <canvas id="ratingChart"></canvas>
+            </div>
+            
+            <div class="trends-section">
+                <h2 class="chart-title">📈 Quarterly Trends Analysis</h2>
+                <div class="trends-controls">
+                    <div class="control-group">
+                        <label for="trendCompany">Select Company:</label>
+                        <select id="trendCompany" onchange="updateTrendsChart()">
+                            <option value="">-- Select a company --</option>
+                        </select>
+                    </div>
+                    <div class="control-group">
+                        <label for="ratingDimension">Select Rating Dimension:</label>
+                        <select id="ratingDimension" onchange="updateTrendsChart()">
+                            <option value="rating">Overall Rating</option>
+                            <option value="culture">Culture & Values</option>
+                            <option value="work_life_balance">Work-Life Balance</option>
+                            <option value="compensation">Compensation & Benefits</option>
+                            <option value="career">Career Opportunities</option>
+                            <option value="management">Senior Management</option>
+                            <option value="diversity">Diversity & Inclusion</option>
+                            <option value="ceo">CEO Rating</option>
+                            <option value="outlook">Business Outlook</option>
+                            <option value="recommend">Recommendation</option>
+                        </select>
+                    </div>
+                    <div class="control-group">
+                        <label for="comparatorCompany">Compare with (Optional):</label>
+                        <select id="comparatorCompany" onchange="updateTrendsChart()">
+                            <option value="">-- None --</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="trendsChartContainer" style="display: none;">
+                    <canvas id="trendsChart"></canvas>
+                </div>
+                <div id="trendsMessage" style="text-align: center; color: #7f8c8d; padding: 2rem;">
+                    Select a company to view quarterly trends
+                </div>
+            </div>
+            
+            <div class="company-list">
+                <h2 class="chart-title">Company Details</h2>
+                <div id="companyListContainer"></div>
+            </div>
+            
+            <!-- Culture Analysis Section -->
+            <div class="chart-container" style="margin-top: 2rem;">
+                <h2 class="chart-title">🎯 Corporate Culture Analysis</h2>
+                <p style="color: #7f8c8d; margin-bottom: 1.5rem;">Analyze company culture using Hofstede and MIT Big 9 frameworks based on employee reviews</p>
+                
+                <div class="controls-grid">
+                    <div class="control-group">
+                        <label for="cultureCompanySelect">Select Company:</label>
+                        <select id="cultureCompanySelect" onchange="loadCultureProfile()">
+                            <option value="">Select a company...</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div id="cultureChartContainer" style="display: none; margin-top: 2rem;">
+                    <div style="margin-bottom: 3rem;">
+                        <h3 style="margin-bottom: 1rem; color: #2c3e50;">Hofstede Culture Dimensions (Radar Chart)</h3>
+                        <p style="color: #7f8c8d; font-size: 0.9rem; margin-bottom: 1rem;">Each dimension ranges from -1 (left pole) to +1 (right pole)</p>
+                        <canvas id="hofstedeChart" style="max-height: 400px;"></canvas>
+                    </div>
+                    
+                    <div>
+                        <h3 style="margin-bottom: 1rem; color: #2c3e50;">MIT Big 9 Culture Dimensions (0-10 Scale)</h3>
+                        <p style="color: #7f8c8d; font-size: 0.9rem; margin-bottom: 1rem;">Higher scores indicate stronger presence of each dimension</p>
+                        <canvas id="mitChart" style="max-height: 400px;"></canvas>
+                    </div>
+                </div>
+                
+                <div id="cultureMessage" style="text-align: center; color: #7f8c8d; padding: 2rem;">
+                    Select a company to view its culture profile
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        window.companyChart = null;
+        window.ratingChart = null;
+        window.trendsChart = null;
+        
+        async function loadData() {
+            try {
+                const response = await fetch('/api/stats');
+                const data = await response.json();
+                
+                document.getElementById('totalReviews').textContent = data.total_reviews.toLocaleString();
+                document.getElementById('totalCompanies').textContent = data.total_companies;
+                document.getElementById('avgRating').textContent = data.avg_rating.toFixed(2);
+                
+                createCharts(data.companies);
+                createCompanyList(data.companies);
+                
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('dashboard').style.display = 'block';
+            } catch (error) {
+                console.error('Error loading data:', error);
+                document.getElementById('loading').innerHTML = '<h2>Error loading data. Please refresh the page.</h2>';
+            }
+        }
+        
+        function createCharts(companies) {
+            if (window.companyChart) {
+                window.companyChart.destroy();
+                window.companyChart = null;
+            }
+            if (window.ratingChart) {
+                window.ratingChart.destroy();
+                window.ratingChart = null;
+            }
+            
+            const labels = companies.map(c => c.company_name);
+            const counts = companies.map(c => c.count);
+            const ratings = companies.map(c => parseFloat(c.avg_rating) || 0);
+            
+            const ctx1 = document.getElementById('companyChart').getContext('2d');
+            window.companyChart = new Chart(ctx1, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Number of Reviews',
+                        data: counts,
+                        backgroundColor: 'rgba(102, 126, 234, 0.7)',
+                        borderColor: 'rgba(102, 126, 234, 1)',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+            
+            const ctx2 = document.getElementById('ratingChart').getContext('2d');
+            window.ratingChart = new Chart(ctx2, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Average Rating',
+                        data: ratings,
+                        backgroundColor: 'rgba(243, 156, 18, 0.7)',
+                        borderColor: 'rgba(243, 156, 18, 1)',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 5
+                        }
+                    }
+                }
+            });
+        }
+        
+        function createCompanyList(companies) {
+            const container = document.getElementById('companyListContainer');
+            container.innerHTML = companies.map(company => {
+                const rating = parseFloat(company.avg_rating) || 0;
+                return `
+                <div class="company-item">
+                    <div class="company-name">${company.company_name}</div>
+                    <div class="company-stats">
+                        <div class="review-count">${company.count.toLocaleString()} reviews</div>
+                        <div class="company-rating">
+                            <span class="rating-stars">★</span>
+                            <span class="rating-value">${rating.toFixed(2)}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+            }).join('');
+        }
+        
+        function exportData() {
+            window.location.href = '/api/export/csv';
+        }
+        
+        async function loadCompaniesForTrends() {
+            try {
+                const response = await fetch('/api/companies-list');
+                const data = await response.json();
+                
+                const companySelect = document.getElementById('trendCompany');
+                const comparatorSelect = document.getElementById('comparatorCompany');
+                
+                data.companies.forEach(company => {
+                    const option1 = document.createElement('option');
+                    option1.value = company;
+                    option1.textContent = company;
+                    companySelect.appendChild(option1);
+                    
+                    const option2 = document.createElement('option');
+                    option2.value = company;
+                    option2.textContent = company;
+                    comparatorSelect.appendChild(option2);
+                });
+            } catch (error) {
+                console.error('Error loading companies:', error);
+            }
+        }
+        
+        async function updateTrendsChart() {
+            const company = document.getElementById('trendCompany').value;
+            const ratingField = document.getElementById('ratingDimension').value;
+            const comparator = document.getElementById('comparatorCompany').value;
+            
+            if (!company) {
+                document.getElementById('trendsChartContainer').style.display = 'none';
+                document.getElementById('trendsMessage').style.display = 'block';
+                return;
+            }
+            
+            try {
+                const url = `/api/quarterly-trends?company=${encodeURIComponent(company)}&rating_field=${ratingField}${comparator ? '&comparator=' + encodeURIComponent(comparator) : ''}`;
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (window.trendsChart) {
+                    window.trendsChart.destroy();
+                    window.trendsChart = null;
+                }
+                
+                const mainQuarters = data.main_trends.map(t => t.quarter);
+                const mainRatings = data.main_trends.map(t => parseFloat(t.avg_rating) || 0);
+                
+                const datasets = [{
+                    label: company,
+                    data: mainRatings,
+                    borderColor: 'rgba(102, 126, 234, 1)',
+                    backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                    borderWidth: 2,
+                    tension: 0.4,
+                    fill: true
+                }];
+                
+                if (data.comparator_trends && data.comparator_trends.length > 0) {
+                    const comparatorRatings = data.comparator_trends.map(t => parseFloat(t.avg_rating) || 0);
+                    datasets.push({
+                        label: data.comparator,
+                        data: comparatorRatings,
+                        borderColor: 'rgba(243, 156, 18, 1)',
+                        backgroundColor: 'rgba(243, 156, 18, 0.1)',
+                        borderWidth: 2,
+                        tension: 0.4,
+                        fill: true
+                    });
+                }
+                
+                const ctx = document.getElementById('trendsChart').getContext('2d');
+                window.trendsChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: mainQuarters,
+                        datasets: datasets
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        plugins: {
+                            legend: {
+                                display: true,
+                                position: 'top'
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                max: 5
+                            }
+                        }
+                    }
+                });
+                
+                document.getElementById('trendsChartContainer').style.display = 'block';
+                document.getElementById('trendsMessage').style.display = 'none';
+            } catch (error) {
+                console.error('Error loading trends:', error);
+                document.getElementById('trendsMessage').textContent = 'Error loading trends data';
+            }
+        }
+        
+        loadData();
+        loadCompaniesForTrends();
+        setInterval(loadData, 60000);
+        
+        // Culture Analysis Functions
+        async function loadCultureProfile() {
+            const company = document.getElementById('cultureCompanySelect').value;
+            if (!company) return;
+            
+            try {
+                const response = await fetch(`/api/culture-profile/${encodeURIComponent(company)}`);
+                if (!response.ok) {
+                    document.getElementById('cultureMessage').textContent = 'Culture profile not available yet';
+                    document.getElementById('cultureChartContainer').style.display = 'none';
+                    return;
+                }
+                
+                const profile = await response.json();
+                displayCultureProfile(profile);
+            } catch (error) {
+                console.error('Error loading culture profile:', error);
+                document.getElementById('cultureMessage').textContent = 'Error loading culture data';
+            }
+        }
+        
+        function displayCultureProfile(profile) {
+            // Hofstede dimensions
+            const hofstedeDims = [
+                {key: 'process_results', label: 'Process vs Results', color: '#667eea'},
+                {key: 'job_employee', label: 'Job vs Employee', color: '#764ba2'},
+                {key: 'professional_parochial', label: 'Professional vs Parochial', color: '#f093fb'},
+                {key: 'open_closed', label: 'Open vs Closed', color: '#4facfe'},
+                {key: 'tight_loose', label: 'Tight vs Loose', color: '#43e97b'},
+                {key: 'pragmatic_normative', label: 'Pragmatic vs Normative', color: '#fa709a'}
+            ];
+            
+            // MIT Big 9 dimensions
+            const mitDims = [
+                {key: 'agility', label: 'Agility'},
+                {key: 'collaboration', label: 'Collaboration'},
+                {key: 'customer_orientation', label: 'Customer Orientation'},
+                {key: 'diversity', label: 'Diversity'},
+                {key: 'execution', label: 'Execution'},
+                {key: 'innovation', label: 'Innovation'},
+                {key: 'integrity', label: 'Integrity'},
+                {key: 'performance', label: 'Performance'},
+                {key: 'respect', label: 'Respect'}
+            ];
+            
+            // Create Hofstede radar chart
+            const hofstedeLabels = hofstedeDims.map(d => d.label);
+            const hofstedeData = hofstedeDims.map(d => {
+                const mean = profile[`${d.key}_mean`];
+                return mean ? ((mean + 1) * 50) : 50; // Convert from -1 to +1 to 0 to 100
+            });
+            
+            const hofstedeCtx = document.getElementById('hofstedeChart').getContext('2d');
+            if (window.hofstedeChart) window.hofstedeChart.destroy();
+            window.hofstedeChart = new Chart(hofstedeCtx, {
+                type: 'radar',
+                data: {
+                    labels: hofstedeLabels,
+                    datasets: [{
+                        label: profile.company_name,
+                        data: hofstedeData,
+                        borderColor: '#667eea',
+                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    scales: {
+                        r: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: {
+                                callback: function(value) {
+                                    return (value - 50) + '%';
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        }
+                    }
+                }
+            });
+            
+            // Create MIT Big 9 bar chart
+            const mitLabels = mitDims.map(d => d.label);
+            const mitData = mitDims.map(d => profile[`${d.key}_mean`] || 0);
+            
+            const mitCtx = document.getElementById('mitChart').getContext('2d');
+            if (window.mitChart) window.mitChart.destroy();
+            window.mitChart = new Chart(mitCtx, {
+                type: 'bar',
+                data: {
+                    labels: mitLabels,
+                    datasets: [{
+                        label: profile.company_name,
+                        data: mitData,
+                        backgroundColor: [
+                            '#667eea', '#764ba2', '#f093fb', '#4facfe',
+                            '#43e97b', '#fa709a', '#feca57', '#ff9ff3', '#54a0ff'
+                        ],
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 10
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        }
+                    }
+                }
+            });
+            
+            document.getElementById('cultureChartContainer').style.display = 'block';
+            document.getElementById('cultureMessage').style.display = 'none';
+        }
+        
+        async function loadCultureCompanies() {
+            try {
+                const response = await fetch('/api/companies-list');
+                const data = await response.json();
+                const select = document.getElementById('cultureCompanySelect');
+                select.innerHTML = '<option value="">Select a company...</option>';
+                data.companies.forEach(company => {
+                    const option = document.createElement('option');
+                    option.value = company;
+                    option.textContent = company;
+                    select.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error loading companies:', error);
+            }
+        }
+        
+        loadCultureCompanies();
+    </script>
+</body>
+</html>

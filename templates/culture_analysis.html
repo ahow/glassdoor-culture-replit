@@ -1,0 +1,254 @@
+<!-- Culture Analysis Tab -->
+<div id="cultureTab" style="display: none;">
+    <div class="container">
+        <div class="header" style="margin-bottom: 2rem;">
+            <h2 style="font-size: 1.8rem; margin-bottom: 0.5rem;">🎯 Corporate Culture Analysis</h2>
+            <p>Comprehensive culture profiling using Hofstede and MIT Big 9 frameworks</p>
+        </div>
+        
+        <!-- Navigation Tabs -->
+        <div style="display: flex; gap: 1rem; margin-bottom: 2rem; border-bottom: 2px solid #e0e0e0; flex-wrap: wrap;">
+            <button class="tab-button active" onclick="switchCultureTab('profile')" style="padding: 1rem; border: none; background: none; cursor: pointer; font-size: 1rem; font-weight: 600; border-bottom: 3px solid #667eea; color: #667eea;">
+                📊 Company Profile
+            </button>
+            <button class="tab-button" onclick="switchCultureTab('trends')" style="padding: 1rem; border: none; background: none; cursor: pointer; font-size: 1rem; font-weight: 600; color: #7f8c8d;">
+                📈 Quarterly Trends
+            </button>
+            <button class="tab-button" onclick="switchCultureTab('comparison')" style="padding: 1rem; border: none; background: none; cursor: pointer; font-size: 1rem; font-weight: 600; color: #7f8c8d;">
+                🔄 Comparison Matrix
+            </button>
+            <button class="tab-button" onclick="switchCultureTab('benchmarking')" style="padding: 1rem; border: none; background: none; cursor: pointer; font-size: 1rem; font-weight: 600; color: #7f8c8d;">
+                🏆 Industry Benchmarking
+            </button>
+        </div>
+        
+        <!-- Company Profile Tab -->
+        <div id="profileTab" class="culture-tab-content">
+            <div class="chart-container">
+                <h3 style="margin-bottom: 1.5rem;">Select Company</h3>
+                <div class="controls-grid">
+                    <div class="control-group">
+                        <label for="cultureCompanySelect">Company:</label>
+                        <select id="cultureCompanySelect" onchange="loadCultureProfile()">
+                            <option value="">Select a company...</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="cultureProfileContainer" style="display: none;">
+                <!-- Hofstede Radar Chart -->
+                <div class="chart-container">
+                    <h3 style="margin-bottom: 0.5rem;">Hofstede Culture Dimensions</h3>
+                    <p style="color: #7f8c8d; font-size: 0.9rem; margin-bottom: 1.5rem;">
+                        Six dimensions ranging from -1 (left pole) to +1 (right pole)
+                    </p>
+                    <canvas id="hofstedeChart" style="max-height: 400px;"></canvas>
+                </div>
+                
+                <!-- MIT Big 9 Bar Chart -->
+                <div class="chart-container">
+                    <h3 style="margin-bottom: 0.5rem;">MIT Big 9 Culture Dimensions</h3>
+                    <p style="color: #7f8c8d; font-size: 0.9rem; margin-bottom: 1.5rem;">
+                        Nine dimensions on a 0-10 scale (higher = stronger presence)
+                    </p>
+                    <canvas id="mitChart" style="max-height: 400px;"></canvas>
+                </div>
+                
+                <!-- Strength/Weakness Summary -->
+                <div class="chart-container">
+                    <h3 style="margin-bottom: 1.5rem;">Culture Strengths & Weaknesses</h3>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+                        <div>
+                            <h4 style="color: #27ae60; margin-bottom: 1rem;">💪 Top Strengths</h4>
+                            <div id="strengthsList" style="list-style: none;"></div>
+                        </div>
+                        <div>
+                            <h4 style="color: #e74c3c; margin-bottom: 1rem;">⚠️ Areas for Improvement</h4>
+                            <div id="weaknessesList" style="list-style: none;"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Claude API Validation -->
+                <div class="chart-container" style="background: #f0f4ff; border-left: 4px solid #667eea;">
+                    <h3 style="margin-bottom: 1rem;">🤖 AI-Validated Insights</h3>
+                    <p id="claudeInsights" style="color: #2c3e50; line-height: 1.8;">
+                        Loading AI validation...
+                    </p>
+                    <p style="color: #7f8c8d; font-size: 0.85rem; margin-top: 1rem; font-style: italic;">
+                        Powered by Claude AI for ambiguous case validation
+                    </p>
+                </div>
+            </div>
+            
+            <div id="cultureMessage" style="text-align: center; color: #7f8c8d; padding: 3rem;">
+                Select a company to view its complete culture profile
+            </div>
+        </div>
+        
+        <!-- Quarterly Trends Tab -->
+        <div id="trendsTab" class="culture-tab-content" style="display: none;">
+            <div class="chart-container">
+                <h3 style="margin-bottom: 1.5rem;">Culture Evolution Over Time</h3>
+                <div class="controls-grid">
+                    <div class="control-group">
+                        <label for="trendsCompanySelect">Company:</label>
+                        <select id="trendsCompanySelect" onchange="loadCultureTrends()">
+                            <option value="">Select a company...</option>
+                        </select>
+                    </div>
+                    <div class="control-group">
+                        <label for="trendsDimensionSelect">Dimension:</label>
+                        <select id="trendsDimensionSelect" onchange="loadCultureTrends()">
+                            <option value="">Select a dimension...</option>
+                            <option value="process_results">Process vs Results</option>
+                            <option value="job_employee">Job vs Employee</option>
+                            <option value="professional_parochial">Professional vs Parochial</option>
+                            <option value="open_closed">Open vs Closed</option>
+                            <option value="tight_loose">Tight vs Loose</option>
+                            <option value="pragmatic_normative">Pragmatic vs Normative</option>
+                            <option value="agility">Agility</option>
+                            <option value="collaboration">Collaboration</option>
+                            <option value="customer_orientation">Customer Orientation</option>
+                            <option value="diversity">Diversity</option>
+                            <option value="execution">Execution</option>
+                            <option value="innovation">Innovation</option>
+                            <option value="integrity">Integrity</option>
+                            <option value="performance">Performance</option>
+                            <option value="respect">Respect</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="trendsChartContainer" style="display: none;" class="chart-container">
+                <canvas id="cultureQuarterlyChart" style="max-height: 400px;"></canvas>
+            </div>
+            
+            <div id="trendsMessage" style="text-align: center; color: #7f8c8d; padding: 3rem;">
+                Select a company and dimension to view quarterly trends
+            </div>
+        </div>
+        
+        <!-- Comparison Matrix Tab -->
+        <div id="comparisonTab" class="culture-tab-content" style="display: none;">
+            <div class="chart-container">
+                <h3 style="margin-bottom: 1.5rem;">Compare Multiple Companies</h3>
+                <div class="controls-grid">
+                    <div class="control-group">
+                        <label for="compareCompanies1">Company 1:</label>
+                        <select id="compareCompanies1" onchange="loadComparisonMatrix()">
+                            <option value="">Select...</option>
+                        </select>
+                    </div>
+                    <div class="control-group">
+                        <label for="compareCompanies2">Company 2:</label>
+                        <select id="compareCompanies2" onchange="loadComparisonMatrix()">
+                            <option value="">Select...</option>
+                        </select>
+                    </div>
+                    <div class="control-group">
+                        <label for="compareCompanies3">Company 3 (Optional):</label>
+                        <select id="compareCompanies3" onchange="loadComparisonMatrix()">
+                            <option value="">Select...</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="comparisonMatrixContainer" style="display: none;" class="chart-container">
+                <div style="overflow-x: auto;">
+                    <table id="comparisonTable" style="width: 100%; border-collapse: collapse; margin-bottom: 2rem;">
+                        <thead style="background: #f5f7fa;">
+                            <tr>
+                                <th style="padding: 1rem; text-align: left; border-bottom: 2px solid #e0e0e0; font-weight: 600;">Dimension</th>
+                                <th style="padding: 1rem; text-align: center; border-bottom: 2px solid #e0e0e0; font-weight: 600;" id="comp1Header">Company 1</th>
+                                <th style="padding: 1rem; text-align: center; border-bottom: 2px solid #e0e0e0; font-weight: 600;" id="comp2Header">Company 2</th>
+                                <th style="padding: 1rem; text-align: center; border-bottom: 2px solid #e0e0e0; font-weight: 600;" id="comp3Header" style="display: none;">Company 3</th>
+                            </tr>
+                        </thead>
+                        <tbody id="comparisonTableBody"></tbody>
+                    </table>
+                </div>
+                
+                <canvas id="comparisonChart" style="max-height: 400px;"></canvas>
+            </div>
+            
+            <div id="comparisonMessage" style="text-align: center; color: #7f8c8d; padding: 3rem;">
+                Select companies to compare their culture profiles
+            </div>
+        </div>
+        
+        <!-- Benchmarking Tab -->
+        <div id="benchmarkingTab" class="culture-tab-content" style="display: none;">
+            <div class="chart-container">
+                <h3 style="margin-bottom: 1.5rem;">Industry Benchmarking</h3>
+                <p style="color: #7f8c8d; margin-bottom: 1.5rem;">
+                    Compare your company against industry averages and peers
+                </p>
+                
+                <div class="controls-grid">
+                    <div class="control-group">
+                        <label for="benchmarkCompanySelect">Company:</label>
+                        <select id="benchmarkCompanySelect" onchange="loadBenchmarking()">
+                            <option value="">Select a company...</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="benchmarkingContainer" style="display: none;">
+                <!-- Hofstede Benchmarking -->
+                <div class="chart-container">
+                    <h3 style="margin-bottom: 1rem;">Hofstede Dimensions vs Industry Average</h3>
+                    <canvas id="hofstedeBenchmarkChart" style="max-height: 400px;"></canvas>
+                </div>
+                
+                <!-- MIT Big 9 Benchmarking -->
+                <div class="chart-container">
+                    <h3 style="margin-bottom: 1rem;">MIT Big 9 Dimensions vs Industry Average</h3>
+                    <canvas id="mitBenchmarkChart" style="max-height: 400px;"></canvas>
+                </div>
+                
+                <!-- Percentile Rankings -->
+                <div class="chart-container">
+                    <h3 style="margin-bottom: 1.5rem;">Percentile Rankings</h3>
+                    <div id="percentileRankings" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem;"></div>
+                </div>
+            </div>
+            
+            <div id="benchmarkingMessage" style="text-align: center; color: #7f8c8d; padding: 3rem;">
+                Select a company to view industry benchmarking
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .culture-tab-content {
+        animation: fadeIn 0.3s ease-in;
+    }
+    
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+        }
+        to {
+            opacity: 1;
+        }
+    }
+    
+    .tab-button {
+        transition: all 0.3s ease;
+    }
+    
+    .tab-button:hover {
+        color: #667eea !important;
+    }
+    
+    .tab-button.active {
+        border-bottom-color: #667eea !important;
+        color: #667eea !important;
+    }
+</style>
