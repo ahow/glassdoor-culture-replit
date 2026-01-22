@@ -16,7 +16,7 @@ def get_db_connection():
     DATABASE_URL = os.environ.get('DATABASE_URL')
     if DATABASE_URL and DATABASE_URL.startswith('postgres://'):
         DATABASE_URL = DATABASE_URL.replace('postgres://', 'postgresql://', 1)
-    return psycopg2.connect(DATABASE_URL, cursor_factory=RealDictCursor, sslmode='require')
+    return psycopg2.connect(DATABASE_URL, cursor_factory=RealDictCursor)
 
 def score_all_reviews_batch():
     """Score all reviews in batches"""

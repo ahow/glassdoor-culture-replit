@@ -67,7 +67,7 @@ def get_db_connection():
         if database_url.startswith('postgres://'):
             database_url = database_url.replace('postgres://', 'postgresql://', 1)
         
-        conn = psycopg2.connect(database_url, sslmode='require')
+        conn = psycopg2.connect(database_url)
         return conn
     except Exception as e:
         logger.error(f"Database connection error: {e}")
