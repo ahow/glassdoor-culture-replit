@@ -1,6 +1,37 @@
-node_modules
-dist
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+ENV/
+.venv/
+.pythonlibs/
+
+# Node.js
+node_modules/
+dist/
+.cache/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Environment
+.env
+.env.local
+*.log
+
+# Replit
+.replit
+replit.nix
+.upm/
+.config/
+generated-icon.png
+
+# Misc
 .DS_Store
-server/public
-vite.config.ts.*
-*.tar.gz
+Thumbs.db
