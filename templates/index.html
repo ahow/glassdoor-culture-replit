@@ -451,6 +451,7 @@
         <!-- Main Navigation -->
         <div id="mainNav" class="main-nav-tabs" style="display: none;">
             <button class="main-tab-button active" onclick="switchMainTab('overview', event)">Overview</button>
+            <button class="main-tab-button" onclick="switchMainTab('companies', event)">Companies</button>
             <button class="main-tab-button" onclick="switchMainTab('trends', event)">Quarterly Trends</button>
             <button class="main-tab-button" onclick="switchMainTab('hofstede', event)">Hofstede Framework</button>
             <button class="main-tab-button" onclick="switchMainTab('mit', event)">MIT Framework</button>
@@ -459,6 +460,34 @@
         <!-- Overview Tab -->
         <div id="overviewTab" class="tab-content">
             <div id="dashboard" style="display: none;">
+                <div class="chart-container">
+                    <h2 class="chart-title">About This Dashboard</h2>
+                    <div style="padding: 1rem 0; line-height: 1.8;">
+                        <p style="margin-bottom: 1.5rem; font-size: 1.05rem; color: #475569;">
+                            This dashboard analyzes employee reviews from Glassdoor to extract and visualize organizational culture insights for financial services companies. The system uses two established culture analysis frameworks to provide a comprehensive view of workplace culture.
+                        </p>
+                        
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+                            <div style="background: #f8fafc; border-radius: 10px; padding: 1.25rem; border: 1px solid #e2e8f0;">
+                                <h3 style="color: #3b82f6; margin-bottom: 0.75rem; font-size: 1rem; font-weight: 600;">Hofstede Framework</h3>
+                                <p style="color: #64748b; font-size: 0.9rem;">6 bipolar dimensions measuring organizational culture on a -1 to +1 scale. This framework examines aspects like power distance, individualism vs. collectivism, and uncertainty avoidance.</p>
+                            </div>
+                            <div style="background: #f8fafc; border-radius: 10px; padding: 1.25rem; border: 1px solid #e2e8f0;">
+                                <h3 style="color: #6366f1; margin-bottom: 0.75rem; font-size: 1rem; font-weight: 600;">MIT Big 9 Framework</h3>
+                                <p style="color: #64748b; font-size: 0.9rem;">9 unipolar dimensions measuring culture attributes on a 0-10 scale. Covers agility, collaboration, customer orientation, diversity, execution, innovation, integrity, performance, and respect.</p>
+                            </div>
+                        </div>
+                        
+                        <h3 style="color: #1e293b; margin-bottom: 1rem; font-size: 1.1rem; font-weight: 600;">How It Works</h3>
+                        <ol style="color: #475569; padding-left: 1.5rem; margin-bottom: 1.5rem;">
+                            <li style="margin-bottom: 0.5rem;"><strong>Data Collection:</strong> Reviews are extracted from Glassdoor using their public data</li>
+                            <li style="margin-bottom: 0.5rem;"><strong>Culture Scoring:</strong> Each review is analyzed using keyword-based scoring algorithms for both frameworks</li>
+                            <li style="margin-bottom: 0.5rem;"><strong>Aggregation:</strong> Individual scores are aggregated to company-level metrics with confidence indicators</li>
+                            <li style="margin-bottom: 0.5rem;"><strong>Visualization:</strong> Results are presented through interactive charts for comparison and trend analysis</li>
+                        </ol>
+                    </div>
+                </div>
+                
                 <div class="stats-grid">
                     <div class="stat-card">
                         <div class="stat-label">Total Reviews</div>
@@ -477,13 +506,15 @@
                         <button class="export-button" onclick="exportToCSV()">Download CSV</button>
                     </div>
                 </div>
-                
-                <!-- Side-by-side charts -->
-
-                <div class="chart-container" id="companyDetailsContainer">
-                    <h2 class="chart-title">Company Details</h2>
-                    <div id="companyListContainer"></div>
-                </div>
+            </div>
+        </div>
+        
+        <!-- Companies Tab -->
+        <div id="companiesTab" class="tab-content" style="display: none;">
+            <div class="chart-container" id="companyDetailsContainer">
+                <h2 class="chart-title">Company Details</h2>
+                <p style="color: #64748b; margin-bottom: 1rem;">Select a company to view detailed culture analysis in the other tabs.</p>
+                <div id="companyListContainer"></div>
             </div>
         </div>
         
@@ -910,6 +941,7 @@
         
                 function switchMainTab(tab, event) {
             document.getElementById('overviewTab').style.display = 'none';
+            document.getElementById('companiesTab').style.display = 'none';
             document.getElementById('trendsTab').style.display = 'none';
             document.getElementById('hofstedeTab').style.display = 'none';
             document.getElementById('mitTab').style.display = 'none';
@@ -920,6 +952,8 @@
             
             if (tab === 'overview') {
                 document.getElementById('overviewTab').style.display = 'block';
+            } else if (tab === 'companies') {
+                document.getElementById('companiesTab').style.display = 'block';
             } else if (tab === 'trends') {
                 document.getElementById('trendsTab').style.display = 'block';
             } else if (tab === 'hofstede') {
