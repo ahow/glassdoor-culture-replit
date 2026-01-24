@@ -22,10 +22,25 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# API Configuration
-API_KEY = os.environ.get('RAPIDAPI_KEY')
+# API Configuration - Multiple keys for increased bandwidth
+API_KEYS = [
+    os.environ.get('RAPIDAPI_KEY_1'),
+    os.environ.get('RAPIDAPI_KEY_2'),
+    os.environ.get('RAPIDAPI_KEY'),  # Fallback to original key name
+]
+API_KEYS = [k for k in API_KEYS if k]  # Filter out None values
+API_KEY_INDEX = 0  # Current key index for rotation
 API_HOST = "real-time-glassdoor-data.p.rapidapi.com"
 API_BASE_URL = f"https://{API_HOST}"
+
+def get_api_key():
+    """Get the current API key, rotating through available keys"""
+    global API_KEY_INDEX
+    if not API_KEYS:
+        raise Exception("No RAPIDAPI keys configured. Set RAPIDAPI_KEY_1 and RAPIDAPI_KEY_2")
+    key = API_KEYS[API_KEY_INDEX % len(API_KEYS)]
+    API_KEY_INDEX += 1
+    return key
 
 # Database Configuration
 DATABASE_URL = os.environ.get('DATABASE_URL')
@@ -142,7 +157,6 @@ class GlassdoorExtractor:
             raise ValueError(f"Unknown company: {company_name}")
         
         self.headers = {
-            "x-rapidapi-key": API_KEY,
             "x-rapidapi-host": API_HOST
         }
         
@@ -161,7 +175,9 @@ class GlassdoorExtractor:
         
         for attempt in range(max_retries):
             try:
-                response = requests.get(url, headers=self.headers, params=params, timeout=30)
+                # Get fresh API key for each request (rotation for increased bandwidth)
+                request_headers = {**self.headers, "x-rapidapi-key": get_api_key()}
+                response = requests.get(url, headers=request_headers, params=params, timeout=30)
                 
                 # Check for API errors (401, 429, etc.)
                 if response.status_code == 401:
