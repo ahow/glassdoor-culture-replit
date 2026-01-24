@@ -757,7 +757,7 @@ def get_quarterly_trends():
         MIN_REVIEWS_PER_QUARTER = 5
         
         main_trends = []
-        for row in reversed(quarterly_data):  # Reverse to show chronologically
+        for row in quarterly_data:  # Already sorted ASC (oldest first = left side of chart)
             if row['quarter']:
                 # Skip quarters with fewer than minimum reviews
                 if row['review_count'] < MIN_REVIEWS_PER_QUARTER:
