@@ -14,13 +14,39 @@ logger = logging.getLogger(__name__)
 
 EXCEL_PATH = 'attached_assets/asset_manager_comprehensive_database_1769351810411.xlsx'
 
-COMPANY_NAME_MAPPING = {
-    'State Street (Corp)': 'State Street',
-    'Goldman Sachs Group': 'Goldman Sachs Group',
+GLASSDOOR_TO_EXCEL_NAME = {
+    'State Street': 'State Street (Corp)',
+    'Goldman Sachs Group': 'Goldman Sachs',
     'Morgan Stanley Inv. Mgmt.': 'Morgan Stanley',
     'Legal & General Group': 'Legal & General',
-    'J.P. Morgan Chase': 'J.P. Morgan Chase',
-    'Fidelity Investments': 'Fidelity Investments',
+}
+
+EXCEL_TO_GLASSDOOR_NAME = {v: k for k, v in GLASSDOOR_TO_EXCEL_NAME.items()}
+
+BUSINESS_MODEL_OVERRIDES = {
+    'Fidelity Investments': 'Traditional',
+    'Vanguard Group': 'Traditional',
+    'Goldman Sachs Group': 'Traditional',
+    'J.P. Morgan Chase': 'Traditional',
+    'HDFC Asset Management': 'Traditional',
+    'UBS Group': 'Traditional',
+    'Morgan Stanley Inv. Mgmt.': 'Traditional',
+    'State Street': 'Traditional',
+    'Northern Trust': 'Traditional',
+    'Capital Group': 'Traditional',
+    'Wellington Management': 'Traditional',
+    'Fidelity International': 'Traditional',
+    'Dimensional Fund Advisors': 'Traditional',
+    'Julius Baer': 'Traditional',
+    'BNY Investments': 'Traditional',
+    'BNP Paribas': 'Traditional',
+    'AXA Group': 'Insurance/Wealth',
+    'Allianz Group': 'Insurance/Wealth',
+    'Equitable Holdings': 'Insurance/Wealth',
+    'Eurazeo': 'Alternative',
+    'CVC Capital Partners': 'Alternative',
+    'Partners Group': 'Alternative',
+    'Sofina': 'Alternative',
 }
 
 BUSINESS_MODEL_CATEGORIES = {
@@ -85,14 +111,21 @@ class PerformanceAnalyzer:
             ].copy()
     
     def normalize_company_name(self, name: str) -> str:
-        if name in COMPANY_NAME_MAPPING:
-            return COMPANY_NAME_MAPPING[name]
+        if name in GLASSDOOR_TO_EXCEL_NAME:
+            return GLASSDOOR_TO_EXCEL_NAME[name]
         return name
     
     def get_business_model(self, company: str) -> str:
+        if company in BUSINESS_MODEL_OVERRIDES:
+            return BUSINESS_MODEL_OVERRIDES[company]
+        
+        excel_name = self.normalize_company_name(company)
+        
         if self.business_perf_data is None:
             return 'Unknown'
-        row = self.business_perf_data[self.business_perf_data['Company'] == company]
+        row = self.business_perf_data[self.business_perf_data['Company'] == excel_name]
+        if row.empty:
+            row = self.business_perf_data[self.business_perf_data['Company'] == company]
         if row.empty:
             return 'Unknown'
         notes = row['Notes'].values[0]
@@ -111,6 +144,7 @@ class PerformanceAnalyzer:
         
         normalized = self.normalize_company_name(company)
         metrics = {'company': company, 'matched_name': normalized}
+        metrics['business_model'] = self.get_business_model(company)
         
         if self.business_perf_data is not None:
             row = self.business_perf_data[self.business_perf_data['Company'] == normalized]
@@ -119,7 +153,6 @@ class PerformanceAnalyzer:
                 metrics['roe_5y_avg'] = row['5Y Avg ROE (%)'].values[0] if not pd.isna(row['5Y Avg ROE (%)'].values[0]) else None
                 metrics['aum_2024'] = row['2024 AUM ($bn)'].values[0] if not pd.isna(row['2024 AUM ($bn)'].values[0]) else None
                 metrics['rev_yield_bps'] = row['Rev Yield (bps)'].values[0] if not pd.isna(row['Rev Yield (bps)'].values[0]) else None
-                metrics['business_model'] = self.get_business_model(normalized)
         
         if self.financials_data is not None:
             row = self.financials_data[self.financials_data['Company'] == normalized]
