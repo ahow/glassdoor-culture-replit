@@ -463,6 +463,7 @@
             <button class="main-tab-button" onclick="switchMainTab('trends', event)">Quarterly Trends</button>
             <button class="main-tab-button" onclick="switchMainTab('hofstede', event)">Hofstede Framework</button>
             <button class="main-tab-button" onclick="switchMainTab('mit', event)">MIT Framework</button>
+            <button class="main-tab-button" onclick="switchMainTab('insights', event)">Performance Insights</button>
         </div>
         
         <!-- Overview Tab -->
@@ -932,6 +933,70 @@
                 </div>
             </div>
         </div>
+        
+        <!-- Performance Insights Tab -->
+        <div id="insightsTab" class="tab-content" style="display: none;">
+            <div class="chart-container">
+                <h2 class="chart-title">Culture-Performance Correlation Analysis</h2>
+                <p style="color: #64748b; margin-bottom: 1.5rem;">
+                    Discover which culture dimensions are most strongly associated with business performance. This analysis correlates Hofstede and MIT culture scores with key financial metrics including ROE, AUM growth, and shareholder returns.
+                </p>
+                
+                <div id="insightsLoading" style="text-align: center; padding: 2rem; color: #64748b;">
+                    Loading correlation analysis...
+                </div>
+                
+                <div id="insightsContent" style="display: none;">
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-label">Companies Analyzed</div>
+                            <div class="stat-value" id="insightsCompanyCount">0</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Culture Dimensions</div>
+                            <div class="stat-value">15</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Performance Metrics</div>
+                            <div class="stat-value">4</div>
+                        </div>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)); gap: 1.5rem; margin-top: 1.5rem;">
+                        <div style="background: #f0fdf4; border-radius: 10px; padding: 1.25rem; border: 1px solid #bbf7d0;">
+                            <h3 style="color: #16a34a; margin-bottom: 1rem; font-size: 1rem; font-weight: 600;">Strongest Positive Correlations</h3>
+                            <p style="color: #64748b; font-size: 0.85rem; margin-bottom: 1rem;">Culture dimensions associated with stronger business performance</p>
+                            <div id="positiveCorrelations"></div>
+                        </div>
+                        <div style="background: #fef2f2; border-radius: 10px; padding: 1.25rem; border: 1px solid #fecaca;">
+                            <h3 style="color: #dc2626; margin-bottom: 1rem; font-size: 1rem; font-weight: 600;">Strongest Negative Correlations</h3>
+                            <p style="color: #64748b; font-size: 0.85rem; margin-bottom: 1rem;">Culture dimensions inversely related to business performance</p>
+                            <div id="negativeCorrelations"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="chart-container" style="margin-top: 2rem;">
+                        <h3 style="color: #1e293b; margin-bottom: 1rem; font-size: 1.1rem; font-weight: 600;">Correlation Heatmap: Culture vs ROE</h3>
+                        <canvas id="correlationChart" style="max-height: 400px;"></canvas>
+                    </div>
+                    
+                    <div class="chart-container" style="margin-top: 2rem;">
+                        <h3 style="color: #1e293b; margin-bottom: 1rem; font-size: 1.1rem; font-weight: 600;">Top Performing Companies</h3>
+                        <div id="performanceRankings"></div>
+                    </div>
+                    
+                    <div style="background: #f8fafc; border-radius: 10px; padding: 1.25rem; border: 1px solid #e2e8f0; margin-top: 2rem;">
+                        <h3 style="color: #1e293b; margin-bottom: 0.75rem; font-size: 1rem; font-weight: 600;">Methodology Notes</h3>
+                        <ul style="color: #64748b; font-size: 0.9rem; margin: 0; padding-left: 1.5rem; line-height: 1.7;">
+                            <li>Correlations use Pearson coefficient; values closer to +1 or -1 indicate stronger relationships</li>
+                            <li>Performance scores are normalized within business model categories (Traditional vs Alternative managers)</li>
+                            <li>Composite score weights: ROE (30%), AUM Growth (25%), TSR (25%), Operating Margin (20%)</li>
+                            <li>Statistical significance: correlations marked if p-value less than 0.05</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
     
     <script>
@@ -951,6 +1016,7 @@
             document.getElementById('trendsTab').style.display = 'none';
             document.getElementById('hofstedeTab').style.display = 'none';
             document.getElementById('mitTab').style.display = 'none';
+            document.getElementById('insightsTab').style.display = 'none';
             
             document.querySelectorAll('.main-tab-button').forEach(btn => {
                 btn.classList.remove('active');
@@ -968,6 +1034,9 @@
             } else if (tab === 'mit') {
                 document.getElementById('mitTab').style.display = 'block';
                 loadCultureCompanies('mit');
+            } else if (tab === 'insights') {
+                document.getElementById('insightsTab').style.display = 'block';
+                loadPerformanceInsights();
             }
             
             event.target.classList.add('active');
@@ -1988,6 +2057,158 @@
             } catch (error) {
                 console.error('Error loading trends:', error);
                 document.getElementById('trendsMessage').textContent = 'Error loading trends data';
+            }
+        }
+        
+        let insightsLoaded = false;
+        window.correlationChart = null;
+        
+        async function loadPerformanceInsights() {
+            if (insightsLoaded) return;
+            
+            try {
+                const [corrResponse, rankResponse] = await Promise.all([
+                    fetch('/api/performance-correlation'),
+                    fetch('/api/performance-rankings')
+                ]);
+                
+                const corrData = await corrResponse.json();
+                const rankData = await rankResponse.json();
+                
+                if (!corrData.success) {
+                    document.getElementById('insightsLoading').textContent = 'Error loading correlation data';
+                    return;
+                }
+                
+                document.getElementById('insightsCompanyCount').textContent = corrData.companies_with_both || 0;
+                
+                const positiveContainer = document.getElementById('positiveCorrelations');
+                const negativeContainer = document.getElementById('negativeCorrelations');
+                
+                const formatDimension = (dim) => {
+                    const names = {
+                        'process_results': 'Process vs Results',
+                        'job_employee': 'Job vs Employee',
+                        'professional_parochial': 'Professional vs Parochial',
+                        'open_closed': 'Open vs Closed',
+                        'tight_loose': 'Tight vs Loose',
+                        'pragmatic_normative': 'Pragmatic vs Normative',
+                        'agility': 'Agility',
+                        'collaboration': 'Collaboration',
+                        'customer_orientation': 'Customer Orientation',
+                        'diversity': 'Diversity',
+                        'execution': 'Execution',
+                        'innovation': 'Innovation',
+                        'integrity': 'Integrity',
+                        'performance': 'Performance',
+                        'respect': 'Respect'
+                    };
+                    return names[dim] || dim;
+                };
+                
+                const formatMetric = (metric) => {
+                    const names = {
+                        'roe_5y_avg': '5Y Avg ROE',
+                        'aum_cagr_5y': 'AUM Growth',
+                        'tsr_cagr_5y': 'Shareholder Returns',
+                        'op_margin_5y_avg': 'Operating Margin',
+                        'composite_score': 'Composite Score'
+                    };
+                    return names[metric] || metric;
+                };
+                
+                const positive = corrData.correlations?.summary?.strongest_positive || [];
+                positiveContainer.innerHTML = positive.map(item => {
+                    const corr = (item.correlation * 100).toFixed(0);
+                    return '<div style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid #dcfce7;">' +
+                        '<span style="color: #374151; font-size: 0.9rem;">' + formatDimension(item.dimension) + ' vs ' + formatMetric(item.metric) + '</span>' +
+                        '<span style="color: #16a34a; font-weight: 600; font-size: 0.9rem;">r = +' + (item.correlation || 0).toFixed(2) + '</span>' +
+                    '</div>';
+                }).join('');
+                
+                const negative = corrData.correlations?.summary?.strongest_negative || [];
+                negativeContainer.innerHTML = negative.map(item => {
+                    return '<div style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid #fee2e2;">' +
+                        '<span style="color: #374151; font-size: 0.9rem;">' + formatDimension(item.dimension) + ' vs ' + formatMetric(item.metric) + '</span>' +
+                        '<span style="color: #dc2626; font-weight: 600; font-size: 0.9rem;">r = ' + (item.correlation || 0).toFixed(2) + '</span>' +
+                    '</div>';
+                }).join('');
+                
+                if (rankData.success && rankData.rankings) {
+                    const rankings = rankData.rankings.slice(0, 15);
+                    const rankingsContainer = document.getElementById('performanceRankings');
+                    rankingsContainer.innerHTML = '<table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">' +
+                        '<thead><tr style="background: #f8fafc; border-bottom: 2px solid #e2e8f0;">' +
+                        '<th style="padding: 0.75rem; text-align: left; color: #64748b;">Rank</th>' +
+                        '<th style="padding: 0.75rem; text-align: left; color: #64748b;">Company</th>' +
+                        '<th style="padding: 0.75rem; text-align: left; color: #64748b;">Business Model</th>' +
+                        '<th style="padding: 0.75rem; text-align: right; color: #64748b;">Composite Score</th>' +
+                        '<th style="padding: 0.75rem; text-align: right; color: #64748b;">5Y ROE</th>' +
+                        '<th style="padding: 0.75rem; text-align: right; color: #64748b;">AUM CAGR</th>' +
+                        '</tr></thead><tbody>' +
+                        rankings.map(r => {
+                            return '<tr style="border-bottom: 1px solid #e2e8f0;">' +
+                                '<td style="padding: 0.75rem; color: #374151;">' + r.rank + '</td>' +
+                                '<td style="padding: 0.75rem; color: #1e293b; font-weight: 500;">' + r.company + '</td>' +
+                                '<td style="padding: 0.75rem; color: #64748b;">' + (r.business_model || '-') + '</td>' +
+                                '<td style="padding: 0.75rem; text-align: right; color: #3b82f6; font-weight: 600;">' + (r.composite_score || '-') + '</td>' +
+                                '<td style="padding: 0.75rem; text-align: right; color: #374151;">' + (r.roe_5y_avg ? r.roe_5y_avg.toFixed(1) + '%' : '-') + '</td>' +
+                                '<td style="padding: 0.75rem; text-align: right; color: #374151;">' + (r.aum_cagr_5y ? r.aum_cagr_5y.toFixed(1) + '%' : '-') + '</td>' +
+                            '</tr>';
+                        }).join('') +
+                        '</tbody></table>';
+                }
+                
+                const hofstedeCorrs = corrData.correlations?.hofstede || {};
+                const mitCorrs = corrData.correlations?.mit || {};
+                const allDims = [...Object.keys(hofstedeCorrs), ...Object.keys(mitCorrs)];
+                const roeCorrs = allDims.map(dim => {
+                    const data = hofstedeCorrs[dim] || mitCorrs[dim] || {};
+                    return data.roe_5y_avg?.correlation || 0;
+                });
+                
+                const ctx = document.getElementById('correlationChart').getContext('2d');
+                if (window.correlationChart) window.correlationChart.destroy();
+                window.correlationChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: allDims.map(formatDimension),
+                        datasets: [{
+                            label: 'Correlation with ROE',
+                            data: roeCorrs,
+                            backgroundColor: roeCorrs.map(v => v >= 0 ? 'rgba(34, 197, 94, 0.7)' : 'rgba(239, 68, 68, 0.7)'),
+                            borderColor: roeCorrs.map(v => v >= 0 ? 'rgba(34, 197, 94, 1)' : 'rgba(239, 68, 68, 1)'),
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        indexAxis: 'y',
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        plugins: {
+                            legend: { display: false }
+                        },
+                        scales: {
+                            x: {
+                                min: -1,
+                                max: 1,
+                                grid: { color: '#e2e8f0' },
+                                ticks: { callback: v => v.toFixed(1) }
+                            },
+                            y: {
+                                grid: { display: false }
+                            }
+                        }
+                    }
+                });
+                
+                document.getElementById('insightsLoading').style.display = 'none';
+                document.getElementById('insightsContent').style.display = 'block';
+                insightsLoaded = true;
+                
+            } catch (error) {
+                console.error('Error loading performance insights:', error);
+                document.getElementById('insightsLoading').textContent = 'Error loading insights: ' + error.message;
             }
         }
         

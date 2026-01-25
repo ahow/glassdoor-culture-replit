@@ -13,6 +13,7 @@ from flask import Flask, render_template, jsonify, request
 from datetime import datetime, timedelta
 from statistics import mean
 from culture_scoring import score_review_with_dictionary
+from performance_analysis import performance_analyzer
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -1205,6 +1206,161 @@ def culture_benchmarking(company_name):
     
     except Exception as e:
         logger.error(f"Error in culture_benchmarking: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+# ============================================================================
+# PERFORMANCE CORRELATION API
+# ============================================================================
+
+@app.route('/api/performance-correlation', methods=['GET'])
+def get_performance_correlation():
+    """Get correlation analysis between culture metrics and business performance"""
+    try:
+        # Load performance data if not already loaded
+        if not performance_analyzer.loaded:
+            performance_analyzer.load_data()
+        
+        # Get all companies with culture data
+        conn = get_db_connection()
+        if not conn:
+            return jsonify({'success': False, 'error': 'Database connection failed'}), 500
+        
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        cursor.execute('SELECT DISTINCT company_name FROM reviews ORDER BY company_name')
+        culture_companies = [row['company_name'] for row in cursor.fetchall()]
+        conn.close()
+        
+        # Collect culture and performance data for each company
+        culture_data = []
+        performance_data = []
+        
+        peer_stats = performance_analyzer.get_peer_statistics()
+        
+        for company in culture_companies:
+            # Get culture metrics
+            metrics = get_cached_metrics(company)
+            if not metrics:
+                metrics = get_company_metrics(company)
+            
+            if metrics:
+                culture_data.append({
+                    'company': company,
+                    'hofstede': metrics.get('hofstede', {}),
+                    'mit': metrics.get('mit_big_9', {})
+                })
+            
+            # Get performance metrics
+            perf_metrics = performance_analyzer.get_performance_metrics(company)
+            if perf_metrics and len(perf_metrics) > 2:
+                # Calculate composite score
+                perf_metrics['composite_score'] = performance_analyzer.calculate_composite_score(
+                    perf_metrics, peer_stats
+                )
+                performance_data.append(perf_metrics)
+        
+        # Calculate correlations
+        correlations = performance_analyzer.calculate_correlation(culture_data, performance_data)
+        
+        return jsonify({
+            'success': True,
+            'correlations': correlations,
+            'companies_with_both': len([p for p in performance_data if p.get('composite_score')]),
+            'culture_companies': len(culture_companies),
+            'performance_companies': len(performance_data)
+        })
+    
+    except Exception as e:
+        logger.error(f"Error in performance correlation: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/company-performance', methods=['GET'])
+def get_company_performance():
+    """Get performance data for a specific company"""
+    try:
+        company_name = request.args.get('company')
+        if not company_name:
+            return jsonify({'success': False, 'error': 'company parameter required'}), 400
+        
+        if not performance_analyzer.loaded:
+            performance_analyzer.load_data()
+        
+        perf_metrics = performance_analyzer.get_performance_metrics(company_name)
+        
+        if not perf_metrics or len(perf_metrics) <= 2:
+            return jsonify({'success': False, 'error': f'No performance data for {company_name}'}), 404
+        
+        # Calculate composite score
+        peer_stats = performance_analyzer.get_peer_statistics(perf_metrics.get('business_model'))
+        perf_metrics['composite_score'] = performance_analyzer.calculate_composite_score(perf_metrics, peer_stats)
+        perf_metrics['peer_stats'] = peer_stats
+        
+        return jsonify({
+            'success': True,
+            'performance': perf_metrics
+        })
+    
+    except Exception as e:
+        logger.error(f"Error getting company performance: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/performance-rankings', methods=['GET'])
+def get_performance_rankings():
+    """Get ranked list of companies by composite performance score"""
+    try:
+        if not performance_analyzer.loaded:
+            performance_analyzer.load_data()
+        
+        # Get all companies with culture data
+        conn = get_db_connection()
+        if not conn:
+            return jsonify({'success': False, 'error': 'Database connection failed'}), 500
+        
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        cursor.execute('SELECT DISTINCT company_name FROM reviews ORDER BY company_name')
+        culture_companies = [row['company_name'] for row in cursor.fetchall()]
+        conn.close()
+        
+        rankings = []
+        peer_stats = performance_analyzer.get_peer_statistics()
+        
+        for company in culture_companies:
+            perf_metrics = performance_analyzer.get_performance_metrics(company)
+            if perf_metrics and len(perf_metrics) > 2:
+                composite = performance_analyzer.calculate_composite_score(perf_metrics, peer_stats)
+                if composite is not None:
+                    # Get culture metrics
+                    culture_metrics = get_cached_metrics(company)
+                    if not culture_metrics:
+                        culture_metrics = get_company_metrics(company)
+                    
+                    rankings.append({
+                        'company': company,
+                        'composite_score': round(composite, 1),
+                        'business_model': perf_metrics.get('business_model', 'Unknown'),
+                        'roe_5y_avg': perf_metrics.get('roe_5y_avg'),
+                        'aum_cagr_5y': round(perf_metrics.get('aum_cagr_5y', 0) * 100, 1) if perf_metrics.get('aum_cagr_5y') else None,
+                        'tsr_cagr_5y': perf_metrics.get('tsr_cagr_5y'),
+                        'culture_confidence': culture_metrics.get('overall_confidence', 0) if culture_metrics else 0
+                    })
+        
+        # Sort by composite score descending
+        rankings.sort(key=lambda x: x['composite_score'], reverse=True)
+        
+        # Add rank
+        for i, r in enumerate(rankings):
+            r['rank'] = i + 1
+        
+        return jsonify({
+            'success': True,
+            'rankings': rankings,
+            'total': len(rankings)
+        })
+    
+    except Exception as e:
+        logger.error(f"Error getting performance rankings: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 

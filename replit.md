@@ -22,10 +22,18 @@ The project contains two parallel implementations that serve different purposes:
 **Python/Flask Backend (Production Dashboard)**
 - `app.py` - Main Flask application serving the Glassdoor dashboard
 - `culture_scoring.py` - Hofstede and MIT Big 9 scoring algorithms using keyword dictionaries
+- `performance_analysis.py` - Culture-performance correlation analysis module
 - `extraction_worker.py` - RapidAPI data extraction for individual companies
 - `extraction_orchestrator.py` - Parallel extraction management across all companies
 - `templates/` - Jinja2 HTML templates for the dashboard UI
 - Database: PostgreSQL via psycopg2 with direct SQL queries
+
+**Performance Analysis Feature**
+- Loads company performance data from Excel (ROE, AUM growth, TSR, operating margins)
+- Calculates composite performance scores normalized within business model categories
+- Computes Pearson correlations between 15 culture dimensions and 4 performance metrics
+- API endpoints: `/api/performance-correlation`, `/api/company-performance`, `/api/performance-rankings`
+- Performance Insights tab displays correlation analysis with visualizations
 
 **TypeScript/Node.js Stack (Secondary/Development)**
 - `server/` - Express.js server with route handling
