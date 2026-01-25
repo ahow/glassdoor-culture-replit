@@ -183,104 +183,108 @@ def get_company_metrics(company_name):
                 except:
                     pass
         
-        # Score ALL reviews for culture dimensions with recency weighting
-        review_scores_list = []
+        # Use pre-calculated culture scores from review_culture_scores table
+        # This is much faster than scoring each review fresh
+        cursor.execute("""
+            SELECT 
+                COUNT(*) as score_count,
+                AVG(process_results_score) as process_results,
+                AVG(job_employee_score) as job_employee,
+                AVG(professional_parochial_score) as professional_parochial,
+                AVG(open_closed_score) as open_closed,
+                AVG(tight_loose_score) as tight_loose,
+                AVG(pragmatic_normative_score) as pragmatic_normative,
+                AVG(agility_score) as agility,
+                AVG(collaboration_score) as collaboration,
+                AVG(customer_orientation_score) as customer_orientation,
+                AVG(diversity_score) as diversity,
+                AVG(execution_score) as execution,
+                AVG(innovation_score) as innovation,
+                AVG(integrity_score) as integrity,
+                AVG(performance_score) as performance,
+                AVG(respect_score) as respect,
+                COUNT(CASE WHEN process_results_score IS NOT NULL THEN 1 END) as process_results_count,
+                COUNT(CASE WHEN job_employee_score IS NOT NULL THEN 1 END) as job_employee_count,
+                COUNT(CASE WHEN professional_parochial_score IS NOT NULL THEN 1 END) as professional_parochial_count,
+                COUNT(CASE WHEN open_closed_score IS NOT NULL THEN 1 END) as open_closed_count,
+                COUNT(CASE WHEN tight_loose_score IS NOT NULL THEN 1 END) as tight_loose_count,
+                COUNT(CASE WHEN pragmatic_normative_score IS NOT NULL THEN 1 END) as pragmatic_normative_count,
+                COUNT(CASE WHEN agility_score IS NOT NULL AND agility_score > 0 THEN 1 END) as agility_count,
+                COUNT(CASE WHEN collaboration_score IS NOT NULL AND collaboration_score > 0 THEN 1 END) as collaboration_count,
+                COUNT(CASE WHEN customer_orientation_score IS NOT NULL AND customer_orientation_score > 0 THEN 1 END) as customer_orientation_count,
+                COUNT(CASE WHEN diversity_score IS NOT NULL AND diversity_score > 0 THEN 1 END) as diversity_count,
+                COUNT(CASE WHEN execution_score IS NOT NULL AND execution_score > 0 THEN 1 END) as execution_count,
+                COUNT(CASE WHEN innovation_score IS NOT NULL AND innovation_score > 0 THEN 1 END) as innovation_count,
+                COUNT(CASE WHEN integrity_score IS NOT NULL AND integrity_score > 0 THEN 1 END) as integrity_count,
+                COUNT(CASE WHEN performance_score IS NOT NULL AND performance_score > 0 THEN 1 END) as performance_count,
+                COUNT(CASE WHEN respect_score IS NOT NULL AND respect_score > 0 THEN 1 END) as respect_count
+            FROM review_culture_scores
+            WHERE company_name = %s
+        """, (company_name,))
         
-        # Calculate recency weights (exponential decay)
-        now = datetime.now()
+        culture_result = cursor.fetchone()
+        scored_review_count = culture_result['score_count'] if culture_result else 0
         
-        for review in reviews:
-                
-            review_text = ' '.join([
-                str(review.get('summary', '') or ''),
-                str(review.get('pros', '') or ''),
-                str(review.get('cons', '') or '')
-            ])
-            if review_text.strip():
-                scores = score_review_with_dictionary(review_text)
-                if scores:
-                    # Calculate recency weight (more recent = higher weight)
-                    review_date = review.get('review_datetime')
-                    if review_date:
-                        # Handle timezone-aware datetime
-                        if review_date.tzinfo is not None:
-                            age_days = (now.replace(tzinfo=review_date.tzinfo) - review_date).days
-                        else:
-                            age_days = (now - review_date).days
-                        # Exponential decay: weight = exp(-age/365)
-                        recency_weight = math.exp(-age_days / 365.0)
-                    else:
-                        recency_weight = 1.0
-                    
-                    scores['recency_weight'] = recency_weight
-                    review_scores_list.append(scores)
+        # Map database columns to dimension names
+        hofstede_dim_map = {
+            'process_results': 'process_results',
+            'job_employee': 'job_employee', 
+            'professional_parochial': 'professional_parochial',
+            'open_closed': 'open_closed',
+            'tight_loose': 'tight_loose',
+            'pragmatic_normative': 'pragmatic_normative'
+        }
         
-        # Aggregate culture dimension scores with recency weighting
-        hofstede_scores = {dim: [] for dim in HOFSTEDE_DIMENSIONS}
-        hofstede_weights = {dim: [] for dim in HOFSTEDE_DIMENSIONS}
-        hofstede_evidence = {dim: 0 for dim in HOFSTEDE_DIMENSIONS}
-        mit_scores = {dim: [] for dim in MIT_DIMENSIONS}
-        mit_weights = {dim: [] for dim in MIT_DIMENSIONS}
-        mit_evidence = {dim: 0 for dim in MIT_DIMENSIONS}
+        mit_dim_map = {
+            'agility': 'agility',
+            'collaboration': 'collaboration',
+            'customer_orientation': 'customer_orientation',
+            'diversity': 'diversity',
+            'execution': 'execution',
+            'innovation': 'innovation',
+            'integrity': 'integrity',
+            'performance': 'performance',
+            'respect': 'respect'
+        }
         
-        for review_score in review_scores_list:
-            weight = review_score.get('recency_weight', 1.0)
-            
-            for dim in HOFSTEDE_DIMENSIONS:
-                if dim in review_score.get('hofstede', {}):
-                    score_val = review_score['hofstede'][dim].get('score')
-                    if score_val is not None:
-                        hofstede_scores[dim].append(score_val)
-                        hofstede_weights[dim].append(weight)
-                        # Track evidence count (keyword matches)
-                        hofstede_evidence[dim] += review_score['hofstede'][dim].get('evidence_count', 0)
-            
-            for dim in MIT_DIMENSIONS:
-                if dim in review_score.get('mit_big_9', {}):
-                    score_val = review_score['mit_big_9'][dim].get('score')
-                    if score_val is not None:
-                        mit_scores[dim].append(score_val)
-                        mit_weights[dim].append(weight)
-                        # Track evidence count (keyword matches)
-                        mit_evidence[dim] += review_score['mit_big_9'][dim].get('evidence_count', 0)
-        
-        # Calculate weighted averages for dimensions
-        def weighted_mean(values, weights):
-            """Calculate weighted mean"""
-            if not values:
-                return 0
-            total_weight = sum(weights)
-            if total_weight == 0:
-                return mean(values)
-            return sum(v * w for v, w in zip(values, weights)) / total_weight
-        
+        # Build Hofstede metrics from pre-calculated aggregates
         hofstede_avg = {}
-        for dim in HOFSTEDE_DIMENSIONS:
-            if hofstede_scores[dim]:
-                hofstede_avg[dim] = {
-                    'value': round(weighted_mean(hofstede_scores[dim], hofstede_weights[dim]), 2),
-                    'confidence': 0,  # Will be set by calculate_relative_confidence
-                    'confidence_level': 'High' if len(hofstede_scores[dim]) >= MIN_REVIEWS_FOR_HIGH_CONFIDENCE else 'Medium' if len(hofstede_scores[dim]) >= MIN_REVIEWS_FOR_MEDIUM_CONFIDENCE else 'Low',
-                    'total_evidence': hofstede_evidence[dim]
-                }
-            else:
+        if culture_result and scored_review_count > 0:
+            for db_col, dim in hofstede_dim_map.items():
+                value = culture_result.get(db_col)
+                count = culture_result.get(f'{db_col}_count', 0)
+                if value is not None and count > 0:
+                    hofstede_avg[dim] = {
+                        'value': round(float(value), 2),
+                        'confidence': 0,
+                        'confidence_level': 'High' if count >= MIN_REVIEWS_FOR_HIGH_CONFIDENCE else 'Medium' if count >= MIN_REVIEWS_FOR_MEDIUM_CONFIDENCE else 'Low',
+                        'total_evidence': count
+                    }
+                else:
+                    hofstede_avg[dim] = {'value': 0, 'confidence': 0, 'confidence_level': 'Low', 'total_evidence': 0}
+        else:
+            for dim in HOFSTEDE_DIMENSIONS:
                 hofstede_avg[dim] = {'value': 0, 'confidence': 0, 'confidence_level': 'Low', 'total_evidence': 0}
         
+        # Build MIT metrics from pre-calculated aggregates
         mit_avg = {}
-        for dim in MIT_DIMENSIONS:
-            if mit_scores[dim]:
-                # MIT scores should be on 0-10 scale
-                mit_value = weighted_mean(mit_scores[dim], mit_weights[dim])
-                # Ensure value is on 0-10 scale (multiply by 10 if needed)
-                if mit_value < 1:
-                    mit_value = mit_value * 10
-                mit_avg[dim] = {
-                    'value': round(mit_value, 2),
-                    'confidence': 0,  # Will be set by calculate_relative_confidence
-                    'confidence_level': 'High' if len(mit_scores[dim]) >= MIN_REVIEWS_FOR_HIGH_CONFIDENCE else 'Medium' if len(mit_scores[dim]) >= MIN_REVIEWS_FOR_MEDIUM_CONFIDENCE else 'Low',
-                    'total_evidence': mit_evidence[dim]
-                }
-            else:
+        if culture_result and scored_review_count > 0:
+            for db_col, dim in mit_dim_map.items():
+                value = culture_result.get(db_col)
+                count = culture_result.get(f'{db_col}_count', 0)
+                if value is not None and count > 0:
+                    # MIT scores are stored on 0-1 scale, convert to 0-10
+                    mit_value = float(value) * 10 if float(value) <= 1 else float(value)
+                    mit_avg[dim] = {
+                        'value': round(mit_value, 2),
+                        'confidence': 0,
+                        'confidence_level': 'High' if count >= MIN_REVIEWS_FOR_HIGH_CONFIDENCE else 'Medium' if count >= MIN_REVIEWS_FOR_MEDIUM_CONFIDENCE else 'Low',
+                        'total_evidence': count
+                    }
+                else:
+                    mit_avg[dim] = {'value': 0, 'confidence': 0, 'confidence_level': 'Low', 'total_evidence': 0}
+        else:
+            for dim in MIT_DIMENSIONS:
                 mit_avg[dim] = {'value': 0, 'confidence': 0, 'confidence_level': 'Low', 'total_evidence': 0}
         
         metrics = {
