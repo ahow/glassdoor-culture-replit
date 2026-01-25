@@ -196,6 +196,14 @@
             margin: 0 auto;
         }
         
+        /* Ensure hidden tabs are completely invisible */
+        .tab-content[style*="display: none"] {
+            display: none !important;
+            visibility: hidden;
+            height: 0;
+            overflow: hidden;
+        }
+        
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));

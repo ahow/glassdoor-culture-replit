@@ -745,10 +745,32 @@ def get_industry_average():
         hofstede_result = {}
         mit_result = {}
         
+        # Calculate max evidence across all dimensions for relative confidence
+        all_company_metrics = []
+        for company_name in company_names:
+            metrics = get_cached_metrics(company_name)
+            if not metrics:
+                metrics = get_company_metrics(company_name)
+            if metrics:
+                all_company_metrics.append(metrics)
+        
+        # Get max evidence values for normalization
+        hofstede_max_evidence = {}
+        mit_max_evidence = {}
+        for metrics in all_company_metrics:
+            for dim in HOFSTEDE_DIMENSIONS:
+                evidence = metrics.get('hofstede', {}).get(dim, {}).get('total_evidence', 0)
+                hofstede_max_evidence[dim] = max(hofstede_max_evidence.get(dim, 0), evidence)
+            for dim in MIT_DIMENSIONS:
+                evidence = metrics.get('mit_big_9', {}).get(dim, {}).get('total_evidence', 0)
+                mit_max_evidence[dim] = max(mit_max_evidence.get(dim, 0), evidence)
+        
         for dim in HOFSTEDE_DIMENSIONS:
             if hofstede_avg[dim]:
                 avg_val = mean(hofstede_avg[dim])
-                hofstede_result[dim] = {'value': round(avg_val, 3), 'confidence': 100, 'confidence_level': 'High'}
+                # Calculate average confidence for industry
+                avg_confidence = mean([m.get('hofstede', {}).get(dim, {}).get('confidence_score', 0) or 0 for m in all_company_metrics if m.get('hofstede', {}).get(dim)])
+                hofstede_result[dim] = {'value': round(avg_val, 3), 'confidence': round(avg_confidence, 1), 'confidence_level': 'High' if avg_confidence >= 50 else 'Medium' if avg_confidence >= 25 else 'Low'}
         
         # Get max values for MIT rescaling
         mit_max_values = get_mit_max_values()
@@ -759,12 +781,19 @@ def get_industry_average():
                 max_val = mit_max_values.get(dim, 1)
                 # Rescale: 10 * (company_value / max_company_value)
                 rescaled_value = round(10 * (raw_value / max_val), 2) if max_val > 0 else 0
+                # Calculate average confidence for industry
+                avg_confidence = mean([m.get('mit_big_9', {}).get(dim, {}).get('confidence_score', 0) or 0 for m in all_company_metrics if m.get('mit_big_9', {}).get(dim)])
                 mit_result[dim] = {
                     'value': rescaled_value,
-                    'raw_value': round(raw_value, 2),
-                    'confidence': 100,
-                    'confidence_level': 'High'
+                    'raw_value': round(raw_value, 4),
+                    'confidence': round(avg_confidence, 1),
+                    'confidence_level': 'High' if avg_confidence >= 50 else 'Medium' if avg_confidence >= 25 else 'Low'
                 }
+        
+        # Calculate overall average confidence
+        all_hof_conf = [v.get('confidence', 0) for v in hofstede_result.values()]
+        all_mit_conf = [v.get('confidence', 0) for v in mit_result.values()]
+        overall_conf = mean(all_hof_conf + all_mit_conf) if (all_hof_conf + all_mit_conf) else 0
         
         return jsonify({
             'success': True,
@@ -774,8 +803,8 @@ def get_industry_average():
             'metadata': {
                 'review_count': total_reviews,
                 'overall_rating': 0,
-                'overall_confidence': 100,
-                'overall_confidence_level': 'High',
+                'overall_confidence': round(overall_conf, 1),
+                'overall_confidence_level': 'High' if overall_conf >= 50 else 'Medium' if overall_conf >= 25 else 'Low',
                 'analysis_date': datetime.now().isoformat()
             }
         })
