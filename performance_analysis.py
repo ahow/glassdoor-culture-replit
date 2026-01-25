@@ -352,9 +352,10 @@ class PerformanceAnalyzer:
                         logger.error(f"Correlation error for {dim}/{metric}: {e}")
         
         if all_correlations:
-            sorted_corrs = sorted(all_correlations, key=lambda x: x['correlation'], reverse=True)
-            results['summary']['strongest_positive'] = sorted_corrs[:5]
-            results['summary']['strongest_negative'] = sorted_corrs[-5:][::-1]
+            composite_corrs = [c for c in all_correlations if c['metric'] == 'composite_score']
+            sorted_composite = sorted(composite_corrs, key=lambda x: x['correlation'], reverse=True)
+            results['summary']['strongest_positive'] = sorted_composite[:5]
+            results['summary']['strongest_negative'] = sorted_composite[-5:][::-1]
         
         return results
 

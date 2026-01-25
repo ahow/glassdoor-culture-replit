@@ -976,7 +976,7 @@
                     </div>
                     
                     <div class="chart-container" style="margin-top: 2rem;">
-                        <h3 style="color: #1e293b; margin-bottom: 1rem; font-size: 1.1rem; font-weight: 600;">Correlation Heatmap: Culture vs ROE</h3>
+                        <h3 style="color: #1e293b; margin-bottom: 1rem; font-size: 1.1rem; font-weight: 600;">Culture Dimensions vs Composite Performance Score</h3>
                         <canvas id="correlationChart" style="max-height: 400px;"></canvas>
                     </div>
                     
@@ -2119,9 +2119,8 @@
                 
                 const positive = corrData.correlations?.summary?.strongest_positive || [];
                 positiveContainer.innerHTML = positive.map(item => {
-                    const corr = (item.correlation * 100).toFixed(0);
                     return '<div style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid #dcfce7;">' +
-                        '<span style="color: #374151; font-size: 0.9rem;">' + formatDimension(item.dimension) + ' vs ' + formatMetric(item.metric) + '</span>' +
+                        '<span style="color: #374151; font-size: 0.9rem;">' + formatDimension(item.dimension) + '</span>' +
                         '<span style="color: #16a34a; font-weight: 600; font-size: 0.9rem;">r = +' + (item.correlation || 0).toFixed(2) + '</span>' +
                     '</div>';
                 }).join('');
@@ -2129,7 +2128,7 @@
                 const negative = corrData.correlations?.summary?.strongest_negative || [];
                 negativeContainer.innerHTML = negative.map(item => {
                     return '<div style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid #fee2e2;">' +
-                        '<span style="color: #374151; font-size: 0.9rem;">' + formatDimension(item.dimension) + ' vs ' + formatMetric(item.metric) + '</span>' +
+                        '<span style="color: #374151; font-size: 0.9rem;">' + formatDimension(item.dimension) + '</span>' +
                         '<span style="color: #dc2626; font-weight: 600; font-size: 0.9rem;">r = ' + (item.correlation || 0).toFixed(2) + '</span>' +
                     '</div>';
                 }).join('');
@@ -2162,9 +2161,9 @@
                 const hofstedeCorrs = corrData.correlations?.hofstede || {};
                 const mitCorrs = corrData.correlations?.mit || {};
                 const allDims = [...Object.keys(hofstedeCorrs), ...Object.keys(mitCorrs)];
-                const roeCorrs = allDims.map(dim => {
+                const compositeCorrs = allDims.map(dim => {
                     const data = hofstedeCorrs[dim] || mitCorrs[dim] || {};
-                    return data.roe_5y_avg?.correlation || 0;
+                    return data.composite_score?.correlation || 0;
                 });
                 
                 const ctx = document.getElementById('correlationChart').getContext('2d');
@@ -2174,10 +2173,10 @@
                     data: {
                         labels: allDims.map(formatDimension),
                         datasets: [{
-                            label: 'Correlation with ROE',
-                            data: roeCorrs,
-                            backgroundColor: roeCorrs.map(v => v >= 0 ? 'rgba(34, 197, 94, 0.7)' : 'rgba(239, 68, 68, 0.7)'),
-                            borderColor: roeCorrs.map(v => v >= 0 ? 'rgba(34, 197, 94, 1)' : 'rgba(239, 68, 68, 1)'),
+                            label: 'Correlation with Composite Performance',
+                            data: compositeCorrs,
+                            backgroundColor: compositeCorrs.map(v => v >= 0 ? 'rgba(34, 197, 94, 0.7)' : 'rgba(239, 68, 68, 0.7)'),
+                            borderColor: compositeCorrs.map(v => v >= 0 ? 'rgba(34, 197, 94, 1)' : 'rgba(239, 68, 68, 1)'),
                             borderWidth: 1
                         }]
                     },
