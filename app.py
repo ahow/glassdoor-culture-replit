@@ -130,6 +130,64 @@ def calculate_relative_confidence(metrics):
     
     return metrics
 
+# Cache for MIT max values (calculated once and reused)
+_mit_max_values_cache = {}
+
+def get_mit_max_values():
+    """Get maximum MIT values across all companies for rescaling"""
+    global _mit_max_values_cache
+    
+    # Return cached values if available and recent
+    if _mit_max_values_cache:
+        return _mit_max_values_cache
+    
+    try:
+        conn = get_db_connection()
+        if not conn:
+            return {dim: 1 for dim in MIT_DIMENSIONS}  # Fallback
+        
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        
+        # Get max values for each MIT dimension from pre-calculated scores
+        cursor.execute("""
+            SELECT 
+                MAX(agility_score) as agility,
+                MAX(collaboration_score) as collaboration,
+                MAX(customer_orientation_score) as customer_orientation,
+                MAX(diversity_score) as diversity,
+                MAX(execution_score) as execution,
+                MAX(innovation_score) as innovation,
+                MAX(integrity_score) as integrity,
+                MAX(performance_score) as performance,
+                MAX(respect_score) as respect
+            FROM review_culture_scores
+        """)
+        
+        result = cursor.fetchone()
+        cursor.close()
+        conn.close()
+        
+        if result:
+            _mit_max_values_cache = {
+                'agility': max(float(result['agility'] or 0), 0.01),
+                'collaboration': max(float(result['collaboration'] or 0), 0.01),
+                'customer_orientation': max(float(result['customer_orientation'] or 0), 0.01),
+                'diversity': max(float(result['diversity'] or 0), 0.01),
+                'execution': max(float(result['execution'] or 0), 0.01),
+                'innovation': max(float(result['innovation'] or 0), 0.01),
+                'integrity': max(float(result['integrity'] or 0), 0.01),
+                'performance': max(float(result['performance'] or 0), 0.01),
+                'respect': max(float(result['respect'] or 0), 0.01)
+            }
+        else:
+            _mit_max_values_cache = {dim: 1 for dim in MIT_DIMENSIONS}
+        
+        return _mit_max_values_cache
+        
+    except Exception as e:
+        logger.error(f"Error getting MIT max values: {e}")
+        return {dim: 1 for dim in MIT_DIMENSIONS}
+
 def get_company_metrics(company_name):
     """Get aggregated metrics for a company from the database"""
     try:
@@ -600,10 +658,18 @@ def get_culture_profile(company_name):
                 'confidence_level': data.get('confidence_level')
             }
         
+        # Get max values for MIT rescaling
+        mit_max_values = get_mit_max_values()
+        
         mit_response = {}
         for dim, data in metrics['mit_big_9'].items():
+            raw_value = data.get('value', 0) or 0
+            max_val = mit_max_values.get(dim, 1)
+            # Rescale: 10 * (company_value / max_company_value)
+            rescaled_value = round(10 * (raw_value / max_val), 2) if max_val > 0 else 0
             mit_response[dim] = {
-                'value': data.get('value'),
+                'value': rescaled_value,  # Use rescaled value as primary
+                'raw_value': raw_value,   # Keep raw value for reference
                 'confidence': int(data.get('confidence_score', 0)),
                 'confidence_level': data.get('confidence_level')
             }
@@ -669,10 +735,21 @@ def get_industry_average():
                 avg_val = mean(hofstede_avg[dim])
                 hofstede_result[dim] = {'value': round(avg_val, 3), 'confidence': 100, 'confidence_level': 'High'}
         
+        # Get max values for MIT rescaling
+        mit_max_values = get_mit_max_values()
+        
         for dim in MIT_DIMENSIONS:
             if mit_avg[dim]:
-                avg_val = mean(mit_avg[dim])
-                mit_result[dim] = {'value': round(avg_val, 1), 'confidence': 100, 'confidence_level': 'High'}
+                raw_value = mean(mit_avg[dim])
+                max_val = mit_max_values.get(dim, 1)
+                # Rescale: 10 * (company_value / max_company_value)
+                rescaled_value = round(10 * (raw_value / max_val), 2) if max_val > 0 else 0
+                mit_result[dim] = {
+                    'value': rescaled_value,
+                    'raw_value': round(raw_value, 2),
+                    'confidence': 100,
+                    'confidence_level': 'High'
+                }
         
         return jsonify({
             'success': True,

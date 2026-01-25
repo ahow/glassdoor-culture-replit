@@ -739,11 +739,9 @@
                     Select a company and dimension to view quarterly trends
                 </div>
             </div>
-
-                </div>
-            </div>
         </div>
-    <div id="mitTab" class="tab-content" style="display: none;">
+        
+        <div id="mitTab" class="tab-content" style="display: none;">
             <!-- MIT Framework -->
             
             <!-- Profile Sub-Tab -->
@@ -1276,7 +1274,7 @@
                 // Check if using new API format (nested with value and confidence)
                 if (profile.hofstede && profile.hofstede[pair.left]) {
                     mainValue = profile.hofstede[pair.left].value || 0;
-                    mainConfidence = profile.hofstede[pair.left].confidence_score || 0;
+                    mainConfidence = profile.hofstede[pair.left].confidence || profile.hofstede[pair.left].confidence_score || 0;
                     mainConfidenceLevel = profile.hofstede[pair.left].confidence_level || 'Unknown';
                 } else {
                     // Fall back to old format
@@ -1288,7 +1286,7 @@
                 if (comparisonProfile) {
                     if (comparisonProfile.hofstede && comparisonProfile.hofstede[pair.left]) {
                         compValue = comparisonProfile.hofstede[pair.left].value || 0;
-                        compConfidence = comparisonProfile.hofstede[pair.left].confidence_score || 0;
+                        compConfidence = comparisonProfile.hofstede[pair.left].confidence || comparisonProfile.hofstede[pair.left].confidence_score || 0;
                         compConfidenceLevel = comparisonProfile.hofstede[pair.left].confidence_level || 'Unknown';
                     } else {
                         compValue = comparisonProfile[`${pair.left}_mean`] || 0;
@@ -1389,7 +1387,10 @@
             // Extract confidence scores for MIT dimensions
             const mitConfidence = mitDims.map(d => {
                 if (profile.mit_big_9 && profile.mit_big_9[d.key]) {
-                    return profile.mit_big_9[d.key].confidence_score || 0;
+                    return profile.mit_big_9[d.key].confidence || profile.mit_big_9[d.key].confidence_score || 0;
+                }
+                if (profile.mit && profile.mit[d.key]) {
+                    return profile.mit[d.key].confidence || profile.mit[d.key].confidence_score || 0;
                 }
                 return 0;
             });
