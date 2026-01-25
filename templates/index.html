@@ -1851,9 +1851,60 @@
                     return q;
                 });
                 
+                // Build a map of quarter -> data for the main company
+                const mainDataMap = {};
+                data.main_trends.forEach(t => {
+                    mainDataMap[t.quarter] = { avg_rating: parseFloat(t.avg_rating), review_count: t.review_count };
+                });
+                
+                let allQuarters = [...quarters];
+                let compDataMap = {};
+                
+                if (comparator && comparator !== '-- None --') {
+                    const compResponse = await fetch(`/api/quarterly-trends?company=${encodeURIComponent(comparator)}&dimension=${encodeURIComponent(rating)}`);
+                    if (compResponse.ok) {
+                        const compData = await compResponse.json();
+                        compData.main_trends.forEach(t => {
+                            compDataMap[t.quarter] = { avg_rating: parseFloat(t.avg_rating), review_count: t.review_count };
+                            if (!allQuarters.includes(t.quarter)) {
+                                allQuarters.push(t.quarter);
+                            }
+                        });
+                    }
+                }
+                
+                // Sort all quarters chronologically
+                allQuarters.sort((a, b) => {
+                    const matchA = a.match(/Q(\d) (\d{4})/);
+                    const matchB = b.match(/Q(\d) (\d{4})/);
+                    if (matchA && matchB) {
+                        const yearA = parseInt(matchA[2]);
+                        const yearB = parseInt(matchB[2]);
+                        if (yearA !== yearB) return yearA - yearB;
+                        return parseInt(matchA[1]) - parseInt(matchB[1]);
+                    }
+                    return 0;
+                });
+                
+                // Format quarters for display
+                const allFormattedQuarters = allQuarters.map(q => {
+                    const match = q.match(/Q(\d) (\d{4})/);
+                    if (match) {
+                        const quarter = parseInt(match[1]);
+                        const year = parseInt(match[2]);
+                        const months = ['Jan', 'Apr', 'Jul', 'Oct'];
+                        return months[quarter - 1] + ' ' + year.toString().slice(-2);
+                    }
+                    return q;
+                });
+                
+                // Build aligned data arrays
+                const mainRatings = allQuarters.map(q => mainDataMap[q] ? mainDataMap[q].avg_rating : null);
+                const mainReviewCounts = allQuarters.map(q => mainDataMap[q] ? mainDataMap[q].review_count : null);
+                
                 const datasets = [{
                     label: data.company,
-                    data: ratings,
+                    data: mainRatings,
                     borderColor: '#667eea',
                     backgroundColor: 'rgba(102, 126, 234, 0.1)',
                     borderWidth: 2,
@@ -1861,29 +1912,27 @@
                     fill: true,
                     pointRadius: 4,
                     pointHoverRadius: 6,
-                    reviewCounts: reviewCounts
+                    spanGaps: false,
+                    reviewCounts: mainReviewCounts
                 }];
                 
-                if (comparator && comparator !== '-- None --') {
-                    const compResponse = await fetch(`/api/quarterly-trends?company=${encodeURIComponent(comparator)}&dimension=${encodeURIComponent(rating)}`);
-                    if (compResponse.ok) {
-                        const compData = await compResponse.json();
-                        const compRatings = compData.main_trends.map(t => parseFloat(t.avg_rating));
-                        const compReviewCounts = compData.main_trends.map(t => t.review_count);
-                        
-                        datasets.push({
-                            label: compData.company,
-                            data: compRatings,
-                            borderColor: '#f39c12',
-                            backgroundColor: 'rgba(243, 156, 18, 0.1)',
-                            borderWidth: 2,
-                            tension: 0.4,
-                            fill: true,
-                            pointRadius: 4,
-                            pointHoverRadius: 6,
-                            reviewCounts: compReviewCounts
-                        });
-                    }
+                if (Object.keys(compDataMap).length > 0) {
+                    const compRatings = allQuarters.map(q => compDataMap[q] ? compDataMap[q].avg_rating : null);
+                    const compReviewCounts = allQuarters.map(q => compDataMap[q] ? compDataMap[q].review_count : null);
+                    
+                    datasets.push({
+                        label: comparator,
+                        data: compRatings,
+                        borderColor: '#f39c12',
+                        backgroundColor: 'rgba(243, 156, 18, 0.1)',
+                        borderWidth: 2,
+                        tension: 0.4,
+                        fill: true,
+                        pointRadius: 4,
+                        pointHoverRadius: 6,
+                        spanGaps: false,
+                        reviewCounts: compReviewCounts
+                    });
                 }
                 
                 const ctx = document.getElementById('trendsChart').getContext('2d');
@@ -1891,7 +1940,7 @@
                 window.trendsChart = new Chart(ctx, {
                     type: 'line',
                     data: {
-                        labels: formattedQuarters,
+                        labels: allFormattedQuarters,
                         datasets: datasets
                     },
                     options: {
@@ -1903,8 +1952,8 @@
                                     afterLabel: function(context) {
                                         const dataset = context.dataset;
                                         const dataIndex = context.dataIndex;
-                                        const reviewCount = dataset.reviewCounts ? dataset.reviewCounts[dataIndex] : 0;
-                                        return 'Reviews: ' + (reviewCount || 0);
+                                        const reviewCount = dataset.reviewCounts ? dataset.reviewCounts[dataIndex] : null;
+                                        return reviewCount ? 'Reviews: ' + reviewCount : '';
                                     }
                                 }
                             }
@@ -1912,10 +1961,9 @@
                         scales: {
                             x: {
                                 ticks: {
-                                    callback: function(value, index) {
-                                        const step = Math.ceil(formattedQuarters.length / 8);
-                                        return index % step === 0 ? this.getLabelForValue(value) : '';
-                                    }
+                                    maxRotation: 0,
+                                    autoSkip: true,
+                                    maxTicksLimit: 10
                                 }
                             },
                             y: {
