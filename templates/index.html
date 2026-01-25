@@ -963,19 +963,6 @@
                     </div>
                     
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)); gap: 1.5rem; margin-top: 1.5rem;">
-                        <div style="background: #f0fdf4; border-radius: 10px; padding: 1.25rem; border: 1px solid #bbf7d0;">
-                            <h3 style="color: #16a34a; margin-bottom: 1rem; font-size: 1rem; font-weight: 600;">Strongest Positive Correlations</h3>
-                            <p style="color: #64748b; font-size: 0.85rem; margin-bottom: 1rem;">Culture dimensions associated with stronger business performance</p>
-                            <div id="positiveCorrelations"></div>
-                        </div>
-                        <div style="background: #fef2f2; border-radius: 10px; padding: 1.25rem; border: 1px solid #fecaca;">
-                            <h3 style="color: #dc2626; margin-bottom: 1rem; font-size: 1rem; font-weight: 600;">Strongest Negative Correlations</h3>
-                            <p style="color: #64748b; font-size: 0.85rem; margin-bottom: 1rem;">Culture dimensions inversely related to business performance</p>
-                            <div id="negativeCorrelations"></div>
-                        </div>
-                    </div>
-                    
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)); gap: 1.5rem; margin-top: 2rem;">
                         <div class="chart-container">
                             <h3 style="color: #1e293b; margin-bottom: 1rem; font-size: 1.1rem; font-weight: 600;">Hofstede Dimensions vs Composite Performance</h3>
                             <canvas id="perfHofstedeChart" style="max-height: 300px;"></canvas>
@@ -2089,9 +2076,6 @@
                 
                 document.getElementById('insightsCompanyCount').textContent = corrData.companies_with_both || 0;
                 
-                const positiveContainer = document.getElementById('positiveCorrelations');
-                const negativeContainer = document.getElementById('negativeCorrelations');
-                
                 const formatDimension = (dim) => {
                     const names = {
                         'process_results': 'Process vs Results',
@@ -2124,21 +2108,6 @@
                     return names[metric] || metric;
                 };
                 
-                const positive = corrData.correlations?.summary?.strongest_positive || [];
-                positiveContainer.innerHTML = positive.map(item => {
-                    return '<div style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid #dcfce7;">' +
-                        '<span style="color: #374151; font-size: 0.9rem;">' + formatDimension(item.dimension) + '</span>' +
-                        '<span style="color: #16a34a; font-weight: 600; font-size: 0.9rem;">r = +' + (item.correlation || 0).toFixed(2) + '</span>' +
-                    '</div>';
-                }).join('');
-                
-                const negative = corrData.correlations?.summary?.strongest_negative || [];
-                negativeContainer.innerHTML = negative.map(item => {
-                    return '<div style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid #fee2e2;">' +
-                        '<span style="color: #374151; font-size: 0.9rem;">' + formatDimension(item.dimension) + '</span>' +
-                        '<span style="color: #dc2626; font-weight: 600; font-size: 0.9rem;">r = ' + (item.correlation || 0).toFixed(2) + '</span>' +
-                    '</div>';
-                }).join('');
                 
                 if (rankData.success && rankData.rankings) {
                     const rankings = rankData.rankings;
