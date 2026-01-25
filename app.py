@@ -148,19 +148,34 @@ def get_mit_max_values():
         
         cursor = conn.cursor(cursor_factory=RealDictCursor)
         
-        # Get max values for each MIT dimension from pre-calculated scores
+        # Get max company-level average values for each MIT dimension
+        # This calculates AVG per company first, then takes MAX of those averages
         cursor.execute("""
             SELECT 
-                MAX(agility_score) as agility,
-                MAX(collaboration_score) as collaboration,
-                MAX(customer_orientation_score) as customer_orientation,
-                MAX(diversity_score) as diversity,
-                MAX(execution_score) as execution,
-                MAX(innovation_score) as innovation,
-                MAX(integrity_score) as integrity,
-                MAX(performance_score) as performance,
-                MAX(respect_score) as respect
-            FROM review_culture_scores
+                MAX(company_avg.agility) as agility,
+                MAX(company_avg.collaboration) as collaboration,
+                MAX(company_avg.customer_orientation) as customer_orientation,
+                MAX(company_avg.diversity) as diversity,
+                MAX(company_avg.execution) as execution,
+                MAX(company_avg.innovation) as innovation,
+                MAX(company_avg.integrity) as integrity,
+                MAX(company_avg.performance) as performance,
+                MAX(company_avg.respect) as respect
+            FROM (
+                SELECT 
+                    company_name,
+                    AVG(agility_score) as agility,
+                    AVG(collaboration_score) as collaboration,
+                    AVG(customer_orientation_score) as customer_orientation,
+                    AVG(diversity_score) as diversity,
+                    AVG(execution_score) as execution,
+                    AVG(innovation_score) as innovation,
+                    AVG(integrity_score) as integrity,
+                    AVG(performance_score) as performance,
+                    AVG(respect_score) as respect
+                FROM review_culture_scores
+                GROUP BY company_name
+            ) company_avg
         """)
         
         result = cursor.fetchone()
@@ -325,16 +340,16 @@ def get_company_metrics(company_name):
                 hofstede_avg[dim] = {'value': 0, 'confidence': 0, 'confidence_level': 'Low', 'total_evidence': 0}
         
         # Build MIT metrics from pre-calculated aggregates
+        # Store raw values - rescaling to 0-10 scale is done in the API response
         mit_avg = {}
         if culture_result and scored_review_count > 0:
             for db_col, dim in mit_dim_map.items():
                 value = culture_result.get(db_col)
                 count = culture_result.get(f'{db_col}_count', 0)
                 if value is not None and count > 0:
-                    # MIT scores are stored on 0-1 scale, convert to 0-10
-                    mit_value = float(value) * 10 if float(value) <= 1 else float(value)
+                    # Store raw value - rescaling happens in API response
                     mit_avg[dim] = {
-                        'value': round(mit_value, 2),
+                        'value': round(float(value), 4),  # Raw value
                         'confidence': 0,
                         'confidence_level': 'High' if count >= MIN_REVIEWS_FOR_HIGH_CONFIDENCE else 'Medium' if count >= MIN_REVIEWS_FOR_MEDIUM_CONFIDENCE else 'Low',
                         'total_evidence': count
