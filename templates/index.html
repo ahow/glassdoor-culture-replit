@@ -978,11 +978,11 @@
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)); gap: 1.5rem; margin-top: 2rem;">
                         <div class="chart-container">
                             <h3 style="color: #1e293b; margin-bottom: 1rem; font-size: 1.1rem; font-weight: 600;">Hofstede Dimensions vs Composite Performance</h3>
-                            <canvas id="hofstedeChart" style="max-height: 300px;"></canvas>
+                            <canvas id="perfHofstedeChart" style="max-height: 300px;"></canvas>
                         </div>
                         <div class="chart-container">
                             <h3 style="color: #1e293b; margin-bottom: 1rem; font-size: 1.1rem; font-weight: 600;">MIT Big 9 Dimensions vs Composite Performance</h3>
-                            <canvas id="mitChart" style="max-height: 300px;"></canvas>
+                            <canvas id="perfMitChart" style="max-height: 300px;"></canvas>
                         </div>
                     </div>
                     
@@ -2067,8 +2067,8 @@
         }
         
         let insightsLoaded = false;
-        window.hofstedeChart = null;
-        window.mitChart = null;
+        window.perfHofstedeChart = null;
+        window.perfMitChart = null;
         
         async function loadPerformanceInsights() {
             if (insightsLoaded) return;
@@ -2185,9 +2185,9 @@
                     }
                 };
                 
-                const hofstedeCtx = document.getElementById('hofstedeChart').getContext('2d');
-                if (window.hofstedeChart) window.hofstedeChart.destroy();
-                window.hofstedeChart = new Chart(hofstedeCtx, {
+                const hofstedeCtx = document.getElementById('perfHofstedeChart').getContext('2d');
+                if (window.perfHofstedeChart) window.perfHofstedeChart.destroy();
+                window.perfHofstedeChart = new Chart(hofstedeCtx, {
                     type: 'bar',
                     data: {
                         labels: hofstedeDims.map(formatDimension),
@@ -2202,9 +2202,9 @@
                     options: chartOptions
                 });
                 
-                const mitCtx = document.getElementById('mitChart').getContext('2d');
-                if (window.mitChart) window.mitChart.destroy();
-                window.mitChart = new Chart(mitCtx, {
+                const mitCtx = document.getElementById('perfMitChart').getContext('2d');
+                if (window.perfMitChart) window.perfMitChart.destroy();
+                window.perfMitChart = new Chart(mitCtx, {
                     type: 'bar',
                     data: {
                         labels: mitDims.map(formatDimension),

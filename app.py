@@ -1388,7 +1388,7 @@ def internal_error(error):
 if __name__ == '__main__':
     # Initialize cache table on startup
     init_cache_table()
-    app.run(debug=False, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+    app.run(debug=False, host='0.0.0.0', port=int(os.environ.get('FLASK_PORT', os.environ.get('PORT', 8080))))
 
 # Initialize cache table when app starts (for Gunicorn/production)
 init_cache_table()
