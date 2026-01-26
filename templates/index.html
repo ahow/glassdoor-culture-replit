@@ -2261,6 +2261,292 @@
             }
         }
         
+        // ============================================================================
+        // COMPANY ANALYSIS TAB
+        // ============================================================================
+        
+        let analysisCompaniesLoaded = false;
+        window.analysisHofstedeChart = null;
+        window.analysisMitChart = null;
+        window.analysisTrendChart = null;
+        
+        async function loadAnalysisCompanies() {
+            if (analysisCompaniesLoaded) return;
+            
+            try {
+                const response = await fetch('/api/companies-list');
+                const data = await response.json();
+                
+                if (data.success) {
+                    const select = document.getElementById('analysisCompany');
+                    data.companies.forEach(company => {
+                        const option = document.createElement('option');
+                        option.value = company.company_name;
+                        option.textContent = company.company_name;
+                        select.appendChild(option);
+                    });
+                    analysisCompaniesLoaded = true;
+                }
+            } catch (error) {
+                console.error('Error loading companies for analysis:', error);
+            }
+        }
+        
+        async function loadCompanyAnalysis() {
+            const companyName = document.getElementById('analysisCompany').value;
+            
+            if (!companyName) {
+                document.getElementById('analysisContent').style.display = 'none';
+                document.getElementById('analysisMessage').style.display = 'block';
+                return;
+            }
+            
+            document.getElementById('analysisMessage').style.display = 'none';
+            document.getElementById('analysisLoading').style.display = 'block';
+            document.getElementById('analysisContent').style.display = 'none';
+            
+            try {
+                const [analysisResponse, trendResponse] = await Promise.all([
+                    fetch('/api/company-analysis/' + encodeURIComponent(companyName)),
+                    fetch('/api/company-culture-trend/' + encodeURIComponent(companyName))
+                ]);
+                
+                const analysisData = await analysisResponse.json();
+                const trendData = await trendResponse.json();
+                
+                if (!analysisData.success) {
+                    document.getElementById('analysisLoading').textContent = 'Error loading company data';
+                    return;
+                }
+                
+                renderAnalysisCharts(analysisData, trendData);
+                
+                document.getElementById('analysisLoading').style.display = 'none';
+                document.getElementById('analysisContent').style.display = 'block';
+                
+            } catch (error) {
+                console.error('Error loading company analysis:', error);
+                document.getElementById('analysisLoading').textContent = 'Error: ' + error.message;
+            }
+        }
+        
+        function renderAnalysisCharts(analysisData, trendData) {
+            const formatDimension = (dim) => {
+                const names = {
+                    'process_results': 'Process vs Results',
+                    'job_employee': 'Job vs Employee',
+                    'professional_parochial': 'Professional vs Parochial',
+                    'open_closed': 'Open vs Closed',
+                    'tight_loose': 'Tight vs Loose',
+                    'pragmatic_normative': 'Pragmatic vs Normative',
+                    'agility': 'Agility',
+                    'collaboration': 'Collaboration',
+                    'customer_orientation': 'Customer Orientation',
+                    'diversity': 'Diversity',
+                    'execution': 'Execution',
+                    'innovation': 'Innovation',
+                    'integrity': 'Integrity',
+                    'performance': 'Performance',
+                    'respect': 'Respect'
+                };
+                return names[dim] || dim;
+            };
+            
+            // Hofstede Chart - Grouped bar with correlation-based colors
+            const hofstedeDims = Object.keys(analysisData.company.hofstede);
+            const hofstedeCompanyVals = hofstedeDims.map(d => analysisData.company.hofstede[d] || 0);
+            const hofstedeIndustryVals = hofstedeDims.map(d => analysisData.industry_average.hofstede[d] || 0);
+            const hofstedeCorrelations = hofstedeDims.map(d => analysisData.correlations.hofstede[d] || 0);
+            
+            const hofstedeCtx = document.getElementById('analysisHofstedeChart').getContext('2d');
+            if (window.analysisHofstedeChart) window.analysisHofstedeChart.destroy();
+            
+            window.analysisHofstedeChart = new Chart(hofstedeCtx, {
+                type: 'bar',
+                data: {
+                    labels: hofstedeDims.map(formatDimension),
+                    datasets: [
+                        {
+                            label: analysisData.company_name,
+                            data: hofstedeCompanyVals,
+                            backgroundColor: hofstedeCorrelations.map(c => c >= 0 ? 'rgba(59, 130, 246, 0.8)' : 'rgba(239, 68, 68, 0.8)'),
+                            borderColor: hofstedeCorrelations.map(c => c >= 0 ? 'rgba(59, 130, 246, 1)' : 'rgba(239, 68, 68, 1)'),
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'Industry Average',
+                            data: hofstedeIndustryVals,
+                            backgroundColor: 'rgba(148, 163, 184, 0.5)',
+                            borderColor: 'rgba(148, 163, 184, 1)',
+                            borderWidth: 1,
+                            borderDash: [5, 5]
+                        }
+                    ]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top' },
+                        tooltip: {
+                            callbacks: {
+                                afterLabel: function(context) {
+                                    if (context.datasetIndex === 0) {
+                                        const corr = hofstedeCorrelations[context.dataIndex];
+                                        return 'Performance correlation: ' + (corr >= 0 ? '+' : '') + corr.toFixed(2);
+                                    }
+                                    return '';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: { 
+                            min: -1, 
+                            max: 1,
+                            title: { display: true, text: 'Score (-1 to +1)' }
+                        },
+                        y: { grid: { display: false } }
+                    }
+                }
+            });
+            
+            // MIT Chart - Grouped bar with correlation-based colors
+            const mitDims = Object.keys(analysisData.company.mit);
+            const mitCompanyVals = mitDims.map(d => analysisData.company.mit[d] || 0);
+            const mitIndustryVals = mitDims.map(d => analysisData.industry_average.mit[d] || 0);
+            const mitCorrelations = mitDims.map(d => analysisData.correlations.mit[d] || 0);
+            
+            const mitCtx = document.getElementById('analysisMitChart').getContext('2d');
+            if (window.analysisMitChart) window.analysisMitChart.destroy();
+            
+            window.analysisMitChart = new Chart(mitCtx, {
+                type: 'bar',
+                data: {
+                    labels: mitDims.map(formatDimension),
+                    datasets: [
+                        {
+                            label: analysisData.company_name,
+                            data: mitCompanyVals,
+                            backgroundColor: mitCorrelations.map(c => c >= 0 ? 'rgba(99, 102, 241, 0.8)' : 'rgba(239, 68, 68, 0.8)'),
+                            borderColor: mitCorrelations.map(c => c >= 0 ? 'rgba(99, 102, 241, 1)' : 'rgba(239, 68, 68, 1)'),
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'Industry Average',
+                            data: mitIndustryVals,
+                            backgroundColor: 'rgba(148, 163, 184, 0.5)',
+                            borderColor: 'rgba(148, 163, 184, 1)',
+                            borderWidth: 1,
+                            borderDash: [5, 5]
+                        }
+                    ]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top' },
+                        tooltip: {
+                            callbacks: {
+                                afterLabel: function(context) {
+                                    if (context.datasetIndex === 0) {
+                                        const corr = mitCorrelations[context.dataIndex];
+                                        return 'Performance correlation: ' + (corr >= 0 ? '+' : '') + corr.toFixed(2);
+                                    }
+                                    return '';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: { 
+                            min: 0, 
+                            max: 10,
+                            title: { display: true, text: 'Score (0 to 10)' }
+                        },
+                        y: { grid: { display: false } }
+                    }
+                }
+            });
+            
+            // Trend Chart - Line chart for culture rating over time
+            if (trendData && trendData.success) {
+                const companyTrend = trendData.company_trend || [];
+                const industryTrend = trendData.industry_trend || [];
+                
+                // Merge periods and sort
+                const allPeriods = new Set([
+                    ...companyTrend.map(t => t.period),
+                    ...industryTrend.map(t => t.period)
+                ]);
+                const sortedPeriods = Array.from(allPeriods).sort((a, b) => {
+                    const [qa, ya] = a.replace('Q', '').split(' ');
+                    const [qb, yb] = b.replace('Q', '').split(' ');
+                    return (parseInt(ya) * 4 + parseInt(qa)) - (parseInt(yb) * 4 + parseInt(qb));
+                });
+                
+                const companyData = sortedPeriods.map(p => {
+                    const point = companyTrend.find(t => t.period === p);
+                    return point ? point.rating : null;
+                });
+                const industryData = sortedPeriods.map(p => {
+                    const point = industryTrend.find(t => t.period === p);
+                    return point ? point.rating : null;
+                });
+                
+                const trendCtx = document.getElementById('analysisTrendChart').getContext('2d');
+                if (window.analysisTrendChart) window.analysisTrendChart.destroy();
+                
+                window.analysisTrendChart = new Chart(trendCtx, {
+                    type: 'line',
+                    data: {
+                        labels: sortedPeriods,
+                        datasets: [
+                            {
+                                label: analysisData.company_name,
+                                data: companyData,
+                                borderColor: 'rgba(59, 130, 246, 1)',
+                                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                                fill: true,
+                                tension: 0.3,
+                                spanGaps: true
+                            },
+                            {
+                                label: 'Industry Average',
+                                data: industryData,
+                                borderColor: 'rgba(148, 163, 184, 1)',
+                                backgroundColor: 'rgba(148, 163, 184, 0.1)',
+                                fill: true,
+                                tension: 0.3,
+                                borderDash: [5, 5],
+                                spanGaps: true
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { position: 'top' }
+                        },
+                        scales: {
+                            y: {
+                                min: 1,
+                                max: 5,
+                                title: { display: true, text: 'Culture Rating' }
+                            },
+                            x: {
+                                title: { display: true, text: 'Quarter' }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+        
         loadData();
         loadCompaniesForTrends();
         setInterval(loadData, 60000);
