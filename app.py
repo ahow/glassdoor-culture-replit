@@ -1368,6 +1368,213 @@ def get_performance_rankings():
 # ERROR HANDLERS
 # ============================================================================
 
+@app.route('/api/company-analysis/<company_name>', methods=['GET'])
+def get_company_analysis(company_name):
+    """Get company analysis with culture scores, industry averages, and correlations"""
+    try:
+        # Get company culture profile
+        metrics = get_cached_metrics(company_name)
+        if not metrics:
+            metrics = get_company_metrics(company_name)
+            if metrics:
+                cache_metrics(company_name, metrics)
+        
+        if not metrics:
+            return jsonify({'success': False, 'error': 'Company not found'}), 404
+        
+        # Get industry averages
+        conn = get_db_connection()
+        if not conn:
+            return jsonify({'success': False, 'error': 'Database connection failed'}), 500
+        
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        cursor.execute("SELECT DISTINCT company_name FROM reviews ORDER BY company_name")
+        company_names = [row['company_name'] for row in cursor.fetchall()]
+        cursor.close()
+        conn.close()
+        
+        hofstede_avg = {dim: [] for dim in HOFSTEDE_DIMENSIONS}
+        mit_avg = {dim: [] for dim in MIT_DIMENSIONS}
+        
+        for name in company_names:
+            m = get_cached_metrics(name)
+            if not m:
+                m = get_company_metrics(name)
+            if m:
+                for dim in HOFSTEDE_DIMENSIONS:
+                    val = m.get('hofstede', {}).get(dim, {}).get('value', 0)
+                    hofstede_avg[dim].append(val)
+                for dim in MIT_DIMENSIONS:
+                    val = m.get('mit_big_9', {}).get(dim, {}).get('value', 0)
+                    mit_avg[dim].append(val)
+        
+        industry_hofstede = {}
+        industry_mit = {}
+        
+        for dim in HOFSTEDE_DIMENSIONS:
+            if hofstede_avg[dim]:
+                industry_hofstede[dim] = round(mean(hofstede_avg[dim]), 3)
+        
+        mit_max_values = get_mit_max_values()
+        for dim in MIT_DIMENSIONS:
+            if mit_avg[dim]:
+                raw_avg = mean(mit_avg[dim])
+                max_val = mit_max_values.get(dim, 1)
+                industry_mit[dim] = round(10 * (raw_avg / max_val), 2) if max_val > 0 else 0
+        
+        # Get correlations with composite score
+        if not performance_analyzer.loaded:
+            performance_analyzer.load_data()
+        
+        culture_data = []
+        performance_data = []
+        peer_stats = performance_analyzer.get_peer_statistics()
+        
+        for name in company_names:
+            m = get_cached_metrics(name)
+            if not m:
+                m = get_company_metrics(name)
+            if m:
+                culture_data.append({
+                    'company': name,
+                    'hofstede': m.get('hofstede', {}),
+                    'mit': m.get('mit_big_9', {})
+                })
+            perf_metrics = performance_analyzer.get_performance_metrics(name)
+            if perf_metrics and len(perf_metrics) > 2:
+                perf_metrics['composite_score'] = performance_analyzer.calculate_composite_score(
+                    perf_metrics, peer_stats
+                )
+                performance_data.append(perf_metrics)
+        
+        correlations = performance_analyzer.calculate_correlation(culture_data, performance_data)
+        
+        # Extract just the composite score correlations for each dimension
+        composite_corr = correlations.get('by_metric', {}).get('composite_score', {})
+        
+        hofstede_correlations = {}
+        mit_correlations = {}
+        
+        for dim in HOFSTEDE_DIMENSIONS:
+            hofstede_correlations[dim] = composite_corr.get(dim, 0)
+        for dim in MIT_DIMENSIONS:
+            mit_correlations[dim] = composite_corr.get(dim, 0)
+        
+        # Format company scores
+        company_hofstede = {}
+        company_mit = {}
+        
+        for dim in HOFSTEDE_DIMENSIONS:
+            company_hofstede[dim] = metrics.get('hofstede', {}).get(dim, {}).get('value', 0)
+        
+        for dim in MIT_DIMENSIONS:
+            raw_val = metrics.get('mit_big_9', {}).get(dim, {}).get('value', 0)
+            max_val = mit_max_values.get(dim, 1)
+            company_mit[dim] = round(10 * (raw_val / max_val), 2) if max_val > 0 else 0
+        
+        return jsonify({
+            'success': True,
+            'company_name': company_name,
+            'company': {
+                'hofstede': company_hofstede,
+                'mit': company_mit
+            },
+            'industry_average': {
+                'hofstede': industry_hofstede,
+                'mit': industry_mit
+            },
+            'correlations': {
+                'hofstede': hofstede_correlations,
+                'mit': mit_correlations
+            },
+            'metadata': {
+                'review_count': metrics.get('total_reviews', 0),
+                'overall_rating': metrics.get('overall_rating', 0)
+            }
+        })
+    
+    except Exception as e:
+        logger.error(f"Error in company analysis: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/company-culture-trend/<company_name>', methods=['GET'])
+def get_company_culture_trend(company_name):
+    """Get quarterly culture rating trend for a company vs industry average"""
+    try:
+        conn = get_db_connection()
+        if not conn:
+            return jsonify({'success': False, 'error': 'Database connection failed'}), 500
+        
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        
+        # Get company quarterly ratings
+        cursor.execute("""
+            SELECT 
+                EXTRACT(YEAR FROM review_date) as year,
+                EXTRACT(QUARTER FROM review_date) as quarter,
+                AVG(culture_values_rating) as avg_culture_rating,
+                COUNT(*) as review_count
+            FROM reviews
+            WHERE company_name = %s 
+              AND culture_values_rating IS NOT NULL
+              AND review_date IS NOT NULL
+            GROUP BY year, quarter
+            ORDER BY year, quarter
+        """, (company_name,))
+        company_data = cursor.fetchall()
+        
+        # Get industry quarterly averages
+        cursor.execute("""
+            SELECT 
+                EXTRACT(YEAR FROM review_date) as year,
+                EXTRACT(QUARTER FROM review_date) as quarter,
+                AVG(culture_values_rating) as avg_culture_rating,
+                COUNT(*) as review_count
+            FROM reviews
+            WHERE culture_values_rating IS NOT NULL
+              AND review_date IS NOT NULL
+            GROUP BY year, quarter
+            ORDER BY year, quarter
+        """)
+        industry_data = cursor.fetchall()
+        
+        cursor.close()
+        conn.close()
+        
+        # Format data
+        company_trend = []
+        for row in company_data:
+            company_trend.append({
+                'period': f"Q{int(row['quarter'])} {int(row['year'])}",
+                'year': int(row['year']),
+                'quarter': int(row['quarter']),
+                'rating': round(float(row['avg_culture_rating']), 2),
+                'review_count': row['review_count']
+            })
+        
+        industry_trend = []
+        for row in industry_data:
+            industry_trend.append({
+                'period': f"Q{int(row['quarter'])} {int(row['year'])}",
+                'year': int(row['year']),
+                'quarter': int(row['quarter']),
+                'rating': round(float(row['avg_culture_rating']), 2),
+                'review_count': row['review_count']
+            })
+        
+        return jsonify({
+            'success': True,
+            'company_name': company_name,
+            'company_trend': company_trend,
+            'industry_trend': industry_trend
+        })
+    
+    except Exception as e:
+        logger.error(f"Error in company culture trend: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 @app.errorhandler(404)
 def not_found(error):
     """Handle 404 errors"""
