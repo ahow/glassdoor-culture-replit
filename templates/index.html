@@ -1033,6 +1033,19 @@
                         <canvas id="analysisTrendChart" style="max-height: 300px;"></canvas>
                     </div>
                     
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)); gap: 1.5rem; margin-top: 2rem;">
+                        <div class="chart-container" style="background: #f8fafc; border: 1px solid #e2e8f0;">
+                            <h3 style="color: #3b82f6; margin-bottom: 0.5rem; font-size: 1.1rem; font-weight: 600;">Hofstede: Deviation vs Performance Impact</h3>
+                            <p style="color: #64748b; font-size: 0.85rem; margin-bottom: 1rem;">X-axis: difference from industry avg. Y-axis: correlation with performance. Top-right = outperform in dimensions that matter.</p>
+                            <canvas id="analysisHofstedeScatter" style="max-height: 320px;"></canvas>
+                        </div>
+                        <div class="chart-container" style="background: #f8fafc; border: 1px solid #e2e8f0;">
+                            <h3 style="color: #6366f1; margin-bottom: 0.5rem; font-size: 1.1rem; font-weight: 600;">MIT Big 9: Deviation vs Performance Impact</h3>
+                            <p style="color: #64748b; font-size: 0.85rem; margin-bottom: 1rem;">X-axis: difference from industry avg. Y-axis: correlation with performance. Top-right = outperform in dimensions that matter.</p>
+                            <canvas id="analysisMitScatter" style="max-height: 320px;"></canvas>
+                        </div>
+                    </div>
+                    
                     <div style="background: #f8fafc; border-radius: 10px; padding: 1.25rem; border: 1px solid #e2e8f0; margin-top: 2rem;">
                         <h3 style="color: #1e293b; margin-bottom: 0.75rem; font-size: 1rem; font-weight: 600;">Reading This Analysis</h3>
                         <ul style="color: #64748b; font-size: 0.9rem; margin: 0; padding-left: 1.5rem; line-height: 1.7;">
@@ -1040,6 +1053,8 @@
                             <li>Green-tinted dimensions have positive correlation with business performance</li>
                             <li>Red-tinted dimensions have negative correlation with business performance</li>
                             <li>The trend chart shows how the company's culture rating compares to the industry over time</li>
+                            <li>Scatter plots show where company differs from average (X) and how important that dimension is (Y)</li>
+                            <li>Top-right quadrant: company excels in dimensions that positively impact performance</li>
                         </ul>
                     </div>
                 </div>
@@ -2269,6 +2284,8 @@
         window.analysisHofstedeChart = null;
         window.analysisMitChart = null;
         window.analysisTrendChart = null;
+        window.analysisHofstedeScatter = null;
+        window.analysisMitScatter = null;
         
         async function loadAnalysisCompanies() {
             if (analysisCompaniesLoaded) return;
@@ -2547,6 +2564,231 @@
                     }
                 });
             }
+            
+            // ========== SCATTER PLOTS: Deviation vs Performance Impact ==========
+            const hofstedeCorrelationsMap = analysisData.correlations?.hofstede || {};
+            const mitCorrelationsMap = analysisData.correlations?.mit || {};
+            
+            // Hofstede dimension labels for display
+            const hofstedeDimLabels = {
+                'process_results': 'Process vs Results',
+                'job_employee': 'Job vs Employee',
+                'professional_parochial': 'Professional vs Parochial',
+                'open_closed': 'Open vs Closed',
+                'tight_loose': 'Tight vs Loose',
+                'pragmatic_normative': 'Pragmatic vs Normative'
+            };
+            
+            // MIT dimension labels for display
+            const mitDimLabels = {
+                'agility': 'Agility',
+                'collaboration': 'Collaboration',
+                'customer_orientation': 'Customer Orient.',
+                'diversity': 'Diversity',
+                'execution': 'Execution',
+                'innovation': 'Innovation',
+                'integrity': 'Integrity',
+                'performance': 'Performance',
+                'respect': 'Respect'
+            };
+            
+            // Prepare Hofstede scatter data
+            const hofstedeScatterData = Object.keys(hofstedeDimLabels).map(dim => {
+                const companyVal = analysisData.company?.hofstede?.[dim] || 0;
+                const industryVal = analysisData.industry_average?.hofstede?.[dim] || 0;
+                const deviation = companyVal - industryVal;
+                const correlation = hofstedeCorrelationsMap[dim] || 0;
+                return {
+                    x: deviation,
+                    y: correlation,
+                    label: hofstedeDimLabels[dim]
+                };
+            });
+            
+            // Prepare MIT scatter data
+            const mitScatterData = Object.keys(mitDimLabels).map(dim => {
+                const companyVal = analysisData.company?.mit?.[dim] || 0;
+                const industryVal = analysisData.industry_average?.mit?.[dim] || 0;
+                const deviation = companyVal - industryVal;
+                const correlation = mitCorrelationsMap[dim] || 0;
+                return {
+                    x: deviation,
+                    y: correlation,
+                    label: mitDimLabels[dim]
+                };
+            });
+            
+            // Render Hofstede Scatter Plot
+            const hofstedeScatterCtx = document.getElementById('analysisHofstedeScatter').getContext('2d');
+            if (window.analysisHofstedeScatter) window.analysisHofstedeScatter.destroy();
+            
+            window.analysisHofstedeScatter = new Chart(hofstedeScatterCtx, {
+                type: 'scatter',
+                data: {
+                    datasets: [{
+                        label: 'Hofstede Dimensions',
+                        data: hofstedeScatterData,
+                        backgroundColor: hofstedeScatterData.map(d => 
+                            d.x >= 0 && d.y >= 0 ? 'rgba(34, 197, 94, 0.7)' :  // Top-right: green
+                            d.x < 0 && d.y >= 0 ? 'rgba(234, 179, 8, 0.7)' :   // Top-left: yellow
+                            d.x >= 0 && d.y < 0 ? 'rgba(249, 115, 22, 0.7)' :  // Bottom-right: orange
+                            'rgba(239, 68, 68, 0.7)'                            // Bottom-left: red
+                        ),
+                        borderColor: hofstedeScatterData.map(d => 
+                            d.x >= 0 && d.y >= 0 ? 'rgba(34, 197, 94, 1)' :
+                            d.x < 0 && d.y >= 0 ? 'rgba(234, 179, 8, 1)' :
+                            d.x >= 0 && d.y < 0 ? 'rgba(249, 115, 22, 1)' :
+                            'rgba(239, 68, 68, 1)'
+                        ),
+                        borderWidth: 2,
+                        pointRadius: 10,
+                        pointHoverRadius: 14
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const point = context.raw;
+                                    return [
+                                        point.label,
+                                        `Deviation: ${point.x >= 0 ? '+' : ''}${point.x.toFixed(2)}`,
+                                        `Correlation: ${point.y >= 0 ? '+' : ''}${point.y.toFixed(3)}`
+                                    ];
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: { display: true, text: 'Deviation from Industry Average' },
+                            grid: { color: 'rgba(0,0,0,0.05)' }
+                        },
+                        y: {
+                            title: { display: true, text: 'Correlation with Performance' },
+                            grid: { color: 'rgba(0,0,0,0.05)' }
+                        }
+                    }
+                },
+                plugins: [{
+                    id: 'quadrantLines',
+                    beforeDraw: function(chart) {
+                        const ctx = chart.ctx;
+                        const xAxis = chart.scales.x;
+                        const yAxis = chart.scales.y;
+                        
+                        ctx.save();
+                        ctx.strokeStyle = 'rgba(0, 0, 0, 0.2)';
+                        ctx.lineWidth = 1;
+                        ctx.setLineDash([5, 5]);
+                        
+                        // Vertical line at x=0
+                        const x0 = xAxis.getPixelForValue(0);
+                        ctx.beginPath();
+                        ctx.moveTo(x0, yAxis.top);
+                        ctx.lineTo(x0, yAxis.bottom);
+                        ctx.stroke();
+                        
+                        // Horizontal line at y=0
+                        const y0 = yAxis.getPixelForValue(0);
+                        ctx.beginPath();
+                        ctx.moveTo(xAxis.left, y0);
+                        ctx.lineTo(xAxis.right, y0);
+                        ctx.stroke();
+                        
+                        ctx.restore();
+                    }
+                }]
+            });
+            
+            // Render MIT Scatter Plot
+            const mitScatterCtx = document.getElementById('analysisMitScatter').getContext('2d');
+            if (window.analysisMitScatter) window.analysisMitScatter.destroy();
+            
+            window.analysisMitScatter = new Chart(mitScatterCtx, {
+                type: 'scatter',
+                data: {
+                    datasets: [{
+                        label: 'MIT Big 9 Dimensions',
+                        data: mitScatterData,
+                        backgroundColor: mitScatterData.map(d => 
+                            d.x >= 0 && d.y >= 0 ? 'rgba(34, 197, 94, 0.7)' :
+                            d.x < 0 && d.y >= 0 ? 'rgba(234, 179, 8, 0.7)' :
+                            d.x >= 0 && d.y < 0 ? 'rgba(249, 115, 22, 0.7)' :
+                            'rgba(239, 68, 68, 0.7)'
+                        ),
+                        borderColor: mitScatterData.map(d => 
+                            d.x >= 0 && d.y >= 0 ? 'rgba(34, 197, 94, 1)' :
+                            d.x < 0 && d.y >= 0 ? 'rgba(234, 179, 8, 1)' :
+                            d.x >= 0 && d.y < 0 ? 'rgba(249, 115, 22, 1)' :
+                            'rgba(239, 68, 68, 1)'
+                        ),
+                        borderWidth: 2,
+                        pointRadius: 10,
+                        pointHoverRadius: 14
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const point = context.raw;
+                                    return [
+                                        point.label,
+                                        `Deviation: ${point.x >= 0 ? '+' : ''}${point.x.toFixed(2)}`,
+                                        `Correlation: ${point.y >= 0 ? '+' : ''}${point.y.toFixed(3)}`
+                                    ];
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: { display: true, text: 'Deviation from Industry Average' },
+                            grid: { color: 'rgba(0,0,0,0.05)' }
+                        },
+                        y: {
+                            title: { display: true, text: 'Correlation with Performance' },
+                            grid: { color: 'rgba(0,0,0,0.05)' }
+                        }
+                    }
+                },
+                plugins: [{
+                    id: 'quadrantLines',
+                    beforeDraw: function(chart) {
+                        const ctx = chart.ctx;
+                        const xAxis = chart.scales.x;
+                        const yAxis = chart.scales.y;
+                        
+                        ctx.save();
+                        ctx.strokeStyle = 'rgba(0, 0, 0, 0.2)';
+                        ctx.lineWidth = 1;
+                        ctx.setLineDash([5, 5]);
+                        
+                        const x0 = xAxis.getPixelForValue(0);
+                        ctx.beginPath();
+                        ctx.moveTo(x0, yAxis.top);
+                        ctx.lineTo(x0, yAxis.bottom);
+                        ctx.stroke();
+                        
+                        const y0 = yAxis.getPixelForValue(0);
+                        ctx.beginPath();
+                        ctx.moveTo(xAxis.left, y0);
+                        ctx.lineTo(xAxis.right, y0);
+                        ctx.stroke();
+                        
+                        ctx.restore();
+                    }
+                }]
+            });
         }
         
         loadData();
