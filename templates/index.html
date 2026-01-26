@@ -2277,12 +2277,14 @@
                 const response = await fetch('/api/companies-list');
                 const data = await response.json();
                 
-                if (data.success) {
+                if (data.success && data.companies) {
                     const select = document.getElementById('analysisCompany');
                     data.companies.forEach(company => {
                         const option = document.createElement('option');
-                        option.value = company.company_name;
-                        option.textContent = company.company_name;
+                        // Handle both string format and object format
+                        const companyName = typeof company === 'string' ? company : company.company_name;
+                        option.value = companyName;
+                        option.textContent = companyName;
                         select.appendChild(option);
                     });
                     analysisCompaniesLoaded = true;

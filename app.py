@@ -1511,14 +1511,14 @@ def get_company_culture_trend(company_name):
         # Get company quarterly ratings
         cursor.execute("""
             SELECT 
-                EXTRACT(YEAR FROM review_date) as year,
-                EXTRACT(QUARTER FROM review_date) as quarter,
-                AVG(culture_values_rating) as avg_culture_rating,
+                EXTRACT(YEAR FROM review_datetime) as year,
+                EXTRACT(QUARTER FROM review_datetime) as quarter,
+                AVG(culture_and_values_rating) as avg_culture_rating,
                 COUNT(*) as review_count
             FROM reviews
             WHERE company_name = %s 
-              AND culture_values_rating IS NOT NULL
-              AND review_date IS NOT NULL
+              AND culture_and_values_rating IS NOT NULL
+              AND review_datetime IS NOT NULL
             GROUP BY year, quarter
             ORDER BY year, quarter
         """, (company_name,))
@@ -1527,13 +1527,13 @@ def get_company_culture_trend(company_name):
         # Get industry quarterly averages
         cursor.execute("""
             SELECT 
-                EXTRACT(YEAR FROM review_date) as year,
-                EXTRACT(QUARTER FROM review_date) as quarter,
-                AVG(culture_values_rating) as avg_culture_rating,
+                EXTRACT(YEAR FROM review_datetime) as year,
+                EXTRACT(QUARTER FROM review_datetime) as quarter,
+                AVG(culture_and_values_rating) as avg_culture_rating,
                 COUNT(*) as review_count
             FROM reviews
-            WHERE culture_values_rating IS NOT NULL
-              AND review_date IS NOT NULL
+            WHERE culture_and_values_rating IS NOT NULL
+              AND review_datetime IS NOT NULL
             GROUP BY year, quarter
             ORDER BY year, quarter
         """)
