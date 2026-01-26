@@ -460,6 +460,7 @@
         <div id="mainNav" class="main-nav-tabs" style="display: none;">
             <button class="main-tab-button active" onclick="switchMainTab('overview', event)">Overview</button>
             <button class="main-tab-button" onclick="switchMainTab('companies', event)">Companies</button>
+            <button class="main-tab-button" onclick="switchMainTab('analysis', event)">Company Analysis</button>
             <button class="main-tab-button" onclick="switchMainTab('trends', event)">Quarterly Trends</button>
             <button class="main-tab-button" onclick="switchMainTab('hofstede', event)">Hofstede Framework</button>
             <button class="main-tab-button" onclick="switchMainTab('mit', event)">MIT Framework</button>
@@ -992,6 +993,62 @@
                 </div>
             </div>
         </div>
+        
+        <!-- Company Analysis Tab -->
+        <div id="analysisTab" class="tab-content" style="display: none;">
+            <div class="chart-container">
+                <h2 class="chart-title">Company Culture Analysis</h2>
+                <p style="color: #64748b; margin-bottom: 1.5rem;">
+                    Compare a company's culture profile against the industry average and see how each dimension correlates with business performance.
+                </p>
+                
+                <div class="control-group" style="margin-bottom: 2rem;">
+                    <label for="analysisCompany" style="font-weight: 600; color: #1e293b;">Select Company:</label>
+                    <select id="analysisCompany" onchange="loadCompanyAnalysis()" style="width: 100%; max-width: 400px; padding: 0.75rem; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 1rem;">
+                        <option value="">Choose a company...</option>
+                    </select>
+                </div>
+                
+                <div id="analysisLoading" style="display: none; text-align: center; padding: 2rem; color: #64748b;">
+                    Loading analysis...
+                </div>
+                
+                <div id="analysisContent" style="display: none;">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(500px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+                        <div class="chart-container" style="background: #f8fafc; border: 1px solid #e2e8f0;">
+                            <h3 style="color: #3b82f6; margin-bottom: 0.5rem; font-size: 1.1rem; font-weight: 600;">Hofstede Dimensions</h3>
+                            <p style="color: #64748b; font-size: 0.85rem; margin-bottom: 1rem;">Company score vs industry average. Bar color indicates correlation with performance (green = positive, red = negative).</p>
+                            <canvas id="analysisHofstedeChart" style="max-height: 350px;"></canvas>
+                        </div>
+                        <div class="chart-container" style="background: #f8fafc; border: 1px solid #e2e8f0;">
+                            <h3 style="color: #6366f1; margin-bottom: 0.5rem; font-size: 1.1rem; font-weight: 600;">MIT Big 9 Dimensions</h3>
+                            <p style="color: #64748b; font-size: 0.85rem; margin-bottom: 1rem;">Company score vs industry average. Bar color indicates correlation with performance (green = positive, red = negative).</p>
+                            <canvas id="analysisMitChart" style="max-height: 350px;"></canvas>
+                        </div>
+                    </div>
+                    
+                    <div class="chart-container" style="margin-top: 2rem;">
+                        <h3 style="color: #1e293b; margin-bottom: 0.5rem; font-size: 1.1rem; font-weight: 600;">Culture Rating Trend</h3>
+                        <p style="color: #64748b; font-size: 0.85rem; margin-bottom: 1rem;">Quarterly overall culture rating for the selected company compared to industry average.</p>
+                        <canvas id="analysisTrendChart" style="max-height: 300px;"></canvas>
+                    </div>
+                    
+                    <div style="background: #f8fafc; border-radius: 10px; padding: 1.25rem; border: 1px solid #e2e8f0; margin-top: 2rem;">
+                        <h3 style="color: #1e293b; margin-bottom: 0.75rem; font-size: 1rem; font-weight: 600;">Reading This Analysis</h3>
+                        <ul style="color: #64748b; font-size: 0.9rem; margin: 0; padding-left: 1.5rem; line-height: 1.7;">
+                            <li>Grouped bars show company score (solid) vs industry average (striped pattern)</li>
+                            <li>Green-tinted dimensions have positive correlation with business performance</li>
+                            <li>Red-tinted dimensions have negative correlation with business performance</li>
+                            <li>The trend chart shows how the company's culture rating compares to the industry over time</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div id="analysisMessage" style="text-align: center; color: #7f8c8d; padding: 3rem;">
+                    Select a company to view its culture analysis
+                </div>
+            </div>
+        </div>
     </div>
     
     <script>
@@ -1008,6 +1065,7 @@
                 function switchMainTab(tab, event) {
             document.getElementById('overviewTab').style.display = 'none';
             document.getElementById('companiesTab').style.display = 'none';
+            document.getElementById('analysisTab').style.display = 'none';
             document.getElementById('trendsTab').style.display = 'none';
             document.getElementById('hofstedeTab').style.display = 'none';
             document.getElementById('mitTab').style.display = 'none';
@@ -1021,6 +1079,9 @@
                 document.getElementById('overviewTab').style.display = 'block';
             } else if (tab === 'companies') {
                 document.getElementById('companiesTab').style.display = 'block';
+            } else if (tab === 'analysis') {
+                document.getElementById('analysisTab').style.display = 'block';
+                loadAnalysisCompanies();
             } else if (tab === 'trends') {
                 document.getElementById('trendsTab').style.display = 'block';
             } else if (tab === 'hofstede') {
