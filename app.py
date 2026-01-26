@@ -1456,16 +1456,20 @@ def get_company_analysis(company_name):
         
         correlations = performance_analyzer.calculate_correlation(culture_data, performance_data)
         
-        # Extract just the composite score correlations for each dimension
-        composite_corr = correlations.get('by_metric', {}).get('composite_score', {})
-        
+        # Extract correlations for each dimension with composite_score
+        # Structure: correlations['hofstede'][dim]['composite_score']['correlation']
         hofstede_correlations = {}
         mit_correlations = {}
         
+        hofstede_corr_data = correlations.get('hofstede', {})
+        mit_corr_data = correlations.get('mit', {})
+        
         for dim in HOFSTEDE_DIMENSIONS:
-            hofstede_correlations[dim] = composite_corr.get(dim, 0)
+            dim_data = hofstede_corr_data.get(dim, {}).get('composite_score', {})
+            hofstede_correlations[dim] = dim_data.get('correlation', 0) if isinstance(dim_data, dict) else 0
         for dim in MIT_DIMENSIONS:
-            mit_correlations[dim] = composite_corr.get(dim, 0)
+            dim_data = mit_corr_data.get(dim, {}).get('composite_score', {})
+            mit_correlations[dim] = dim_data.get('correlation', 0) if isinstance(dim_data, dict) else 0
         
         # Format company scores
         company_hofstede = {}
