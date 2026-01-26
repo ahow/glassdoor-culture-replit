@@ -974,9 +974,16 @@ def culture_comparison():
                 'difference': val2 - val1
             }
         
+        # Get max values for MIT rescaling to 0-10 scale
+        mit_max_values = get_mit_max_values()
+        
         for dim in MIT_DIMENSIONS:
-            val1 = profile1.get('mit_big_9', {}).get(dim, {}).get('value', 0)
-            val2 = profile2.get('mit_big_9', {}).get(dim, {}).get('value', 0)
+            raw_val1 = profile1.get('mit_big_9', {}).get(dim, {}).get('value', 0) or 0
+            raw_val2 = profile2.get('mit_big_9', {}).get(dim, {}).get('value', 0) or 0
+            max_val = mit_max_values.get(dim, 1)
+            # Rescale both values so max company = 10
+            val1 = round(10 * (raw_val1 / max_val), 2) if max_val > 0 else 0
+            val2 = round(10 * (raw_val2 / max_val), 2) if max_val > 0 else 0
             mit_diff[dim] = {
                 'company1': val1,
                 'company2': val2,
