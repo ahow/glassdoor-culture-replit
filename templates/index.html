@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- VERSION: 2026-01-31-v10 -->
+<!-- VERSION: 2026-01-31-v11 -->
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -1159,7 +1159,7 @@
     
     <script>
         // Debug: Version check - look for this in browser console
-        console.log('Dashboard version: 2026-01-31-v10');
+        console.log('Dashboard version: 2026-01-31-v11');
         
         // Helper function to get correlation-based color with intensity
         // Positive correlations = green, negative = red
@@ -2546,7 +2546,13 @@
                         company: c.company_name,
                         hofstede: c.hofstede_score,
                         mit: c.mit_score,
-                        combined: c.combined_score
+                        combined: c.combined_score,
+                        hofstede_conf: c.hofstede_confidence || 0,
+                        mit_conf: c.mit_confidence || 0,
+                        combined_conf: c.combined_confidence || 0,
+                        hofstede_conf_level: c.hofstede_confidence_level || 'Low',
+                        mit_conf_level: c.mit_confidence_level || 'Low',
+                        combined_conf_level: c.combined_confidence_level || 'Low'
                     })),
                     backgroundColor: businessModelColors[model],
                     borderColor: businessModelBorderColors[model],
@@ -2581,9 +2587,25 @@
                             callbacks: {
                                 label: function(context) {
                                     const point = context.raw;
+                                    const scoreType = document.getElementById('cultureScoreType').value;
+                                    
+                                    // Get appropriate confidence based on score type
+                                    let conf, confLevel;
+                                    if (scoreType === 'hofstede') {
+                                        conf = point.hofstede_conf;
+                                        confLevel = point.hofstede_conf_level;
+                                    } else if (scoreType === 'mit') {
+                                        conf = point.mit_conf;
+                                        confLevel = point.mit_conf_level;
+                                    } else {
+                                        conf = point.combined_conf;
+                                        confLevel = point.combined_conf_level;
+                                    }
+                                    
                                     return [
                                         point.company,
                                         'Culture Score: ' + (point.x >= 0 ? '+' : '') + point.x.toFixed(2),
+                                        'Confidence: ' + conf.toFixed(0) + '% (' + confLevel + ')',
                                         'Performance: ' + point.y.toFixed(1)
                                     ];
                                 }

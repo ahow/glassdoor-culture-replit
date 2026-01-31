@@ -1711,19 +1711,42 @@ def get_culture_performance_scatter():
             # Get business model category
             business_model = performance_analyzer.get_business_model(name)
             
-            # Calculate Hofstede company values and score
+            # Calculate Hofstede company values, score, and weighted confidence
             hofstede_score = 0.0
+            hofstede_weighted_conf_sum = 0.0
+            hofstede_weight_sum = 0.0
+            
             for dim in HOFSTEDE_DIMENSIONS:
-                company_val = metrics.get('hofstede', {}).get(dim, {}).get('value', 0)
+                dim_data = metrics.get('hofstede', {}).get(dim, {})
+                company_val = dim_data.get('value', 0)
+                # Get confidence score (0-100 scale)
+                conf_score = dim_data.get('confidence_score', 0) or 0
+                conf_normalized = conf_score / 100.0  # Normalize to 0-1
+                
                 industry_val = industry_hofstede.get(dim, 0)
                 correlation = hofstede_correlations.get(dim, 0)
                 deviation = company_val - industry_val
                 hofstede_score += correlation * deviation
+                
+                # Weight by |correlation| = sqrt(correlation^2)
+                weight = abs(correlation)  # sqrt(r^2) = |r|
+                hofstede_weighted_conf_sum += conf_normalized * weight
+                hofstede_weight_sum += weight
             
-            # Calculate MIT company values and score
+            hofstede_confidence = (hofstede_weighted_conf_sum / hofstede_weight_sum * 100) if hofstede_weight_sum > 0 else 0
+            
+            # Calculate MIT company values, score, and weighted confidence
             mit_score = 0.0
+            mit_weighted_conf_sum = 0.0
+            mit_weight_sum = 0.0
+            
             for dim in MIT_DIMENSIONS:
-                raw_val = metrics.get('mit_big_9', {}).get(dim, {}).get('value', 0)
+                dim_data = metrics.get('mit_big_9', {}).get(dim, {})
+                raw_val = dim_data.get('value', 0)
+                # Get confidence score (0-100 scale)
+                conf_score = dim_data.get('confidence_score', 0) or 0
+                conf_normalized = conf_score / 100.0  # Normalize to 0-1
+                
                 max_val = mit_max_values.get(dim, 1)
                 company_val = (10 * (raw_val / max_val)) if max_val > 0 else 0
                 
@@ -1733,9 +1756,36 @@ def get_culture_performance_scatter():
                 correlation = mit_correlations.get(dim, 0)
                 deviation = company_val - industry_val
                 mit_score += correlation * deviation
+                
+                # Weight by |correlation| = sqrt(correlation^2)
+                weight = abs(correlation)  # sqrt(r^2) = |r|
+                mit_weighted_conf_sum += conf_normalized * weight
+                mit_weight_sum += weight
+            
+            mit_confidence = (mit_weighted_conf_sum / mit_weight_sum * 100) if mit_weight_sum > 0 else 0
             
             # Combined score (scale Hofstede to match MIT magnitude)
             combined_score = (hofstede_score * 5) + mit_score
+            
+            # Combined confidence: weighted average of Hofstede and MIT confidences
+            # Weight by total correlation weights from each framework
+            total_weight = hofstede_weight_sum + mit_weight_sum
+            if total_weight > 0:
+                combined_confidence = (
+                    (hofstede_confidence * hofstede_weight_sum) + 
+                    (mit_confidence * mit_weight_sum)
+                ) / total_weight
+            else:
+                combined_confidence = 0
+            
+            # Convert to confidence levels
+            def get_confidence_level(conf):
+                if conf >= 50:
+                    return 'High'
+                elif conf >= 25:
+                    return 'Medium'
+                else:
+                    return 'Low'
             
             companies_data.append({
                 'company_name': name,
@@ -1743,6 +1793,12 @@ def get_culture_performance_scatter():
                 'hofstede_score': round(hofstede_score, 3),
                 'mit_score': round(mit_score, 3),
                 'combined_score': round(combined_score, 3),
+                'hofstede_confidence': round(hofstede_confidence, 1),
+                'mit_confidence': round(mit_confidence, 1),
+                'combined_confidence': round(combined_confidence, 1),
+                'hofstede_confidence_level': get_confidence_level(hofstede_confidence),
+                'mit_confidence_level': get_confidence_level(mit_confidence),
+                'combined_confidence_level': get_confidence_level(combined_confidence),
                 'composite_performance': round(composite_score, 1)
             })
         
