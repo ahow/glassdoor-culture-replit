@@ -1,8 +1,12 @@
 <!DOCTYPE html>
+<!-- VERSION: 2026-01-31-v1 -->
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>Glassdoor Review Dashboard - Financial Services Companies</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1067,6 +1071,9 @@
     </div>
     
     <script>
+        // Debug: Version check - look for this in browser console
+        console.log('Dashboard version: 2026-01-31-v1');
+        
         window.companyChart = null;
         window.ratingChart = null;
         window.trendsChart = null;
@@ -1077,36 +1084,51 @@
         window.hofstedeBenchmarkChart = null;
         window.mitBenchmarkChart = null;
         
-                function switchMainTab(tab, event) {
-            document.getElementById('overviewTab').style.display = 'none';
-            document.getElementById('companiesTab').style.display = 'none';
-            document.getElementById('analysisTab').style.display = 'none';
-            document.getElementById('trendsTab').style.display = 'none';
-            document.getElementById('hofstedeTab').style.display = 'none';
-            document.getElementById('mitTab').style.display = 'none';
-            document.getElementById('insightsTab').style.display = 'none';
+        function switchMainTab(tab, event) {
+            console.log('switchMainTab called with tab:', tab);
+            
+            // Hide all tabs
+            const tabs = ['overviewTab', 'companiesTab', 'analysisTab', 'trendsTab', 'hofstedeTab', 'mitTab', 'insightsTab'];
+            tabs.forEach(tabId => {
+                const el = document.getElementById(tabId);
+                if (el) {
+                    el.style.display = 'none';
+                    console.log('Hidden:', tabId);
+                }
+            });
             
             document.querySelectorAll('.main-tab-button').forEach(btn => {
                 btn.classList.remove('active');
             });
             
-            if (tab === 'overview') {
-                document.getElementById('overviewTab').style.display = 'block';
-            } else if (tab === 'companies') {
-                document.getElementById('companiesTab').style.display = 'block';
-            } else if (tab === 'analysis') {
-                document.getElementById('analysisTab').style.display = 'block';
+            // Show the selected tab
+            const tabMapping = {
+                'overview': 'overviewTab',
+                'companies': 'companiesTab', 
+                'analysis': 'analysisTab',
+                'trends': 'trendsTab',
+                'hofstede': 'hofstedeTab',
+                'mit': 'mitTab',
+                'insights': 'insightsTab'
+            };
+            
+            const targetTabId = tabMapping[tab];
+            if (targetTabId) {
+                const targetEl = document.getElementById(targetTabId);
+                if (targetEl) {
+                    targetEl.style.display = 'block';
+                    console.log('Showing:', targetTabId);
+                }
+            }
+            
+            // Load data for specific tabs
+            if (tab === 'analysis') {
                 loadAnalysisCompanies();
-            } else if (tab === 'trends') {
-                document.getElementById('trendsTab').style.display = 'block';
             } else if (tab === 'hofstede') {
-                document.getElementById('hofstedeTab').style.display = 'block';
                 loadCultureCompanies('hofstede');
             } else if (tab === 'mit') {
-                document.getElementById('mitTab').style.display = 'block';
                 loadCultureCompanies('mit');
             } else if (tab === 'insights') {
-                document.getElementById('insightsTab').style.display = 'block';
                 loadPerformanceInsights();
             }
             
@@ -1520,18 +1542,23 @@
         }
         
         function displayMitProfile(profile, comparisonProfile, mitDims) {
+            console.log('displayMitProfile called with profile:', profile);
             const mitLabels = mitDims.map(d => d.label);
             // MIT values are already on 0-10 scale, no rescaling needed
             const mitData = mitDims.map(d => {
+                let value;
                 // Handle both old and new format
                 if (profile.mit_big_9 && profile.mit_big_9[d.key]) {
-                    return profile.mit_big_9[d.key].value || 0;
+                    value = profile.mit_big_9[d.key].value || 0;
+                } else if (profile.mit && profile.mit[d.key]) {
+                    value = profile.mit[d.key].value || 0;
+                } else {
+                    value = profile[`${d.key}_mean`] || 0;
                 }
-                if (profile.mit && profile.mit[d.key]) {
-                    return profile.mit[d.key].value || 0;
-                }
-                return profile[`${d.key}_mean`] || 0;
+                console.log(`MIT dimension ${d.key}: ${value}`);
+                return value;
             });
+            console.log('MIT data values:', mitData);
             // Extract confidence scores for MIT dimensions
             const mitConfidence = mitDims.map(d => {
                 if (profile.mit_big_9 && profile.mit_big_9[d.key]) {
