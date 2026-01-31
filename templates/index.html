@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- VERSION: 2026-01-31-v2 -->
+<!-- VERSION: 2026-01-31-v3 -->
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -1082,7 +1082,7 @@
     
     <script>
         // Debug: Version check - look for this in browser console
-        console.log('Dashboard version: 2026-01-31-v2');
+        console.log('Dashboard version: 2026-01-31-v3');
         
         window.companyChart = null;
         window.ratingChart = null;
@@ -1559,21 +1559,18 @@
             // MIT values should come from profile.mit which has rescaled 0-10 values
             const mitData = mitDims.map(d => {
                 let value = 0;
-                // Use profile.mit which contains rescaled values (0-10 scale)
+                let rawVal = 0;
+                // Try profile.mit first
                 if (profile.mit && profile.mit[d.key]) {
-                    value = profile.mit[d.key].value || 0;
-                    console.log(`MIT ${d.key}: using profile.mit = ${value}`);
+                    rawVal = profile.mit[d.key].value || 0;
                 } else if (profile.mit_big_9 && profile.mit_big_9[d.key]) {
-                    // Fallback to mit_big_9 for backward compatibility
-                    // But these are raw values - need to check if already rescaled
-                    const rawVal = profile.mit_big_9[d.key].value || 0;
-                    // If value > 10, it's raw and needs rescaling by dividing by 10
-                    value = rawVal > 10 ? rawVal / 10 : rawVal;
-                    console.log(`MIT ${d.key}: using profile.mit_big_9 (adjusted) = ${value}`);
+                    rawVal = profile.mit_big_9[d.key].value || 0;
                 } else {
-                    value = profile[`${d.key}_mean`] || 0;
-                    console.log(`MIT ${d.key}: using fallback = ${value}`);
+                    rawVal = profile[`${d.key}_mean`] || 0;
                 }
+                // Always rescale if value > 10 (raw values need dividing by 10)
+                value = rawVal > 10 ? rawVal / 10 : rawVal;
+                console.log(`MIT ${d.key}: raw=${rawVal}, scaled=${value.toFixed(2)}`);
                 return value;
             });
             console.log('MIT data values:', mitData);
