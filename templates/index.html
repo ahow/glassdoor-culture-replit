@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- VERSION: 2026-01-31-v11 -->
+<!-- VERSION: 2026-01-31-v12 -->
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -1034,17 +1034,17 @@
                         <div style="background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); border-radius: 12px; padding: 1.25rem; color: white;">
                             <p style="font-size: 0.85rem; opacity: 0.9; margin-bottom: 0.5rem;">Hofstede Score</p>
                             <p id="hofstedeScoreValue" style="font-size: 1.75rem; font-weight: 700; margin: 0;">--</p>
-                            <p style="font-size: 0.75rem; opacity: 0.8; margin-top: 0.25rem;">6 dimensions</p>
+                            <p id="hofstedeConfidence" style="font-size: 0.7rem; opacity: 0.75; margin-top: 0.25rem;"></p>
                         </div>
                         <div style="background: linear-gradient(135deg, #6366f1 0%, #4338ca 100%); border-radius: 12px; padding: 1.25rem; color: white;">
                             <p style="font-size: 0.85rem; opacity: 0.9; margin-bottom: 0.5rem;">MIT Big 9 Score</p>
                             <p id="mitScoreValue" style="font-size: 1.75rem; font-weight: 700; margin: 0;">--</p>
-                            <p style="font-size: 0.75rem; opacity: 0.8; margin-top: 0.25rem;">9 dimensions</p>
+                            <p id="mitConfidence" style="font-size: 0.7rem; opacity: 0.75; margin-top: 0.25rem;"></p>
                         </div>
                         <div id="combinedScoreCard" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-radius: 12px; padding: 1.25rem; color: white;">
                             <p style="font-size: 0.85rem; opacity: 0.9; margin-bottom: 0.5rem;">Combined Score</p>
                             <p id="combinedScoreValue" style="font-size: 1.75rem; font-weight: 700; margin: 0;">--</p>
-                            <p style="font-size: 0.75rem; opacity: 0.8; margin-top: 0.25rem;">Performance alignment</p>
+                            <p id="combinedConfidence" style="font-size: 0.7rem; opacity: 0.75; margin-top: 0.25rem;"></p>
                         </div>
                     </div>
                     
@@ -1159,7 +1159,7 @@
     
     <script>
         // Debug: Version check - look for this in browser console
-        console.log('Dashboard version: 2026-01-31-v11');
+        console.log('Dashboard version: 2026-01-31-v12');
         
         // Helper function to get correlation-based color with intensity
         // Positive correlations = green, negative = red
@@ -2716,12 +2716,22 @@
                 const mitScore = analysisData.culture_scores.mit || 0;
                 const combinedScore = analysisData.culture_scores.combined || 0;
                 
+                // Get confidence scores
+                const hofConf = analysisData.culture_scores.hofstede_confidence || 0;
+                const mitConf = analysisData.culture_scores.mit_confidence || 0;
+                const combinedConf = analysisData.culture_scores.combined_confidence || 0;
+                
                 // Format scores with + sign for positive
                 const formatScore = (score) => (score >= 0 ? '+' : '') + score.toFixed(2);
                 
                 document.getElementById('hofstedeScoreValue').textContent = formatScore(hofScore);
                 document.getElementById('mitScoreValue').textContent = formatScore(mitScore);
                 document.getElementById('combinedScoreValue').textContent = formatScore(combinedScore);
+                
+                // Display confidence scores
+                document.getElementById('hofstedeConfidence').textContent = '(' + Math.round(hofConf) + '% confidence)';
+                document.getElementById('mitConfidence').textContent = '(' + Math.round(mitConf) + '% confidence)';
+                document.getElementById('combinedConfidence').textContent = '(' + Math.round(combinedConf) + '% confidence)';
                 
                 // Update combined card color based on score (green for positive, red for negative)
                 const combinedCard = document.getElementById('combinedScoreCard');

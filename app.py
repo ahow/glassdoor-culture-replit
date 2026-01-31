@@ -1486,25 +1486,64 @@ def get_company_analysis(company_name):
         # Calculate culture scores: Σ(correlation × deviation from industry average)
         # Positive score = culture dimensions positively aligned with performance
         # Negative score = culture dimensions negatively aligned with performance
+        # Also calculate weighted confidence: Σ(confidence × |correlation|) / Σ(|correlation|)
         hofstede_score = 0.0
+        hofstede_weighted_conf_sum = 0.0
+        hofstede_weight_sum = 0.0
+        
         for dim in HOFSTEDE_DIMENSIONS:
             company_val = company_hofstede.get(dim, 0)
             industry_val = industry_hofstede.get(dim, 0)
             correlation = hofstede_correlations.get(dim, 0)
             deviation = company_val - industry_val
             hofstede_score += correlation * deviation
+            
+            # Get dimension confidence (0-100 scale)
+            conf_score = metrics.get('hofstede', {}).get(dim, {}).get('confidence_score', 0) or 0
+            conf_normalized = conf_score / 100.0
+            
+            # Weight by |correlation| = sqrt(correlation^2)
+            weight = abs(correlation)
+            hofstede_weighted_conf_sum += conf_normalized * weight
+            hofstede_weight_sum += weight
+        
+        hofstede_confidence = (hofstede_weighted_conf_sum / hofstede_weight_sum * 100) if hofstede_weight_sum > 0 else 0
         
         mit_score = 0.0
+        mit_weighted_conf_sum = 0.0
+        mit_weight_sum = 0.0
+        
         for dim in MIT_DIMENSIONS:
             company_val = company_mit.get(dim, 0)
             industry_val = industry_mit.get(dim, 0)
             correlation = mit_correlations.get(dim, 0)
             deviation = company_val - industry_val
             mit_score += correlation * deviation
+            
+            # Get dimension confidence (0-100 scale)
+            conf_score = metrics.get('mit_big_9', {}).get(dim, {}).get('confidence_score', 0) or 0
+            conf_normalized = conf_score / 100.0
+            
+            # Weight by |correlation| = sqrt(correlation^2)
+            weight = abs(correlation)
+            mit_weighted_conf_sum += conf_normalized * weight
+            mit_weight_sum += weight
+        
+        mit_confidence = (mit_weighted_conf_sum / mit_weight_sum * 100) if mit_weight_sum > 0 else 0
         
         # Combined score is sum of both (Hofstede is -1 to +1 scale, MIT is 0-10 scale)
         # Scale Hofstede to match MIT magnitude roughly (multiply by 5)
         combined_score = (hofstede_score * 5) + mit_score
+        
+        # Combined confidence: weighted average of Hofstede and MIT confidences
+        total_weight = hofstede_weight_sum + mit_weight_sum
+        if total_weight > 0:
+            combined_confidence = (
+                (hofstede_confidence * hofstede_weight_sum) + 
+                (mit_confidence * mit_weight_sum)
+            ) / total_weight
+        else:
+            combined_confidence = 0
         
         return jsonify({
             'success': True,
@@ -1524,7 +1563,10 @@ def get_company_analysis(company_name):
             'culture_scores': {
                 'hofstede': round(hofstede_score, 3),
                 'mit': round(mit_score, 3),
-                'combined': round(combined_score, 3)
+                'combined': round(combined_score, 3),
+                'hofstede_confidence': round(hofstede_confidence, 1),
+                'mit_confidence': round(mit_confidence, 1),
+                'combined_confidence': round(combined_confidence, 1)
             },
             'metadata': {
                 'review_count': metrics.get('total_reviews', 0),
