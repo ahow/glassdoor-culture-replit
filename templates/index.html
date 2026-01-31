@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- VERSION: 2026-01-31-v9 -->
+<!-- VERSION: 2026-01-31-v10 -->
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -479,6 +479,7 @@
             <button class="main-tab-button" onclick="switchMainTab('hofstede', event)">Hofstede Framework</button>
             <button class="main-tab-button" onclick="switchMainTab('mit', event)">MIT Framework</button>
             <button class="main-tab-button" onclick="switchMainTab('insights', event)">Performance Insights</button>
+            <button class="main-tab-button" onclick="switchMainTab('culturePerf', event)">Culture vs Performance</button>
         </div>
         
         <!-- Overview Tab -->
@@ -1098,11 +1099,67 @@
                 </div>
             </div>
         </div>
+        
+        <!-- Culture vs Performance Tab -->
+        <div id="culturePerfTab" class="tab-content hidden-tab" style="display: none;">
+            <div class="chart-container">
+                <h2 class="chart-title">Culture Score vs Business Performance</h2>
+                <p style="color: #64748b; margin-bottom: 1.5rem;">
+                    Explore the relationship between culture scores and composite business performance across all companies. Each dot represents a company, colored by business model category.
+                </p>
+                
+                <div class="control-group" style="margin-bottom: 2rem;">
+                    <label for="cultureScoreType" style="font-weight: 600; color: #1e293b;">Culture Score Type:</label>
+                    <select id="cultureScoreType" onchange="updateCulturePerfScatter()" style="width: 100%; max-width: 300px; padding: 0.75rem; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 1rem;">
+                        <option value="combined">Combined Score</option>
+                        <option value="hofstede">Hofstede Score</option>
+                        <option value="mit">MIT Big 9 Score</option>
+                    </select>
+                </div>
+                
+                <div id="culturePerfLoading" style="text-align: center; padding: 2rem; color: #64748b;">
+                    Loading data...
+                </div>
+                
+                <div id="culturePerfContent" style="display: none;">
+                    <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem;">
+                        <canvas id="culturePerfScatterChart" style="max-height: 500px;"></canvas>
+                    </div>
+                    
+                    <!-- Legend -->
+                    <div id="culturePerfLegend" style="display: flex; justify-content: center; gap: 2rem; flex-wrap: wrap; margin-bottom: 1.5rem;">
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <span style="width: 16px; height: 16px; background: #3b82f6; border-radius: 50%;"></span>
+                            <span style="color: #64748b; font-size: 0.9rem;">Traditional</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <span style="width: 16px; height: 16px; background: #10b981; border-radius: 50%;"></span>
+                            <span style="color: #64748b; font-size: 0.9rem;">Alternative</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <span style="width: 16px; height: 16px; background: #f59e0b; border-radius: 50%;"></span>
+                            <span style="color: #64748b; font-size: 0.9rem;">Insurance/Wealth</span>
+                        </div>
+                    </div>
+                    
+                    <div style="background: #f8fafc; border-radius: 10px; padding: 1.25rem; border: 1px solid #e2e8f0;">
+                        <h3 style="color: #1e293b; margin-bottom: 0.75rem; font-size: 1rem; font-weight: 600;">Reading This Chart</h3>
+                        <ul style="color: #64748b; font-size: 0.9rem; margin: 0; padding-left: 1.5rem; line-height: 1.7;">
+                            <li><strong>X-axis (Culture Score):</strong> Sum of (correlation x deviation from industry average) for each culture dimension. Positive = culture aligned with performance drivers.</li>
+                            <li><strong>Y-axis (Composite Performance):</strong> Normalized business performance score based on ROE, AUM growth, TSR, and operating margins.</li>
+                            <li>Companies in the <strong>top-right</strong> have both strong culture alignment AND high performance.</li>
+                            <li>Companies in the <strong>bottom-left</strong> have weaker culture alignment AND lower performance.</li>
+                            <li>Hover over dots to see company details.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
     
     <script>
         // Debug: Version check - look for this in browser console
-        console.log('Dashboard version: 2026-01-31-v9');
+        console.log('Dashboard version: 2026-01-31-v10');
         
         // Helper function to get correlation-based color with intensity
         // Positive correlations = green, negative = red
@@ -1161,7 +1218,7 @@
             console.log('switchMainTab called with tab:', tab);
             
             // Hide all tabs using both inline styles AND CSS class
-            const tabs = ['overviewTab', 'companiesTab', 'analysisTab', 'trendsTab', 'hofstedeTab', 'mitTab', 'insightsTab'];
+            const tabs = ['overviewTab', 'companiesTab', 'analysisTab', 'trendsTab', 'hofstedeTab', 'mitTab', 'insightsTab', 'culturePerfTab'];
             tabs.forEach(tabId => {
                 const el = document.getElementById(tabId);
                 if (el) {
@@ -1183,7 +1240,8 @@
                 'trends': 'trendsTab',
                 'hofstede': 'hofstedeTab',
                 'mit': 'mitTab',
-                'insights': 'insightsTab'
+                'insights': 'insightsTab',
+                'culturePerf': 'culturePerfTab'
             };
             
             const targetTabId = tabMapping[tab];
@@ -1205,6 +1263,8 @@
                 loadCultureCompanies('mit');
             } else if (tab === 'insights') {
                 loadPerformanceInsights();
+            } else if (tab === 'culturePerf') {
+                loadCulturePerfScatter();
             }
             
             event.target.classList.add('active');
@@ -2409,6 +2469,149 @@
                 console.error('Error loading performance insights:', error);
                 document.getElementById('insightsLoading').textContent = 'Error loading insights: ' + error.message;
             }
+        }
+        
+        // ============================================================================
+        // CULTURE VS PERFORMANCE TAB
+        // ============================================================================
+        
+        let culturePerfData = null;
+        window.culturePerfScatterChart = null;
+        
+        async function loadCulturePerfScatter() {
+            if (culturePerfData) {
+                // Data already loaded, just update chart
+                updateCulturePerfScatter();
+                return;
+            }
+            
+            document.getElementById('culturePerfLoading').style.display = 'block';
+            document.getElementById('culturePerfContent').style.display = 'none';
+            
+            try {
+                const response = await fetch('/api/culture-performance-scatter');
+                const data = await response.json();
+                
+                if (!data.success) {
+                    document.getElementById('culturePerfLoading').textContent = 'Error loading data: ' + (data.error || 'Unknown error');
+                    return;
+                }
+                
+                culturePerfData = data.companies;
+                console.log('Loaded culture-performance data:', culturePerfData.length, 'companies');
+                
+                document.getElementById('culturePerfLoading').style.display = 'none';
+                document.getElementById('culturePerfContent').style.display = 'block';
+                
+                updateCulturePerfScatter();
+                
+            } catch (error) {
+                console.error('Error loading culture-performance data:', error);
+                document.getElementById('culturePerfLoading').textContent = 'Error: ' + error.message;
+            }
+        }
+        
+        function updateCulturePerfScatter() {
+            if (!culturePerfData) return;
+            
+            const scoreType = document.getElementById('cultureScoreType').value;
+            
+            // Define colors for each business model
+            const businessModelColors = {
+                'Traditional': 'rgba(59, 130, 246, 0.8)',     // Blue
+                'Alternative': 'rgba(16, 185, 129, 0.8)',    // Green
+                'Insurance/Wealth': 'rgba(245, 158, 11, 0.8)' // Amber
+            };
+            
+            const businessModelBorderColors = {
+                'Traditional': 'rgba(59, 130, 246, 1)',
+                'Alternative': 'rgba(16, 185, 129, 1)',
+                'Insurance/Wealth': 'rgba(245, 158, 11, 1)'
+            };
+            
+            // Prepare data by business model
+            const datasets = [];
+            const businessModels = ['Traditional', 'Alternative', 'Insurance/Wealth'];
+            
+            businessModels.forEach(model => {
+                const modelCompanies = culturePerfData.filter(c => c.business_model === model);
+                if (modelCompanies.length === 0) return;
+                
+                datasets.push({
+                    label: model,
+                    data: modelCompanies.map(c => ({
+                        x: scoreType === 'hofstede' ? c.hofstede_score : 
+                           scoreType === 'mit' ? c.mit_score : c.combined_score,
+                        y: c.composite_performance,
+                        company: c.company_name,
+                        hofstede: c.hofstede_score,
+                        mit: c.mit_score,
+                        combined: c.combined_score
+                    })),
+                    backgroundColor: businessModelColors[model],
+                    borderColor: businessModelBorderColors[model],
+                    borderWidth: 2,
+                    pointRadius: 8,
+                    pointHoverRadius: 12
+                });
+            });
+            
+            const ctx = document.getElementById('culturePerfScatterChart').getContext('2d');
+            if (window.culturePerfScatterChart) window.culturePerfScatterChart.destroy();
+            
+            const scoreTypeLabels = {
+                'hofstede': 'Hofstede Culture Score',
+                'mit': 'MIT Big 9 Culture Score',
+                'combined': 'Combined Culture Score'
+            };
+            
+            window.culturePerfScatterChart = new Chart(ctx, {
+                type: 'scatter',
+                data: { datasets: datasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: { usePointStyle: true, pointStyle: 'circle' }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const point = context.raw;
+                                    return [
+                                        point.company,
+                                        'Culture Score: ' + (point.x >= 0 ? '+' : '') + point.x.toFixed(2),
+                                        'Performance: ' + point.y.toFixed(1)
+                                    ];
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: { 
+                                display: true, 
+                                text: scoreTypeLabels[scoreType],
+                                font: { size: 13, weight: '600' },
+                                color: '#374151'
+                            },
+                            grid: { color: '#e2e8f0' }
+                        },
+                        y: {
+                            title: { 
+                                display: true, 
+                                text: 'Composite Performance Score',
+                                font: { size: 13, weight: '600' },
+                                color: '#374151'
+                            },
+                            grid: { color: '#e2e8f0' }
+                        }
+                    }
+                }
+            });
         }
         
         // ============================================================================

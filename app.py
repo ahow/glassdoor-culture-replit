@@ -1614,6 +1614,149 @@ def get_company_culture_trend(company_name):
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+@app.route('/api/culture-performance-scatter', methods=['GET'])
+def get_culture_performance_scatter():
+    """Get all companies' culture scores and performance data for scatter plot"""
+    try:
+        # Ensure performance data is loaded
+        if not performance_analyzer.loaded:
+            performance_analyzer.load_data()
+        
+        # Get all company names
+        conn = get_db_connection()
+        if not conn:
+            return jsonify({'success': False, 'error': 'Database connection failed'}), 500
+        
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        cursor.execute("SELECT DISTINCT company_name FROM reviews ORDER BY company_name")
+        company_names = [row['company_name'] for row in cursor.fetchall()]
+        cursor.close()
+        conn.close()
+        
+        # Calculate industry averages first
+        hofstede_avg = {dim: [] for dim in HOFSTEDE_DIMENSIONS}
+        mit_avg = {dim: [] for dim in MIT_DIMENSIONS}
+        all_metrics = {}
+        
+        for name in company_names:
+            m = get_cached_metrics(name)
+            if not m:
+                m = get_company_metrics(name)
+            if m:
+                all_metrics[name] = m
+                for dim in HOFSTEDE_DIMENSIONS:
+                    val = m.get('hofstede', {}).get(dim, {}).get('value', 0)
+                    hofstede_avg[dim].append(val)
+                for dim in MIT_DIMENSIONS:
+                    val = m.get('mit_big_9', {}).get(dim, {}).get('value', 0)
+                    mit_avg[dim].append(val)
+        
+        industry_hofstede = {dim: mean(vals) if vals else 0 for dim, vals in hofstede_avg.items()}
+        industry_mit = {dim: mean(vals) if vals else 0 for dim, vals in mit_avg.items()}
+        
+        # Get correlations for scoring
+        culture_data = []
+        performance_data = []
+        peer_stats = performance_analyzer.get_peer_statistics()
+        
+        for name in company_names:
+            m = all_metrics.get(name)
+            if m:
+                culture_data.append({
+                    'company': name,
+                    'hofstede': m.get('hofstede', {}),
+                    'mit': m.get('mit_big_9', {})
+                })
+            perf_metrics = performance_analyzer.get_performance_metrics(name)
+            if perf_metrics and len(perf_metrics) > 2:
+                perf_metrics['composite_score'] = performance_analyzer.calculate_composite_score(
+                    perf_metrics, peer_stats
+                )
+                performance_data.append(perf_metrics)
+        
+        correlations = performance_analyzer.calculate_correlation(culture_data, performance_data)
+        
+        # Extract correlations
+        hofstede_correlations = {}
+        mit_correlations = {}
+        
+        hofstede_corr_data = correlations.get('hofstede', {})
+        mit_corr_data = correlations.get('mit', {})
+        
+        for dim in HOFSTEDE_DIMENSIONS:
+            dim_data = hofstede_corr_data.get(dim, {}).get('composite_score', {})
+            hofstede_correlations[dim] = dim_data.get('correlation', 0) if isinstance(dim_data, dict) else 0
+        for dim in MIT_DIMENSIONS:
+            dim_data = mit_corr_data.get(dim, {}).get('composite_score', {})
+            mit_correlations[dim] = dim_data.get('correlation', 0) if isinstance(dim_data, dict) else 0
+        
+        # Calculate culture scores for each company
+        mit_max_values = get_mit_max_values()
+        companies_data = []
+        
+        for name in company_names:
+            metrics = all_metrics.get(name)
+            if not metrics:
+                continue
+            
+            # Get performance data
+            perf_metrics = performance_analyzer.get_performance_metrics(name)
+            if not perf_metrics or len(perf_metrics) <= 2:
+                continue
+            
+            composite_score = performance_analyzer.calculate_composite_score(perf_metrics, peer_stats)
+            if composite_score is None:
+                continue
+            
+            # Get business model category
+            business_model = performance_analyzer.get_business_model(name)
+            
+            # Calculate Hofstede company values and score
+            hofstede_score = 0.0
+            for dim in HOFSTEDE_DIMENSIONS:
+                company_val = metrics.get('hofstede', {}).get(dim, {}).get('value', 0)
+                industry_val = industry_hofstede.get(dim, 0)
+                correlation = hofstede_correlations.get(dim, 0)
+                deviation = company_val - industry_val
+                hofstede_score += correlation * deviation
+            
+            # Calculate MIT company values and score
+            mit_score = 0.0
+            for dim in MIT_DIMENSIONS:
+                raw_val = metrics.get('mit_big_9', {}).get(dim, {}).get('value', 0)
+                max_val = mit_max_values.get(dim, 1)
+                company_val = (10 * (raw_val / max_val)) if max_val > 0 else 0
+                
+                raw_avg = industry_mit.get(dim, 0)
+                industry_val = (10 * (raw_avg / max_val)) if max_val > 0 else 0
+                
+                correlation = mit_correlations.get(dim, 0)
+                deviation = company_val - industry_val
+                mit_score += correlation * deviation
+            
+            # Combined score (scale Hofstede to match MIT magnitude)
+            combined_score = (hofstede_score * 5) + mit_score
+            
+            companies_data.append({
+                'company_name': name,
+                'business_model': business_model,
+                'hofstede_score': round(hofstede_score, 3),
+                'mit_score': round(mit_score, 3),
+                'combined_score': round(combined_score, 3),
+                'composite_performance': round(composite_score, 1)
+            })
+        
+        return jsonify({
+            'success': True,
+            'companies': companies_data,
+            'business_models': list(set(c['business_model'] for c in companies_data))
+        })
+    
+    except Exception as e:
+        logger.error(f"Error in culture-performance scatter: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 @app.errorhandler(404)
 def not_found(error):
     """Handle 404 errors"""
