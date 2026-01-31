@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- VERSION: 2026-01-31-v4 -->
+<!-- VERSION: 2026-01-31-v5 -->
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -1082,7 +1082,7 @@
     
     <script>
         // Debug: Version check - look for this in browser console
-        console.log('Dashboard version: 2026-01-31-v4');
+        console.log('Dashboard version: 2026-01-31-v5');
         
         window.companyChart = null;
         window.ratingChart = null;
@@ -2479,8 +2479,15 @@
             
             // MIT Chart - Grouped bar with correlation-based colors
             const mitDims = Object.keys(analysisData.company.mit);
-            const mitCompanyVals = mitDims.map(d => analysisData.company.mit[d] || 0);
-            const mitIndustryVals = mitDims.map(d => analysisData.industry_average.mit[d] || 0);
+            // Apply same scaling logic: divide by 10 if value > 10
+            const mitCompanyVals = mitDims.map(d => {
+                const raw = analysisData.company.mit[d] || 0;
+                return raw > 10 ? raw / 10 : raw;
+            });
+            const mitIndustryVals = mitDims.map(d => {
+                const raw = analysisData.industry_average.mit[d] || 0;
+                return raw > 10 ? raw / 10 : raw;
+            });
             const mitCorrelations = mitDims.map(d => analysisData.correlations.mit[d] || 0);
             
             const mitCtx = document.getElementById('analysisMitChart').getContext('2d');
