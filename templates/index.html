@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- VERSION: 2026-01-31-v6 -->
+<!-- VERSION: 2026-01-31-v8 -->
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -1082,7 +1082,50 @@
     
     <script>
         // Debug: Version check - look for this in browser console
-        console.log('Dashboard version: 2026-01-31-v6');
+        console.log('Dashboard version: 2026-01-31-v8');
+        
+        // Helper function to get correlation-based color with intensity
+        // Positive correlations = green, negative = red
+        // Intensity varies based on correlation strength (abs value)
+        function getCorrelationColor(correlation, opacity = 1) {
+            const absCorr = Math.abs(correlation);
+            // Map correlation strength to color intensity (0.3 to 1.0)
+            const intensity = 0.3 + (absCorr * 0.7);
+            
+            if (correlation >= 0) {
+                // Green: rgb(34, 197, 94) - vary intensity
+                const r = Math.round(34 + (1 - intensity) * (255 - 34));
+                const g = Math.round(197 + (1 - intensity) * (255 - 197));
+                const b = Math.round(94 + (1 - intensity) * (255 - 94));
+                return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+            } else {
+                // Red: rgb(239, 68, 68) - vary intensity
+                const r = Math.round(239 + (1 - intensity) * (255 - 239));
+                const g = Math.round(68 + (1 - intensity) * (255 - 68));
+                const b = Math.round(68 + (1 - intensity) * (255 - 68));
+                return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+            }
+        }
+        
+        // Store correlation data globally for use across charts
+        window.mitCorrelations = {};
+        window.hofstedeCorrelations = {};
+        
+        // Fetch correlation data on page load
+        async function loadCorrelationData() {
+            try {
+                const response = await fetch('/api/performance-correlation');
+                if (response.ok) {
+                    const data = await response.json();
+                    window.mitCorrelations = data.correlations?.mit || {};
+                    window.hofstedeCorrelations = data.correlations?.hofstede || {};
+                    console.log('Loaded correlations:', window.mitCorrelations);
+                }
+            } catch (e) {
+                console.error('Failed to load correlations:', e);
+            }
+        }
+        loadCorrelationData();
         
         window.companyChart = null;
         window.ratingChart = null;
@@ -1588,10 +1631,30 @@
             const mitCtx = document.getElementById('mitChart').getContext('2d');
             if (window.mitChart) window.mitChart.destroy();
             
+            // Get correlation-based colors for each MIT dimension
+            // If correlations not loaded yet, use default blue
+            const hasCorrelations = Object.keys(window.mitCorrelations || {}).length > 0;
+            console.log('MIT correlations available:', hasCorrelations, window.mitCorrelations);
+            
+            const mitColors = mitDims.map(d => {
+                if (!hasCorrelations) return 'rgba(99, 102, 241, 0.8)'; // Default blue
+                const corr = window.mitCorrelations[d.key];
+                if (corr === undefined || isNaN(corr)) return 'rgba(99, 102, 241, 0.8)';
+                return getCorrelationColor(corr, 0.8);
+            });
+            const mitBorderColors = mitDims.map(d => {
+                if (!hasCorrelations) return 'rgba(99, 102, 241, 1)';
+                const corr = window.mitCorrelations[d.key];
+                if (corr === undefined || isNaN(corr)) return 'rgba(99, 102, 241, 1)';
+                return getCorrelationColor(corr, 1);
+            });
+            
             const mitDatasets = [{
                 label: profile.company_name,
                 data: mitData,
-                backgroundColor: '#667eea',
+                backgroundColor: mitColors,
+                borderColor: mitBorderColors,
+                borderWidth: 1,
                 borderRadius: 8,
                 confidence: mitConfidence
             }];
@@ -1612,12 +1675,18 @@
                     console.log(`MIT comparison ${d.key}: raw=${rawVal}, scaled=${value.toFixed(2)}`);
                     return value;
                 });
+                // Use same correlation-based colors but with lower opacity for comparison
+                const compMitColors = mitDims.map(d => {
+                    if (!hasCorrelations) return 'rgba(148, 163, 184, 0.5)'; // Default gray
+                    const corr = window.mitCorrelations[d.key];
+                    if (corr === undefined || isNaN(corr)) return 'rgba(148, 163, 184, 0.5)';
+                    return getCorrelationColor(corr, 0.5);
+                });
                 mitDatasets.push({
                     label: comparisonProfile.company_name,
                     data: comparisonMitData,
-                    backgroundColor: '#a0aec0',
-                    borderRadius: 8,
-                    opacity: 0.7
+                    backgroundColor: compMitColors,
+                    borderRadius: 8
                 });
             }
             
@@ -2434,8 +2503,8 @@
                         {
                             label: analysisData.company_name,
                             data: hofstedeCompanyVals,
-                            backgroundColor: hofstedeCorrelations.map(c => c >= 0 ? 'rgba(34, 197, 94, 0.8)' : 'rgba(239, 68, 68, 0.8)'),
-                            borderColor: hofstedeCorrelations.map(c => c >= 0 ? 'rgba(34, 197, 94, 1)' : 'rgba(239, 68, 68, 1)'),
+                            backgroundColor: hofstedeCorrelations.map(c => getCorrelationColor(c, 0.8)),
+                            borderColor: hofstedeCorrelations.map(c => getCorrelationColor(c, 1)),
                             borderWidth: 1
                         },
                         {
@@ -2501,8 +2570,8 @@
                         {
                             label: analysisData.company_name,
                             data: mitCompanyVals,
-                            backgroundColor: mitCorrelations.map(c => c >= 0 ? 'rgba(34, 197, 94, 0.8)' : 'rgba(239, 68, 68, 0.8)'),
-                            borderColor: mitCorrelations.map(c => c >= 0 ? 'rgba(34, 197, 94, 1)' : 'rgba(239, 68, 68, 1)'),
+                            backgroundColor: mitCorrelations.map(c => getCorrelationColor(c, 0.8)),
+                            borderColor: mitCorrelations.map(c => getCorrelationColor(c, 1)),
                             borderWidth: 1
                         },
                         {
