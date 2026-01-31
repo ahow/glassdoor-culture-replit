@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- VERSION: 2026-01-31-v3 -->
+<!-- VERSION: 2026-01-31-v4 -->
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -1082,7 +1082,7 @@
     
     <script>
         // Debug: Version check - look for this in browser console
-        console.log('Dashboard version: 2026-01-31-v3');
+        console.log('Dashboard version: 2026-01-31-v4');
         
         window.companyChart = null;
         window.ratingChart = null;
@@ -1597,17 +1597,19 @@
             }];
             
             if (comparisonProfile) {
-                // Use profile.mit which has rescaled 0-10 values
+                // Apply same scaling logic as primary company
                 const comparisonMitData = mitDims.map(d => {
-                    let value = 0;
+                    let rawVal = 0;
                     if (comparisonProfile.mit && comparisonProfile.mit[d.key]) {
-                        value = comparisonProfile.mit[d.key].value || 0;
+                        rawVal = comparisonProfile.mit[d.key].value || 0;
                     } else if (comparisonProfile.mit_big_9 && comparisonProfile.mit_big_9[d.key]) {
-                        const rawVal = comparisonProfile.mit_big_9[d.key].value || 0;
-                        value = rawVal > 10 ? rawVal / 10 : rawVal;
+                        rawVal = comparisonProfile.mit_big_9[d.key].value || 0;
                     } else {
-                        value = comparisonProfile[`${d.key}_mean`] || 0;
+                        rawVal = comparisonProfile[`${d.key}_mean`] || 0;
                     }
+                    // Always rescale if value > 10
+                    const value = rawVal > 10 ? rawVal / 10 : rawVal;
+                    console.log(`MIT comparison ${d.key}: raw=${rawVal}, scaled=${value.toFixed(2)}`);
                     return value;
                 });
                 mitDatasets.push({
