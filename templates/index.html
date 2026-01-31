@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- VERSION: 2026-01-31-v1 -->
+<!-- VERSION: 2026-01-31-v2 -->
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -198,6 +198,16 @@
         .tab-content {
             max-width: 1200px;
             margin: 0 auto;
+        }
+        
+        /* Hidden tab class for robust hiding */
+        .tab-content.hidden-tab {
+            display: none !important;
+            visibility: hidden !important;
+            height: 0 !important;
+            overflow: hidden !important;
+            position: absolute !important;
+            left: -9999px !important;
         }
         
         /* Ensure hidden tabs are completely invisible */
@@ -526,7 +536,7 @@
         </div>
         
         <!-- Companies Tab -->
-        <div id="companiesTab" class="tab-content" style="display: none;">
+        <div id="companiesTab" class="tab-content hidden-tab" style="display: none;">
             <div class="chart-container" id="companyDetailsContainer">
                 <h2 class="chart-title">Company Details</h2>
                 <p style="color: #64748b; margin-bottom: 1rem;">Select a company to view detailed culture analysis in the other tabs.</p>
@@ -535,7 +545,7 @@
         </div>
         
         <!-- Quarterly Trends Tab -->
-        <div id="trendsTab" class="tab-content" style="display: none;">
+        <div id="trendsTab" class="tab-content hidden-tab" style="display: none;">
             <div class="chart-container">
                 <h2 class="chart-title">Quarterly Trends Analysis</h2>
                 <div class="controls-grid">
@@ -578,7 +588,7 @@
         </div>
         
         <!-- Culture Analysis Tab -->
-        <div id="hofstedeTab" class="tab-content" style="display: none;">
+        <div id="hofstedeTab" class="tab-content hidden-tab" style="display: none;">
             <!-- Hofstede Framework -->
             
             <!-- Profile Sub-Tab -->
@@ -757,7 +767,7 @@
             </div>
         </div>
         
-        <div id="mitTab" class="tab-content" style="display: none;">
+        <div id="mitTab" class="tab-content hidden-tab" style="display: none;">
             <!-- MIT Framework -->
             
             <!-- Profile Sub-Tab -->
@@ -942,7 +952,7 @@
         </div>
         
         <!-- Performance Insights Tab -->
-        <div id="insightsTab" class="tab-content" style="display: none;">
+        <div id="insightsTab" class="tab-content hidden-tab" style="display: none;">
             <div class="chart-container">
                 <h2 class="chart-title">Culture-Performance Correlation Analysis</h2>
                 <p style="color: #64748b; margin-bottom: 1.5rem;">
@@ -999,7 +1009,7 @@
         </div>
         
         <!-- Company Analysis Tab -->
-        <div id="analysisTab" class="tab-content" style="display: none;">
+        <div id="analysisTab" class="tab-content hidden-tab" style="display: none;">
             <div class="chart-container">
                 <h2 class="chart-title">Company Culture Analysis</h2>
                 <p style="color: #64748b; margin-bottom: 1.5rem;">
@@ -1072,7 +1082,7 @@
     
     <script>
         // Debug: Version check - look for this in browser console
-        console.log('Dashboard version: 2026-01-31-v1');
+        console.log('Dashboard version: 2026-01-31-v2');
         
         window.companyChart = null;
         window.ratingChart = null;
@@ -1087,12 +1097,13 @@
         function switchMainTab(tab, event) {
             console.log('switchMainTab called with tab:', tab);
             
-            // Hide all tabs
+            // Hide all tabs using both inline styles AND CSS class
             const tabs = ['overviewTab', 'companiesTab', 'analysisTab', 'trendsTab', 'hofstedeTab', 'mitTab', 'insightsTab'];
             tabs.forEach(tabId => {
                 const el = document.getElementById(tabId);
                 if (el) {
                     el.style.display = 'none';
+                    el.classList.add('hidden-tab');
                     console.log('Hidden:', tabId);
                 }
             });
@@ -1116,6 +1127,7 @@
             if (targetTabId) {
                 const targetEl = document.getElementById(targetTabId);
                 if (targetEl) {
+                    targetEl.classList.remove('hidden-tab');
                     targetEl.style.display = 'block';
                     console.log('Showing:', targetTabId);
                 }
@@ -1544,18 +1556,24 @@
         function displayMitProfile(profile, comparisonProfile, mitDims) {
             console.log('displayMitProfile called with profile:', profile);
             const mitLabels = mitDims.map(d => d.label);
-            // MIT values are already on 0-10 scale, no rescaling needed
+            // MIT values should come from profile.mit which has rescaled 0-10 values
             const mitData = mitDims.map(d => {
-                let value;
-                // Handle both old and new format
-                if (profile.mit_big_9 && profile.mit_big_9[d.key]) {
-                    value = profile.mit_big_9[d.key].value || 0;
-                } else if (profile.mit && profile.mit[d.key]) {
+                let value = 0;
+                // Use profile.mit which contains rescaled values (0-10 scale)
+                if (profile.mit && profile.mit[d.key]) {
                     value = profile.mit[d.key].value || 0;
+                    console.log(`MIT ${d.key}: using profile.mit = ${value}`);
+                } else if (profile.mit_big_9 && profile.mit_big_9[d.key]) {
+                    // Fallback to mit_big_9 for backward compatibility
+                    // But these are raw values - need to check if already rescaled
+                    const rawVal = profile.mit_big_9[d.key].value || 0;
+                    // If value > 10, it's raw and needs rescaling by dividing by 10
+                    value = rawVal > 10 ? rawVal / 10 : rawVal;
+                    console.log(`MIT ${d.key}: using profile.mit_big_9 (adjusted) = ${value}`);
                 } else {
                     value = profile[`${d.key}_mean`] || 0;
+                    console.log(`MIT ${d.key}: using fallback = ${value}`);
                 }
-                console.log(`MIT dimension ${d.key}: ${value}`);
                 return value;
             });
             console.log('MIT data values:', mitData);
@@ -1582,16 +1600,18 @@
             }];
             
             if (comparisonProfile) {
-                // MIT values are already on 0-10 scale, no rescaling needed
+                // Use profile.mit which has rescaled 0-10 values
                 const comparisonMitData = mitDims.map(d => {
-                    // Handle both old and new format
-                    if (comparisonProfile.mit_big_9 && comparisonProfile.mit_big_9[d.key]) {
-                        return comparisonProfile.mit_big_9[d.key].value || 0;
-                    }
+                    let value = 0;
                     if (comparisonProfile.mit && comparisonProfile.mit[d.key]) {
-                        return comparisonProfile.mit[d.key].value || 0;
+                        value = comparisonProfile.mit[d.key].value || 0;
+                    } else if (comparisonProfile.mit_big_9 && comparisonProfile.mit_big_9[d.key]) {
+                        const rawVal = comparisonProfile.mit_big_9[d.key].value || 0;
+                        value = rawVal > 10 ? rawVal / 10 : rawVal;
+                    } else {
+                        value = comparisonProfile[`${d.key}_mean`] || 0;
                     }
-                    return comparisonProfile[`${d.key}_mean`] || 0;
+                    return value;
                 });
                 mitDatasets.push({
                     label: comparisonProfile.company_name,
