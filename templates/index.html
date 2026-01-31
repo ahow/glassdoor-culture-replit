@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- VERSION: 2026-01-31-v8 -->
+<!-- VERSION: 2026-01-31-v9 -->
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -1028,6 +1028,25 @@
                 </div>
                 
                 <div id="analysisContent" style="display: none;">
+                    <!-- Culture Scores Display -->
+                    <div id="cultureScoresSection" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 2rem;">
+                        <div style="background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); border-radius: 12px; padding: 1.25rem; color: white;">
+                            <p style="font-size: 0.85rem; opacity: 0.9; margin-bottom: 0.5rem;">Hofstede Score</p>
+                            <p id="hofstedeScoreValue" style="font-size: 1.75rem; font-weight: 700; margin: 0;">--</p>
+                            <p style="font-size: 0.75rem; opacity: 0.8; margin-top: 0.25rem;">6 dimensions</p>
+                        </div>
+                        <div style="background: linear-gradient(135deg, #6366f1 0%, #4338ca 100%); border-radius: 12px; padding: 1.25rem; color: white;">
+                            <p style="font-size: 0.85rem; opacity: 0.9; margin-bottom: 0.5rem;">MIT Big 9 Score</p>
+                            <p id="mitScoreValue" style="font-size: 1.75rem; font-weight: 700; margin: 0;">--</p>
+                            <p style="font-size: 0.75rem; opacity: 0.8; margin-top: 0.25rem;">9 dimensions</p>
+                        </div>
+                        <div id="combinedScoreCard" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-radius: 12px; padding: 1.25rem; color: white;">
+                            <p style="font-size: 0.85rem; opacity: 0.9; margin-bottom: 0.5rem;">Combined Score</p>
+                            <p id="combinedScoreValue" style="font-size: 1.75rem; font-weight: 700; margin: 0;">--</p>
+                            <p style="font-size: 0.75rem; opacity: 0.8; margin-top: 0.25rem;">Performance alignment</p>
+                        </div>
+                    </div>
+                    
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(500px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
                         <div class="chart-container" style="background: #f8fafc; border: 1px solid #e2e8f0;">
                             <h3 style="color: #3b82f6; margin-bottom: 0.5rem; font-size: 1.1rem; font-weight: 600;">Hofstede Dimensions</h3>
@@ -1063,6 +1082,7 @@
                     <div style="background: #f8fafc; border-radius: 10px; padding: 1.25rem; border: 1px solid #e2e8f0; margin-top: 2rem;">
                         <h3 style="color: #1e293b; margin-bottom: 0.75rem; font-size: 1rem; font-weight: 600;">Reading This Analysis</h3>
                         <ul style="color: #64748b; font-size: 0.9rem; margin: 0; padding-left: 1.5rem; line-height: 1.7;">
+                            <li><strong>Culture Scores:</strong> Calculated as the sum of (correlation strength x deviation from industry average) for each dimension. Positive scores indicate culture aligned with performance drivers.</li>
                             <li>Grouped bars show company score (solid) vs industry average (striped pattern)</li>
                             <li>Green-tinted dimensions have positive correlation with business performance</li>
                             <li>Red-tinted dimensions have negative correlation with business performance</li>
@@ -1082,7 +1102,7 @@
     
     <script>
         // Debug: Version check - look for this in browser console
-        console.log('Dashboard version: 2026-01-31-v8');
+        console.log('Dashboard version: 2026-01-31-v9');
         
         // Helper function to get correlation-based color with intensity
         // Positive correlations = green, negative = red
@@ -2465,6 +2485,28 @@
         }
         
         function renderAnalysisCharts(analysisData, trendData) {
+            // Update culture scores display
+            if (analysisData.culture_scores) {
+                const hofScore = analysisData.culture_scores.hofstede || 0;
+                const mitScore = analysisData.culture_scores.mit || 0;
+                const combinedScore = analysisData.culture_scores.combined || 0;
+                
+                // Format scores with + sign for positive
+                const formatScore = (score) => (score >= 0 ? '+' : '') + score.toFixed(2);
+                
+                document.getElementById('hofstedeScoreValue').textContent = formatScore(hofScore);
+                document.getElementById('mitScoreValue').textContent = formatScore(mitScore);
+                document.getElementById('combinedScoreValue').textContent = formatScore(combinedScore);
+                
+                // Update combined card color based on score (green for positive, red for negative)
+                const combinedCard = document.getElementById('combinedScoreCard');
+                if (combinedScore >= 0) {
+                    combinedCard.style.background = 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
+                } else {
+                    combinedCard.style.background = 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)';
+                }
+            }
+            
             const formatDimension = (dim) => {
                 const names = {
                     'process_results': 'Process vs Results',

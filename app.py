@@ -1483,6 +1483,29 @@ def get_company_analysis(company_name):
             max_val = mit_max_values.get(dim, 1)
             company_mit[dim] = round(10 * (raw_val / max_val), 2) if max_val > 0 else 0
         
+        # Calculate culture scores: Σ(correlation × deviation from industry average)
+        # Positive score = culture dimensions positively aligned with performance
+        # Negative score = culture dimensions negatively aligned with performance
+        hofstede_score = 0.0
+        for dim in HOFSTEDE_DIMENSIONS:
+            company_val = company_hofstede.get(dim, 0)
+            industry_val = industry_hofstede.get(dim, 0)
+            correlation = hofstede_correlations.get(dim, 0)
+            deviation = company_val - industry_val
+            hofstede_score += correlation * deviation
+        
+        mit_score = 0.0
+        for dim in MIT_DIMENSIONS:
+            company_val = company_mit.get(dim, 0)
+            industry_val = industry_mit.get(dim, 0)
+            correlation = mit_correlations.get(dim, 0)
+            deviation = company_val - industry_val
+            mit_score += correlation * deviation
+        
+        # Combined score is sum of both (Hofstede is -1 to +1 scale, MIT is 0-10 scale)
+        # Scale Hofstede to match MIT magnitude roughly (multiply by 5)
+        combined_score = (hofstede_score * 5) + mit_score
+        
         return jsonify({
             'success': True,
             'company_name': company_name,
@@ -1497,6 +1520,11 @@ def get_company_analysis(company_name):
             'correlations': {
                 'hofstede': hofstede_correlations,
                 'mit': mit_correlations
+            },
+            'culture_scores': {
+                'hofstede': round(hofstede_score, 3),
+                'mit': round(mit_score, 3),
+                'combined': round(combined_score, 3)
             },
             'metadata': {
                 'review_count': metrics.get('total_reviews', 0),
