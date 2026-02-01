@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- VERSION: 2026-02-01-v16 -->
+<!-- VERSION: 2026-02-01-v17 -->
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -1168,7 +1168,7 @@
     
     <script>
         // Debug: Version check - look for this in browser console
-        console.log('Dashboard version: 2026-02-01-v16');
+        console.log('Dashboard version: 2026-02-01-v17');
         
         // Helper function to get correlation-based color with intensity
         // Positive correlations = green, negative = red
@@ -2783,6 +2783,16 @@
             const hofstedeIndustryVals = hofstedeDims.map(d => analysisData.industry_average.hofstede[d] || 0);
             const hofstedeCorrelations = hofstedeDims.map(d => analysisData.correlations.hofstede[d] || 0);
             
+            // Hofstede pole labels: left pole (-1) and right pole (+1) for each dimension
+            const hofstedePoles = {
+                'process_results': { left: 'Process', right: 'Results' },
+                'job_employee': { left: 'Job', right: 'Employee' },
+                'professional_parochial': { left: 'Professional', right: 'Parochial' },
+                'open_closed': { left: 'Open', right: 'Closed' },
+                'tight_loose': { left: 'Tight', right: 'Loose' },
+                'pragmatic_normative': { left: 'Pragmatic', right: 'Normative' }
+            };
+            
             const hofstedeCtx = document.getElementById('analysisHofstedeChart').getContext('2d');
             if (window.analysisHofstedeChart) window.analysisHofstedeChart.destroy();
             
@@ -2830,11 +2840,56 @@
                         x: { 
                             min: -1, 
                             max: 1,
-                            title: { display: true, text: 'Score (-1 to +1)' }
+                            title: { 
+                                display: true, 
+                                text: 'Score (-1 to +1)',
+                                padding: { top: 10 }
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    if (value === -1) return '';
+                                    if (value === 1) return '';
+                                    return value;
+                                }
+                            }
                         },
                         y: { grid: { display: false } }
                     }
-                }
+                },
+                plugins: [{
+                    id: 'poleLabels',
+                    afterDraw: function(chart) {
+                        const ctx = chart.ctx;
+                        const xAxis = chart.scales.x;
+                        const yAxis = chart.scales.y;
+                        
+                        ctx.save();
+                        ctx.font = '11px Inter, sans-serif';
+                        ctx.fillStyle = '#64748b';
+                        
+                        // Draw left pole labels at x = -1 position
+                        const leftX = xAxis.getPixelForValue(-0.95);
+                        // Draw right pole labels at x = +1 position
+                        const rightX = xAxis.getPixelForValue(0.95);
+                        
+                        hofstedeDims.forEach((dim, index) => {
+                            const poles = hofstedePoles[dim];
+                            if (poles) {
+                                const y = yAxis.getPixelForValue(index);
+                                
+                                // Left pole label
+                                ctx.textAlign = 'left';
+                                ctx.fillText(poles.left, leftX, y + 4);
+                                
+                                // Right pole label
+                                ctx.textAlign = 'right';
+                                ctx.fillText(poles.right, rightX, y + 4);
+                            }
+                        });
+                        
+                        ctx.restore();
+                    }
+                }]
             });
             
             // MIT Chart - Grouped bar with correlation-based colors
