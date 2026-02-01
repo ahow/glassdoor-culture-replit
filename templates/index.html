@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- VERSION: 2026-01-31-v13 -->
+<!-- VERSION: 2026-02-01-v15 -->
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -1032,19 +1032,28 @@
                     <!-- Culture Scores Display -->
                     <div id="cultureScoresSection" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 2rem;">
                         <div style="background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); border-radius: 12px; padding: 1.25rem; color: white;">
-                            <p style="font-size: 0.85rem; opacity: 0.9; margin-bottom: 0.5rem;">Hofstede Score</p>
-                            <p id="hofstedeScoreValue" style="font-size: 1.75rem; font-weight: 700; margin: 0;">--</p>
-                            <p id="hofstedeConfidence" style="font-size: 0.7rem; opacity: 0.75; margin-top: 0.25rem;"></p>
+                            <p style="font-size: 0.85rem; font-weight: 500; margin-bottom: 0.5rem; text-shadow: 0 1px 2px rgba(0,0,0,0.2);">Hofstede Score</p>
+                            <p id="hofstedeScoreValue" style="font-size: 1.75rem; font-weight: 700; margin: 0; text-shadow: 0 1px 3px rgba(0,0,0,0.3);">--</p>
+                            <p id="hofstedeConfidence" style="font-size: 0.7rem; font-weight: 500; margin-top: 0.25rem; text-shadow: 0 1px 2px rgba(0,0,0,0.2);"></p>
+                            <div style="margin-top: 0.75rem; height: 60px; background: rgba(255,255,255,0.1); border-radius: 6px; padding: 0.25rem;">
+                                <canvas id="hofstedeTrendChart"></canvas>
+                            </div>
                         </div>
                         <div style="background: linear-gradient(135deg, #6366f1 0%, #4338ca 100%); border-radius: 12px; padding: 1.25rem; color: white;">
-                            <p style="font-size: 0.85rem; opacity: 0.9; margin-bottom: 0.5rem;">MIT Big 9 Score</p>
-                            <p id="mitScoreValue" style="font-size: 1.75rem; font-weight: 700; margin: 0;">--</p>
-                            <p id="mitConfidence" style="font-size: 0.7rem; opacity: 0.75; margin-top: 0.25rem;"></p>
+                            <p style="font-size: 0.85rem; font-weight: 500; margin-bottom: 0.5rem; text-shadow: 0 1px 2px rgba(0,0,0,0.2);">MIT Big 9 Score</p>
+                            <p id="mitScoreValue" style="font-size: 1.75rem; font-weight: 700; margin: 0; text-shadow: 0 1px 3px rgba(0,0,0,0.3);">--</p>
+                            <p id="mitConfidence" style="font-size: 0.7rem; font-weight: 500; margin-top: 0.25rem; text-shadow: 0 1px 2px rgba(0,0,0,0.2);"></p>
+                            <div style="margin-top: 0.75rem; height: 60px; background: rgba(255,255,255,0.1); border-radius: 6px; padding: 0.25rem;">
+                                <canvas id="mitTrendChart"></canvas>
+                            </div>
                         </div>
                         <div id="combinedScoreCard" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-radius: 12px; padding: 1.25rem; color: white;">
-                            <p style="font-size: 0.85rem; opacity: 0.9; margin-bottom: 0.5rem;">Combined Score</p>
-                            <p id="combinedScoreValue" style="font-size: 1.75rem; font-weight: 700; margin: 0;">--</p>
-                            <p id="combinedConfidence" style="font-size: 0.7rem; opacity: 0.75; margin-top: 0.25rem;"></p>
+                            <p style="font-size: 0.85rem; font-weight: 500; margin-bottom: 0.5rem; text-shadow: 0 1px 2px rgba(0,0,0,0.2);">Combined Score</p>
+                            <p id="combinedScoreValue" style="font-size: 1.75rem; font-weight: 700; margin: 0; text-shadow: 0 1px 3px rgba(0,0,0,0.3);">--</p>
+                            <p id="combinedConfidence" style="font-size: 0.7rem; font-weight: 500; margin-top: 0.25rem; text-shadow: 0 1px 2px rgba(0,0,0,0.2);"></p>
+                            <div style="margin-top: 0.75rem; height: 60px; background: rgba(255,255,255,0.1); border-radius: 6px; padding: 0.25rem;">
+                                <canvas id="combinedTrendChart"></canvas>
+                            </div>
                         </div>
                     </div>
                     
@@ -1159,7 +1168,7 @@
     
     <script>
         // Debug: Version check - look for this in browser console
-        console.log('Dashboard version: 2026-01-31-v13');
+        console.log('Dashboard version: 2026-02-01-v15');
         
         // Helper function to get correlation-based color with intensity
         // Positive correlations = green, negative = red
@@ -2683,13 +2692,15 @@
             document.getElementById('analysisContent').style.display = 'none';
             
             try {
-                const [analysisResponse, trendResponse] = await Promise.all([
+                const [analysisResponse, trendResponse, scoreTrendResponse] = await Promise.all([
                     fetch('/api/company-analysis/' + encodeURIComponent(companyName)),
-                    fetch('/api/company-culture-trend/' + encodeURIComponent(companyName))
+                    fetch('/api/company-culture-trend/' + encodeURIComponent(companyName)),
+                    fetch('/api/company-culture-score-trend/' + encodeURIComponent(companyName))
                 ]);
                 
                 const analysisData = await analysisResponse.json();
                 const trendData = await trendResponse.json();
+                const scoreTrendData = await scoreTrendResponse.json();
                 
                 if (!analysisData.success) {
                     document.getElementById('analysisLoading').textContent = 'Error loading company data';
@@ -2697,6 +2708,7 @@
                 }
                 
                 renderAnalysisCharts(analysisData, trendData);
+                renderCultureScoreTrends(scoreTrendData);
                 
                 document.getElementById('analysisLoading').style.display = 'none';
                 document.getElementById('analysisContent').style.display = 'block';
@@ -3185,6 +3197,124 @@
                         ctx.restore();
                     }
                 }]
+            });
+        }
+        
+        function renderCultureScoreTrends(scoreTrendData) {
+            // Render mini trend charts for culture scores
+            if (!scoreTrendData || !scoreTrendData.success || !scoreTrendData.trends || scoreTrendData.trends.length === 0) {
+                // Hide or show "No data" in trend areas
+                return;
+            }
+            
+            const trends = scoreTrendData.trends;
+            const years = trends.map(t => t.year.toString());
+            const hofstedeScores = trends.map(t => t.hofstede_score);
+            const mitScores = trends.map(t => t.mit_score);
+            const combinedScores = trends.map(t => t.combined_score);
+            
+            // Shared mini chart options
+            const miniChartOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        enabled: true,
+                        displayColors: false,
+                        callbacks: {
+                            title: function(context) {
+                                return context[0].label;
+                            },
+                            label: function(context) {
+                                const val = context.raw;
+                                return (val >= 0 ? '+' : '') + val.toFixed(2);
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        display: true,
+                        ticks: { 
+                            color: 'rgba(255,255,255,0.7)', 
+                            font: { size: 9 },
+                            maxRotation: 0
+                        },
+                        grid: { display: false }
+                    },
+                    y: {
+                        display: false,
+                        grid: { display: false }
+                    }
+                },
+                elements: {
+                    point: { radius: 3, hoverRadius: 5 },
+                    line: { borderWidth: 2, tension: 0.3 }
+                }
+            };
+            
+            // Hofstede trend chart
+            const hofstedeTrendCtx = document.getElementById('hofstedeTrendChart').getContext('2d');
+            if (window.hofstedeTrendChart && typeof window.hofstedeTrendChart.destroy === 'function') {
+                window.hofstedeTrendChart.destroy();
+            }
+            
+            window.hofstedeTrendChart = new Chart(hofstedeTrendCtx, {
+                type: 'line',
+                data: {
+                    labels: years,
+                    datasets: [{
+                        data: hofstedeScores,
+                        borderColor: 'rgba(255, 255, 255, 0.9)',
+                        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                        fill: true,
+                        pointBackgroundColor: 'white'
+                    }]
+                },
+                options: miniChartOptions
+            });
+            
+            // MIT trend chart
+            const mitTrendCtx = document.getElementById('mitTrendChart').getContext('2d');
+            if (window.mitTrendChart && typeof window.mitTrendChart.destroy === 'function') {
+                window.mitTrendChart.destroy();
+            }
+            
+            window.mitTrendChart = new Chart(mitTrendCtx, {
+                type: 'line',
+                data: {
+                    labels: years,
+                    datasets: [{
+                        data: mitScores,
+                        borderColor: 'rgba(255, 255, 255, 0.9)',
+                        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                        fill: true,
+                        pointBackgroundColor: 'white'
+                    }]
+                },
+                options: miniChartOptions
+            });
+            
+            // Combined trend chart
+            const combinedTrendCtx = document.getElementById('combinedTrendChart').getContext('2d');
+            if (window.combinedTrendChart && typeof window.combinedTrendChart.destroy === 'function') {
+                window.combinedTrendChart.destroy();
+            }
+            
+            window.combinedTrendChart = new Chart(combinedTrendCtx, {
+                type: 'line',
+                data: {
+                    labels: years,
+                    datasets: [{
+                        data: combinedScores,
+                        borderColor: 'rgba(255, 255, 255, 0.9)',
+                        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                        fill: true,
+                        pointBackgroundColor: 'white'
+                    }]
+                },
+                options: miniChartOptions
             });
         }
         

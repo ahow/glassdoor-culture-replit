@@ -1656,6 +1656,113 @@ def get_company_culture_trend(company_name):
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+@app.route('/api/company-culture-score-trend/<company_name>', methods=['GET'])
+def get_company_culture_score_trend(company_name):
+    """Get yearly culture rating trends for a company - last 5 years
+    
+    Uses culture_and_values_rating from reviews, normalized against industry average.
+    Returns a simplified score: company rating - industry average for each year.
+    """
+    try:
+        conn = get_db_connection()
+        if not conn:
+            return jsonify({'success': False, 'error': 'Database connection failed'}), 500
+        
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        
+        # Get company yearly average culture rating
+        cursor.execute("""
+            SELECT 
+                EXTRACT(YEAR FROM review_datetime) as year,
+                AVG(culture_and_values_rating) as avg_rating,
+                AVG(rating) as avg_overall,
+                COUNT(*) as review_count
+            FROM reviews
+            WHERE company_name = %s 
+              AND review_datetime IS NOT NULL
+              AND culture_and_values_rating IS NOT NULL
+              AND EXTRACT(YEAR FROM review_datetime) >= EXTRACT(YEAR FROM CURRENT_DATE) - 4
+            GROUP BY year
+            ORDER BY year
+        """, (company_name,))
+        company_yearly = cursor.fetchall()
+        
+        # Get industry yearly averages
+        cursor.execute("""
+            SELECT 
+                EXTRACT(YEAR FROM review_datetime) as year,
+                AVG(culture_and_values_rating) as avg_rating,
+                AVG(rating) as avg_overall
+            FROM reviews
+            WHERE review_datetime IS NOT NULL
+              AND culture_and_values_rating IS NOT NULL
+              AND EXTRACT(YEAR FROM review_datetime) >= EXTRACT(YEAR FROM CURRENT_DATE) - 4
+            GROUP BY year
+            ORDER BY year
+        """)
+        industry_yearly = cursor.fetchall()
+        
+        cursor.close()
+        conn.close()
+        
+        if not company_yearly:
+            return jsonify({
+                'success': True,
+                'company_name': company_name,
+                'trends': []
+            })
+        
+        # Build industry averages lookup
+        industry_by_year = {
+            int(row['year']): {
+                'culture': float(row['avg_rating']) if row['avg_rating'] else 3.0,
+                'overall': float(row['avg_overall']) if row['avg_overall'] else 3.0
+            }
+            for row in industry_yearly
+        }
+        
+        # Calculate normalized scores for each year
+        # Score = (company rating - industry average) normalized to roughly match culture score range
+        trends = []
+        for row in company_yearly:
+            year = int(row['year'])
+            company_culture = float(row['avg_rating']) if row['avg_rating'] else 3.0
+            company_overall = float(row['avg_overall']) if row['avg_overall'] else 3.0
+            
+            ind = industry_by_year.get(year, {'culture': 3.0, 'overall': 3.0})
+            
+            # Calculate deviation from industry average, scaled to match culture score range
+            # Culture rating is 1-5, so deviation is -4 to +4
+            # Scale to roughly -2 to +2 range to match Hofstede/MIT score ranges
+            culture_deviation = (company_culture - ind['culture']) * 0.5
+            overall_deviation = (company_overall - ind['overall']) * 0.5
+            
+            # Use culture rating deviation as proxy for Hofstede (soft culture measures)
+            # Use overall rating deviation as proxy for MIT (performance-oriented measures)
+            # Combined is the average
+            hofstede_proxy = round(culture_deviation, 3)
+            mit_proxy = round(overall_deviation, 3)
+            combined_proxy = round((culture_deviation + overall_deviation) / 2, 3)
+            
+            trends.append({
+                'year': year,
+                'hofstede_score': hofstede_proxy,
+                'mit_score': mit_proxy,
+                'combined_score': combined_proxy,
+                'review_count': row['review_count']
+            })
+        
+        return jsonify({
+            'success': True,
+            'company_name': company_name,
+            'trends': trends
+        })
+    
+    except Exception as e:
+        logger.error(f"Error in company culture score trend: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 @app.route('/api/culture-performance-scatter', methods=['GET'])
 def get_culture_performance_scatter():
     """Get all companies' culture scores and performance data for scatter plot"""
