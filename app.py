@@ -423,6 +423,86 @@ def init_cache_table():
         logger.error(f"Error initializing cache table: {e}")
         return False
 
+
+def init_extraction_queue():
+    """Initialize extraction_queue table and populate from CSV if empty"""
+    try:
+        conn = get_db_connection()
+        if not conn:
+            return False
+        
+        cursor = conn.cursor()
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS extraction_queue (
+                id SERIAL PRIMARY KEY,
+                issuer_id VARCHAR(255),
+                issuer_name VARCHAR(255),
+                issuer_ticker VARCHAR(50),
+                isin VARCHAR(50),
+                country VARCHAR(10),
+                gics_sector VARCHAR(255),
+                gics_industry VARCHAR(255),
+                gics_sub_industry VARCHAR(255),
+                glassdoor_name VARCHAR(255),
+                glassdoor_id INTEGER,
+                glassdoor_url TEXT,
+                status VARCHAR(50) DEFAULT 'pending',
+                reviews_extracted INTEGER DEFAULT 0,
+                review_count_glassdoor INTEGER,
+                search_results JSONB,
+                match_confidence VARCHAR(50),
+                error_message TEXT,
+                started_at TIMESTAMP,
+                completed_at TIMESTAMP,
+                created_at TIMESTAMP DEFAULT NOW(),
+                updated_at TIMESTAMP DEFAULT NOW()
+            )
+        """)
+        conn.commit()
+
+        cursor.execute("SELECT COUNT(*) FROM extraction_queue")
+        count = cursor.fetchone()[0]
+
+        if count == 0:
+            import csv as csv_mod
+            csv_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                    'attached_assets',
+                                    'Screen_Results_-_20260202_11_53_47_1770033261707.csv')
+            if os.path.exists(csv_path):
+                with open(csv_path, 'r', encoding='utf-8-sig') as f:
+                    reader = csv_mod.DictReader(f)
+                    rows_inserted = 0
+                    for row in reader:
+                        cursor.execute("""
+                            INSERT INTO extraction_queue 
+                            (issuer_id, issuer_name, issuer_ticker, isin, country,
+                             gics_sector, gics_industry, gics_sub_industry)
+                            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                        """, (
+                            row.get('ISSUERID', ''),
+                            row.get('ISSUER_NAME', ''),
+                            row.get('ISSUER_TICKER', ''),
+                            row.get('ISSUER_ISIN', ''),
+                            row.get('ISSUER_CNTRY_DOMICILE', ''),
+                            row.get('GICS_SECTOR', ''),
+                            row.get('GICS_IND', ''),
+                            row.get('GICS_SUB_IND', '')
+                        ))
+                        rows_inserted += 1
+                    conn.commit()
+                    logger.info(f"Loaded {rows_inserted} companies into extraction_queue from CSV")
+            else:
+                logger.warning(f"CSV file not found at {csv_path}")
+        else:
+            logger.info(f"Extraction queue already has {count} companies")
+
+        cursor.close()
+        conn.close()
+        return True
+    except Exception as e:
+        logger.error(f"Error initializing extraction queue: {e}")
+        return False
+
 def get_cached_metrics(company_name):
     """Get metrics from cache if available"""
     try:
@@ -2275,7 +2355,8 @@ def internal_error(error):
 
 if __name__ == '__main__':
     init_cache_table()
+    init_extraction_queue()
     app.run(debug=False, host='0.0.0.0', port=int(os.environ.get('FLASK_PORT', os.environ.get('PORT', 8080))))
 
 init_cache_table()
-# Force redeploy
+init_extraction_queue()

@@ -1202,7 +1202,7 @@
             <div class="chart-container">
                 <h2 class="chart-title">Extraction Manager</h2>
                 <p style="color: #64748b; margin-bottom: 1.5rem;">
-                    Manage the extraction of Glassdoor reviews for all 2,442 companies. Extraction proceeds sector by sector, completing all companies in each sector before moving to the next.
+                    Manage the extraction of Glassdoor reviews for all 2,442 companies across 11 GICS sectors. Extraction proceeds sector by sector. Existing company data is preserved -- duplicate reviews are automatically skipped.
                 </p>
 
                 <div id="extractionControls" style="display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; margin-bottom: 1.5rem; padding: 1rem; background: #f8fafc; border-radius: 10px; border: 1px solid #e2e8f0;">
@@ -1216,9 +1216,18 @@
                 <div id="extractionTotals" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
                 </div>
 
+                <div id="extractionActivityLog" style="margin-bottom: 1.5rem; padding: 0.75rem 1rem; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; display: none;">
+                    <div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0.5rem; align-items: center; margin-bottom: 0.5rem;">
+                        <span style="font-weight: 600; font-size: 0.8125rem; color: #1e293b;">Activity Log</span>
+                        <button onclick="document.getElementById('extractionLogEntries').innerHTML=''; extractionLogs=[];" style="font-size: 0.75rem; color: #94a3b8; background: none; border: none; cursor: pointer;">Clear</button>
+                    </div>
+                    <div id="extractionLogEntries" style="max-height: 150px; overflow-y: auto; font-family: monospace; font-size: 0.75rem; color: #475569; line-height: 1.6;">
+                    </div>
+                </div>
+
                 <h3 style="color: #1e293b; margin-bottom: 1rem; font-size: 1.1rem; font-weight: 600;">Sector Progress</h3>
                 <div id="sectorProgressList" style="margin-bottom: 1.5rem;">
-                    <p style="color: #94a3b8;">Loading...</p>
+                    <p style="color: #94a3b8;">Loading sector data...</p>
                 </div>
 
                 <div id="sectorDetailPanel" style="display: none;">
@@ -3502,65 +3511,99 @@
         setInterval(loadData, 60000);
 
         let extractionPollInterval = null;
+        let extractionLogs = [];
+        let lastExtractionState = {};
+
+        function addExtractionLog(msg) {
+            const logPanel = document.getElementById('extractionActivityLog');
+            const logDiv = document.getElementById('extractionLogEntries');
+            if (!logPanel || !logDiv) return;
+            logPanel.style.display = 'block';
+            const time = new Date().toLocaleTimeString();
+            extractionLogs.push({time, msg});
+            if (extractionLogs.length > 50) extractionLogs.shift();
+            const entry = document.createElement('div');
+            entry.textContent = time + ' - ' + msg;
+            logDiv.appendChild(entry);
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
 
         function startExtraction() {
+            const btn = document.getElementById('btnStartExtraction');
+            btn.textContent = 'Starting...';
+            btn.disabled = true;
+            addExtractionLog('Starting extraction...');
             fetch('/api/extraction/start', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: '{}' })
                 .then(r => r.json())
                 .then(d => {
                     console.log('Start extraction:', d);
+                    addExtractionLog('Server response: ' + (d.status || d.error || JSON.stringify(d)));
+                    btn.textContent = 'Start Extraction';
+                    btn.disabled = false;
                     loadExtractionStatus();
                     if (!extractionPollInterval) {
                         extractionPollInterval = setInterval(loadExtractionStatus, 5000);
                     }
                 })
-                .catch(e => console.error('Start error:', e));
+                .catch(e => {
+                    console.error('Start error:', e);
+                    addExtractionLog('Error starting: ' + e.message);
+                    btn.textContent = 'Start Extraction';
+                    btn.disabled = false;
+                });
         }
 
         function pauseExtraction() {
+            addExtractionLog('Pausing extraction...');
             fetch('/api/extraction/pause', { method: 'POST' })
                 .then(r => r.json())
-                .then(d => { console.log('Pause:', d); loadExtractionStatus(); })
-                .catch(e => console.error('Pause error:', e));
+                .then(d => { console.log('Pause:', d); addExtractionLog('Paused: ' + d.status); loadExtractionStatus(); })
+                .catch(e => { console.error('Pause error:', e); addExtractionLog('Pause error: ' + e.message); });
         }
 
         function resumeExtraction() {
+            addExtractionLog('Resuming extraction...');
             fetch('/api/extraction/start', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: '{}' })
                 .then(r => r.json())
-                .then(d => { console.log('Resume:', d); loadExtractionStatus(); })
-                .catch(e => console.error('Resume error:', e));
+                .then(d => { console.log('Resume:', d); addExtractionLog('Resumed: ' + d.status); loadExtractionStatus(); })
+                .catch(e => { console.error('Resume error:', e); addExtractionLog('Resume error: ' + e.message); });
         }
 
         function stopExtraction() {
+            addExtractionLog('Stopping extraction...');
             fetch('/api/extraction/stop', { method: 'POST' })
                 .then(r => r.json())
                 .then(d => {
                     console.log('Stop:', d);
+                    addExtractionLog('Stopped: ' + d.status);
                     loadExtractionStatus();
                     if (extractionPollInterval) {
                         clearInterval(extractionPollInterval);
                         extractionPollInterval = null;
                     }
                 })
-                .catch(e => console.error('Stop error:', e));
+                .catch(e => { console.error('Stop error:', e); addExtractionLog('Stop error: ' + e.message); });
         }
 
         function startSectorExtraction(sector) {
+            addExtractionLog('Starting extraction from sector: ' + sector);
             fetch('/api/extraction/start', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({sector: sector}) })
                 .then(r => r.json())
                 .then(d => {
                     console.log('Start sector:', d);
+                    addExtractionLog('Sector start: ' + d.status);
                     loadExtractionStatus();
                     if (!extractionPollInterval) {
                         extractionPollInterval = setInterval(loadExtractionStatus, 5000);
                     }
                 })
-                .catch(e => console.error('Start sector error:', e));
+                .catch(e => { console.error('Start sector error:', e); addExtractionLog('Error: ' + e.message); });
         }
 
         function retrySector(sector) {
             fetch('/api/extraction/retry-sector/' + encodeURIComponent(sector), { method: 'POST' })
                 .then(r => r.json())
-                .then(d => { console.log('Retry sector:', d); loadExtractionStatus(); })
+                .then(d => { console.log('Retry sector:', d); addExtractionLog('Retry sector ' + sector + ': ' + (d.updated || 0) + ' reset'); loadExtractionStatus(); })
                 .catch(e => console.error('Retry sector error:', e));
         }
 
@@ -3580,15 +3623,32 @@
 
         function loadExtractionStatus() {
             fetch('/api/extraction/status')
-                .then(r => r.json())
+                .then(r => {
+                    if (!r.ok) throw new Error('HTTP ' + r.status);
+                    return r.json();
+                })
                 .then(data => {
                     if (data.error) {
                         console.error('Status error:', data.error);
+                        document.getElementById('sectorProgressList').innerHTML = '<p style="color: #ef4444;">Error loading status: ' + data.error + '</p>';
                         return;
                     }
+                    if (data.is_running && data.current_company && data.current_company !== lastExtractionState.current_company) {
+                        addExtractionLog('Processing: ' + data.current_company + (data.current_sector ? ' (' + data.current_sector + ')' : ''));
+                    }
+                    if (data.totals && lastExtractionState.totals) {
+                        const newCompleted = (data.totals.completed || 0) - (lastExtractionState.totals.completed || 0);
+                        if (newCompleted > 0) {
+                            addExtractionLog(newCompleted + ' company(s) completed. Total: ' + data.totals.completed + '/' + data.totals.total + ', Reviews: ' + (data.totals.total_reviews || 0).toLocaleString());
+                        }
+                    }
+                    lastExtractionState = JSON.parse(JSON.stringify(data));
                     updateExtractionUI(data);
                 })
-                .catch(e => console.error('Status fetch error:', e));
+                .catch(e => {
+                    console.error('Status fetch error:', e);
+                    document.getElementById('sectorProgressList').innerHTML = '<p style="color: #ef4444;">Could not load extraction status. Check server logs.</p>';
+                });
         }
 
         function updateExtractionUI(data) {

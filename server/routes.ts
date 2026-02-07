@@ -40,6 +40,16 @@ export async function registerRoutes(
   const flaskProxy = createProxyMiddleware({
     target: "http://localhost:8080",
     changeOrigin: true,
+    on: {
+      proxyReq: (proxyReq, req: any) => {
+        if (req.body !== undefined && req.body !== null) {
+          const bodyData = JSON.stringify(req.body);
+          proxyReq.setHeader('Content-Type', 'application/json');
+          proxyReq.setHeader('Content-Length', Buffer.byteLength(bodyData));
+          proxyReq.write(bodyData);
+        }
+      },
+    },
   });
 
   app.use(flaskProxy);
