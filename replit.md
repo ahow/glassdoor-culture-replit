@@ -7,7 +7,7 @@ This is a full-stack web application that analyzes employee reviews from Glassdo
 1. **Hofstede Framework** - 6 bipolar dimensions measuring organizational culture on a -1 to +1 scale
 2. **MIT Big 9 Framework** - 9 unipolar dimensions measuring culture attributes on a 0-10 scale
 
-The application extracts reviews via RapidAPI, scores them using keyword-based analysis, stores results in PostgreSQL, and presents insights through an interactive dashboard. It currently analyzes 44+ financial services companies with 187,000+ reviews.
+The application extracts reviews via OpenWeb Ninja API (primary) or RapidAPI (fallback), scores them using keyword-based analysis, stores results in PostgreSQL, and presents insights through an interactive dashboard. It currently analyzes 44+ financial services companies with 187,000+ reviews, with infrastructure to expand to 2,442 companies across 11 GICS sectors.
 
 ## User Preferences
 
@@ -23,7 +23,8 @@ The project contains two parallel implementations that serve different purposes:
 - `app.py` - Main Flask application serving the Glassdoor dashboard
 - `culture_scoring.py` - Hofstede and MIT Big 9 scoring algorithms using keyword dictionaries
 - `performance_analysis.py` - Culture-performance correlation analysis module
-- `extraction_worker.py` - RapidAPI data extraction for individual companies
+- `extraction_worker.py` - RapidAPI data extraction for individual companies (legacy)
+- `extraction_openweb.py` - OpenWeb Ninja API extraction (primary) with RapidAPI fallback, CSV export support
 - `extraction_orchestrator.py` - Parallel extraction management across all companies
 - `templates/` - Jinja2 HTML templates for the dashboard UI
 - Database: PostgreSQL via psycopg2 with direct SQL queries
@@ -79,7 +80,12 @@ Drizzle schema (TypeScript side):
 ## External Dependencies
 
 ### APIs
-- **RapidAPI Glassdoor** - Real-time Glassdoor data extraction
+- **OpenWeb Ninja Glassdoor** (Primary) - Real-time Glassdoor data extraction
+  - Base URL: `https://api.openwebninja.com/realtime-glassdoor-data`
+  - Auth header: `x-api-key`
+  - Environment variable: `OPENWEB_NINJA_API`
+  - Endpoints: `company-reviews`, `company-search`, `company-overview`
+- **RapidAPI Glassdoor** (Fallback) - Real-time Glassdoor data extraction
   - Host: `real-time-glassdoor-data.p.rapidapi.com`
   - Environment variables: `RAPIDAPI_KEY`, `RAPIDAPI_KEY_1`, `RAPIDAPI_KEY_2`
 

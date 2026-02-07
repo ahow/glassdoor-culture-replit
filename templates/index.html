@@ -480,6 +480,7 @@
             <button class="main-tab-button" onclick="switchMainTab('mit', event)">MIT Framework</button>
             <button class="main-tab-button" onclick="switchMainTab('insights', event)">Performance Insights</button>
             <button class="main-tab-button" onclick="switchMainTab('culturePerf', event)">Culture vs Performance</button>
+            <button class="main-tab-button" onclick="switchMainTab('exportData', event)">Export Data</button>
         </div>
         
         <!-- Overview Tab -->
@@ -1164,11 +1165,41 @@
                 </div>
             </div>
         </div>
+
+        <!-- Export Data Tab -->
+        <div id="exportDataTab" class="tab-content hidden-tab" style="display: none;">
+            <div class="chart-container">
+                <h2 class="chart-title">Export Review Data</h2>
+                <p style="color: #64748b; margin-bottom: 1.5rem;">
+                    Download stored review data as CSV files to verify extraction completeness. All data is exported directly from the database.
+                </p>
+                
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+                    <div style="background: #f8fafc; border-radius: 10px; padding: 1.25rem; border: 1px solid #e2e8f0;">
+                        <h3 style="color: #3b82f6; margin-bottom: 0.75rem; font-size: 1rem; font-weight: 600;">All Reviews Export</h3>
+                        <p style="color: #64748b; font-size: 0.875rem; margin-bottom: 1rem;">Download every review across all companies as a single CSV file. Includes all fields: ratings, text, sub-ratings, location, and more.</p>
+                        <a href="/api/export/all-reviews" style="display: inline-block; padding: 0.625rem 1.25rem; background: #3b82f6; color: white; border-radius: 8px; text-decoration: none; font-size: 0.875rem; font-weight: 500;">Download All Reviews CSV</a>
+                    </div>
+                    <div style="background: #f8fafc; border-radius: 10px; padding: 1.25rem; border: 1px solid #e2e8f0;">
+                        <h3 style="color: #6366f1; margin-bottom: 0.75rem; font-size: 1rem; font-weight: 600;">Extraction Summary</h3>
+                        <p style="color: #64748b; font-size: 0.875rem; margin-bottom: 1rem;">Download a summary showing each company's extraction status: review counts, ratings, sector, and how many reviews are stored in the database.</p>
+                        <a href="/api/export/extraction-summary" style="display: inline-block; padding: 0.625rem 1.25rem; background: #6366f1; color: white; border-radius: 8px; text-decoration: none; font-size: 0.875rem; font-weight: 500;">Download Summary CSV</a>
+                    </div>
+                </div>
+
+                <h3 style="color: #1e293b; margin-bottom: 1rem; font-size: 1.1rem; font-weight: 600;">Export by Company</h3>
+                <p style="color: #64748b; margin-bottom: 1rem; font-size: 0.875rem;">Select a company to download its reviews as a CSV file.</p>
+                
+                <div id="exportCompanyList" style="margin-bottom: 1rem;">
+                    <p style="color: #94a3b8;">Loading companies...</p>
+                </div>
+            </div>
+        </div>
     </div>
     
     <script>
         // Debug: Version check - look for this in browser console
-        console.log('Dashboard version: 2026-02-01-v17');
+        console.log('Dashboard version: 2026-02-01-v18-export');
         
         // Helper function to get correlation-based color with intensity
         // Positive correlations = green, negative = red
@@ -1227,7 +1258,7 @@
             console.log('switchMainTab called with tab:', tab);
             
             // Hide all tabs using both inline styles AND CSS class
-            const tabs = ['overviewTab', 'companiesTab', 'analysisTab', 'trendsTab', 'hofstedeTab', 'mitTab', 'insightsTab', 'culturePerfTab'];
+            const tabs = ['overviewTab', 'companiesTab', 'analysisTab', 'trendsTab', 'hofstedeTab', 'mitTab', 'insightsTab', 'culturePerfTab', 'exportDataTab'];
             tabs.forEach(tabId => {
                 const el = document.getElementById(tabId);
                 if (el) {
@@ -1250,7 +1281,8 @@
                 'hofstede': 'hofstedeTab',
                 'mit': 'mitTab',
                 'insights': 'insightsTab',
-                'culturePerf': 'culturePerfTab'
+                'culturePerf': 'culturePerfTab',
+                'exportData': 'exportDataTab'
             };
             
             const targetTabId = tabMapping[tab];
@@ -1274,6 +1306,8 @@
                 loadPerformanceInsights();
             } else if (tab === 'culturePerf') {
                 loadCulturePerfScatter();
+            } else if (tab === 'exportData') {
+                loadExportCompanyList();
             }
             
             event.target.classList.add('active');
@@ -3384,6 +3418,46 @@
                 },
                 options: miniChartOptions
             });
+        }
+        
+        function loadExportCompanyList() {
+            const container = document.getElementById('exportCompanyList');
+            if (!container) return;
+            
+            fetch('/api/export/companies')
+                .then(r => r.json())
+                .then(data => {
+                    if (!data.success || !data.companies || data.companies.length === 0) {
+                        container.innerHTML = '<p style="color: #94a3b8;">No companies found in database.</p>';
+                        return;
+                    }
+                    
+                    let html = '<div style="overflow-x: auto;"><table style="width: 100%; border-collapse: collapse; font-size: 0.875rem;">';
+                    html += '<thead><tr style="border-bottom: 2px solid #e2e8f0; text-align: left;">';
+                    html += '<th style="padding: 0.75rem; color: #64748b; font-weight: 600;">Company</th>';
+                    html += '<th style="padding: 0.75rem; color: #64748b; font-weight: 600;">Rating</th>';
+                    html += '<th style="padding: 0.75rem; color: #64748b; font-weight: 600;">Reviews in DB</th>';
+                    html += '<th style="padding: 0.75rem; color: #64748b; font-weight: 600;">Sector</th>';
+                    html += '<th style="padding: 0.75rem; color: #64748b; font-weight: 600;">Export</th>';
+                    html += '</tr></thead><tbody>';
+                    
+                    data.companies.forEach(c => {
+                        const encodedName = encodeURIComponent(c.company_name);
+                        html += '<tr style="border-bottom: 1px solid #f1f5f9;">';
+                        html += '<td style="padding: 0.75rem; font-weight: 500; color: #1e293b;">' + c.company_name + '</td>';
+                        html += '<td style="padding: 0.75rem; color: #475569;">' + (c.overall_rating ? parseFloat(c.overall_rating).toFixed(1) : '-') + '</td>';
+                        html += '<td style="padding: 0.75rem; color: #475569;">' + (c.reviews_in_db || 0).toLocaleString() + '</td>';
+                        html += '<td style="padding: 0.75rem; color: #475569;">' + (c.gics_sector || '-') + '</td>';
+                        html += '<td style="padding: 0.75rem;"><a href="/api/export/company-reviews/' + encodedName + '" style="display: inline-block; padding: 0.375rem 0.875rem; background: #f1f5f9; color: #3b82f6; border-radius: 6px; text-decoration: none; font-size: 0.8125rem; font-weight: 500; border: 1px solid #e2e8f0;">CSV</a></td>';
+                        html += '</tr>';
+                    });
+                    
+                    html += '</tbody></table></div>';
+                    container.innerHTML = html;
+                })
+                .catch(err => {
+                    container.innerHTML = '<p style="color: #ef4444;">Error loading companies: ' + err.message + '</p>';
+                });
         }
         
         loadData();

@@ -9,7 +9,7 @@ import logging
 import math
 import psycopg2
 from psycopg2.extras import RealDictCursor
-from flask import Flask, render_template, jsonify, request
+from flask import Flask, render_template, jsonify, request, Response, send_file
 from datetime import datetime, timedelta
 from statistics import mean
 from culture_scoring import score_review_with_dictionary
@@ -1959,6 +1959,219 @@ def get_culture_performance_scatter():
     
     except Exception as e:
         logger.error(f"Error in culture-performance scatter: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+# ============================================================================
+# CSV EXPORT ENDPOINTS
+# ============================================================================
+
+@app.route('/api/export/company-reviews/<company_name>')
+def export_company_reviews(company_name):
+    """Export all reviews for a specific company as CSV download."""
+    try:
+        conn = get_db_connection()
+        if not conn:
+            return jsonify({'success': False, 'error': 'Database connection failed'}), 500
+        
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT company_name, review_id, summary, pros, cons, rating, review_link,
+                   job_title, employment_status, is_current_employee, years_of_employment,
+                   location, advice_to_management,
+                   helpful_count, not_helpful_count,
+                   business_outlook_rating, career_opportunities_rating, ceo_rating,
+                   compensation_and_benefits_rating, culture_and_values_rating,
+                   diversity_and_inclusion_rating, recommend_to_friend_rating,
+                   senior_management_rating, work_life_balance_rating,
+                   language, review_datetime
+            FROM reviews
+            WHERE company_name = %s
+            ORDER BY review_datetime DESC
+        """, (company_name,))
+        
+        rows = cur.fetchall()
+        columns = [
+            'company_name', 'review_id', 'summary', 'pros', 'cons', 'rating', 'review_link',
+            'job_title', 'employment_status', 'is_current_employee', 'years_of_employment',
+            'location', 'advice_to_management',
+            'helpful_count', 'not_helpful_count',
+            'business_outlook_rating', 'career_opportunities_rating', 'ceo_rating',
+            'compensation_and_benefits_rating', 'culture_and_values_rating',
+            'diversity_and_inclusion_rating', 'recommend_to_friend_rating',
+            'senior_management_rating', 'work_life_balance_rating',
+            'language', 'review_datetime'
+        ]
+        
+        cur.close()
+        conn.close()
+        
+        import io
+        import csv
+        output = io.StringIO()
+        writer = csv.writer(output)
+        writer.writerow(columns)
+        for row in rows:
+            writer.writerow([str(v) if v is not None else '' for v in row])
+        
+        safe_name = company_name.replace(' ', '_').replace('&', 'and')
+        filename = f"{safe_name}_reviews_{datetime.now().strftime('%Y%m%d')}.csv"
+        
+        return Response(
+            output.getvalue(),
+            mimetype='text/csv',
+            headers={'Content-Disposition': f'attachment; filename={filename}'}
+        )
+    
+    except Exception as e:
+        logger.error(f"CSV export error for {company_name}: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/export/all-reviews')
+def export_all_reviews():
+    """Export all reviews across all companies as CSV download."""
+    try:
+        conn = get_db_connection()
+        if not conn:
+            return jsonify({'success': False, 'error': 'Database connection failed'}), 500
+        
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT company_name, review_id, summary, pros, cons, rating, review_link,
+                   job_title, employment_status, is_current_employee, years_of_employment,
+                   location, advice_to_management,
+                   helpful_count, not_helpful_count,
+                   business_outlook_rating, career_opportunities_rating, ceo_rating,
+                   compensation_and_benefits_rating, culture_and_values_rating,
+                   diversity_and_inclusion_rating, recommend_to_friend_rating,
+                   senior_management_rating, work_life_balance_rating,
+                   language, review_datetime
+            FROM reviews
+            ORDER BY company_name, review_datetime DESC
+        """)
+        
+        rows = cur.fetchall()
+        columns = [
+            'company_name', 'review_id', 'summary', 'pros', 'cons', 'rating', 'review_link',
+            'job_title', 'employment_status', 'is_current_employee', 'years_of_employment',
+            'location', 'advice_to_management',
+            'helpful_count', 'not_helpful_count',
+            'business_outlook_rating', 'career_opportunities_rating', 'ceo_rating',
+            'compensation_and_benefits_rating', 'culture_and_values_rating',
+            'diversity_and_inclusion_rating', 'recommend_to_friend_rating',
+            'senior_management_rating', 'work_life_balance_rating',
+            'language', 'review_datetime'
+        ]
+        
+        cur.close()
+        conn.close()
+        
+        import io
+        import csv
+        output = io.StringIO()
+        writer = csv.writer(output)
+        writer.writerow(columns)
+        for row in rows:
+            writer.writerow([str(v) if v is not None else '' for v in row])
+        
+        filename = f"all_reviews_{datetime.now().strftime('%Y%m%d')}.csv"
+        
+        return Response(
+            output.getvalue(),
+            mimetype='text/csv',
+            headers={'Content-Disposition': f'attachment; filename={filename}'}
+        )
+    
+    except Exception as e:
+        logger.error(f"CSV export error: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/export/extraction-summary')
+def export_extraction_summary():
+    """Export a summary of all companies with extraction status as CSV."""
+    try:
+        conn = get_db_connection()
+        if not conn:
+            return jsonify({'success': False, 'error': 'Database connection failed'}), 500
+        
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT c.company_name, c.company_id, c.overall_rating, c.review_count,
+                   c.total_reviews_extracted, c.gics_sector, c.gics_industry,
+                   c.isin, c.country, c.api_source,
+                   c.extraction_started, c.extraction_completed,
+                   COUNT(r.id) as reviews_in_db
+            FROM companies c
+            LEFT JOIN reviews r ON c.company_name = r.company_name
+            GROUP BY c.company_name, c.company_id, c.overall_rating, c.review_count,
+                     c.total_reviews_extracted, c.gics_sector, c.gics_industry,
+                     c.isin, c.country, c.api_source,
+                     c.extraction_started, c.extraction_completed
+            ORDER BY c.company_name
+        """)
+        
+        rows = cur.fetchall()
+        columns = [
+            'company_name', 'company_id', 'overall_rating', 'review_count_glassdoor',
+            'total_extracted', 'gics_sector', 'gics_industry',
+            'isin', 'country', 'api_source',
+            'extraction_started', 'extraction_completed', 'reviews_in_db'
+        ]
+        
+        cur.close()
+        conn.close()
+        
+        import io
+        import csv
+        output = io.StringIO()
+        writer = csv.writer(output)
+        writer.writerow(columns)
+        for row in rows:
+            writer.writerow([str(v) if v is not None else '' for v in row])
+        
+        filename = f"extraction_summary_{datetime.now().strftime('%Y%m%d')}.csv"
+        
+        return Response(
+            output.getvalue(),
+            mimetype='text/csv',
+            headers={'Content-Disposition': f'attachment; filename={filename}'}
+        )
+    
+    except Exception as e:
+        logger.error(f"Summary export error: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/export/companies')
+def export_companies_list():
+    """Get list of companies available for CSV export."""
+    try:
+        conn = get_db_connection()
+        if not conn:
+            return jsonify({'success': False, 'error': 'Database connection failed'}), 500
+        
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        cur.execute("""
+            SELECT c.company_name, c.company_id, c.overall_rating, c.review_count,
+                   c.gics_sector, c.api_source,
+                   COUNT(r.id) as reviews_in_db
+            FROM companies c
+            LEFT JOIN reviews r ON c.company_name = r.company_name
+            GROUP BY c.company_name, c.company_id, c.overall_rating, c.review_count,
+                     c.gics_sector, c.api_source
+            ORDER BY c.company_name
+        """)
+        
+        companies = cur.fetchall()
+        cur.close()
+        conn.close()
+        
+        return jsonify({'success': True, 'companies': companies})
+    
+    except Exception as e:
+        logger.error(f"Companies list error: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
