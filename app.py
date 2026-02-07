@@ -460,6 +460,23 @@ def init_extraction_queue():
         """)
         conn.commit()
 
+        cursor.execute("""
+            DO $$ BEGIN
+                IF NOT EXISTS (
+                    SELECT 1 FROM pg_constraint WHERE conname = 'uq_extraction_queue_issuer_name'
+                ) THEN
+                    ALTER TABLE extraction_queue ADD CONSTRAINT uq_extraction_queue_issuer_name UNIQUE (issuer_name);
+                END IF;
+            END $$;
+        """)
+        conn.commit()
+
+        cursor.execute("DELETE FROM extraction_queue a USING extraction_queue b WHERE a.id > b.id AND a.issuer_name = b.issuer_name")
+        deleted = cursor.rowcount
+        if deleted > 0:
+            logger.info(f"Removed {deleted} duplicate entries from extraction_queue")
+        conn.commit()
+
         cursor.execute("SELECT COUNT(*) FROM extraction_queue")
         count = cursor.fetchone()[0]
 
@@ -478,6 +495,7 @@ def init_extraction_queue():
                             (issuer_id, issuer_name, issuer_ticker, isin, country,
                              gics_sector, gics_industry, gics_sub_industry)
                             VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                            ON CONFLICT (issuer_name) DO NOTHING
                         """, (
                             row.get('ISSUERID', ''),
                             row.get('ISSUER_NAME', ''),
@@ -2353,10 +2371,8 @@ def internal_error(error):
 # APPLICATION ENTRY POINT
 # ============================================================================
 
-if __name__ == '__main__':
-    init_cache_table()
-    init_extraction_queue()
-    app.run(debug=False, host='0.0.0.0', port=int(os.environ.get('FLASK_PORT', os.environ.get('PORT', 8080))))
-
 init_cache_table()
 init_extraction_queue()
+
+if __name__ == '__main__':
+    app.run(debug=False, host='0.0.0.0', port=int(os.environ.get('FLASK_PORT', os.environ.get('PORT', 8080))))
