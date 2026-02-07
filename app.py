@@ -460,6 +460,22 @@ def init_extraction_queue():
         """)
         conn.commit()
 
+        cursor.execute("DELETE FROM extraction_queue a USING extraction_queue b WHERE a.id > b.id AND a.issuer_name = b.issuer_name")
+        deleted = cursor.rowcount
+        if deleted > 0:
+            logger.info(f"Removed {deleted} duplicate entries from extraction_queue")
+        conn.commit()
+
+        cursor.execute("""
+            UPDATE extraction_queue 
+            SET status = 'pending', error_message = NULL, search_results = NULL, match_confidence = NULL
+            WHERE status = 'no_match' AND error_message = 'Search returned result without company ID'
+        """)
+        reset_count = cursor.rowcount
+        if reset_count > 0:
+            logger.info(f"Reset {reset_count} companies that failed due to old field-name bug")
+        conn.commit()
+
         cursor.execute("""
             DO $$ BEGIN
                 IF NOT EXISTS (
@@ -469,12 +485,6 @@ def init_extraction_queue():
                 END IF;
             END $$;
         """)
-        conn.commit()
-
-        cursor.execute("DELETE FROM extraction_queue a USING extraction_queue b WHERE a.id > b.id AND a.issuer_name = b.issuer_name")
-        deleted = cursor.rowcount
-        if deleted > 0:
-            logger.info(f"Removed {deleted} duplicate entries from extraction_queue")
         conn.commit()
 
         cursor.execute("SELECT COUNT(*) FROM extraction_queue")
