@@ -1,6 +1,7 @@
 """
 Extraction Manager - Background sector-by-sector extraction with pause/resume support.
 Reads companies from extraction_queue, searches Glassdoor, and extracts all reviews.
+Uses database-backed control table for cross-worker compatibility (gunicorn).
 """
 
 import os
@@ -41,6 +42,60 @@ SECTOR_ORDER = [
 ]
 
 
+def init_extraction_control():
+    try:
+        conn = get_db_connection()
+        if not conn:
+            return
+        cur = conn.cursor()
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS extraction_control (
+                id INTEGER PRIMARY KEY DEFAULT 1,
+                command VARCHAR(20) DEFAULT 'idle',
+                current_company VARCHAR(255),
+                current_sector VARCHAR(255),
+                updated_at TIMESTAMP DEFAULT NOW(),
+                CONSTRAINT single_row CHECK (id = 1)
+            )
+        """)
+        conn.commit()
+        cur.execute("INSERT INTO extraction_control (id, command) VALUES (1, 'idle') ON CONFLICT (id) DO NOTHING")
+        conn.commit()
+        cur.close()
+        conn.close()
+    except Exception as e:
+        logger.error(f"Error initializing extraction_control: {e}")
+
+
+def _get_db_command():
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("SELECT command FROM extraction_control WHERE id = 1")
+        row = cur.fetchone()
+        cur.close()
+        conn.close()
+        return row[0] if row else 'idle'
+    except Exception:
+        return 'idle'
+
+
+def _set_db_command(command, current_company=None, current_sector=None):
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("""
+            UPDATE extraction_control 
+            SET command = %s, current_company = %s, current_sector = %s, updated_at = NOW()
+            WHERE id = 1
+        """, (command, current_company, current_sector))
+        conn.commit()
+        cur.close()
+        conn.close()
+    except Exception as e:
+        logger.error(f"Error setting extraction command: {e}")
+
+
 class ExtractionManager:
     _instance = None
     _lock = threading.Lock()
@@ -54,25 +109,31 @@ class ExtractionManager:
         return cls._instance
 
     def __init__(self):
-        self._running = False
-        self._paused = False
         self._thread = None
-        self._current_company = None
-        self._current_sector = None
-        self._stop_event = threading.Event()
 
     @property
     def is_running(self):
-        return self._running and self._thread is not None and self._thread.is_alive()
+        db_cmd = _get_db_command()
+        if db_cmd in ('running', 'paused'):
+            return True
+        if self._thread is not None and self._thread.is_alive():
+            return True
+        return False
 
     @property
     def is_paused(self):
-        return self._paused
+        return _get_db_command() == 'paused'
 
     def get_status(self):
         try:
             conn = get_db_connection()
             cur = conn.cursor()
+
+            cur.execute("SELECT command, current_company, current_sector FROM extraction_control WHERE id = 1")
+            ctrl = cur.fetchone()
+            db_command = ctrl[0] if ctrl else 'idle'
+            db_company = ctrl[1] if ctrl else None
+            db_sector = ctrl[2] if ctrl else None
 
             cur.execute("""
                 SELECT gics_sector,
@@ -118,16 +179,19 @@ class ExtractionManager:
             cur.close()
             conn.close()
 
+            is_running = db_command in ('running', 'paused')
+            is_paused = db_command == 'paused'
+
             ordered_sectors = []
             for s in SECTOR_ORDER:
                 if s in sectors:
                     ordered_sectors.append({'name': s, **sectors[s]})
 
             return {
-                'is_running': self.is_running,
-                'is_paused': self._paused,
-                'current_company': self._current_company,
-                'current_sector': self._current_sector,
+                'is_running': is_running,
+                'is_paused': is_paused,
+                'current_company': db_company,
+                'current_sector': db_sector,
                 'sectors': ordered_sectors,
                 'totals': {
                     'total': totals[0],
@@ -171,16 +235,16 @@ class ExtractionManager:
             return []
 
     def start(self, start_sector=None):
-        if self.is_running:
-            if self._paused:
-                self._paused = False
-                logger.info("Extraction resumed")
-                return {'status': 'resumed'}
+        db_cmd = _get_db_command()
+        if db_cmd == 'paused':
+            _set_db_command('running')
+            logger.info("Extraction resumed via DB command")
+            return {'status': 'resumed'}
+        if db_cmd == 'running':
             return {'status': 'already_running'}
 
-        self._running = True
-        self._paused = False
-        self._stop_event.clear()
+        _set_db_command('running')
+
         self._thread = threading.Thread(
             target=self._run_extraction,
             args=(start_sector,),
@@ -191,20 +255,30 @@ class ExtractionManager:
         return {'status': 'started'}
 
     def pause(self):
-        if not self.is_running:
+        db_cmd = _get_db_command()
+        if db_cmd != 'running':
             return {'status': 'not_running'}
-        self._paused = True
-        logger.info("Extraction paused")
+        _set_db_command('paused')
+        logger.info("Extraction paused via DB command")
         return {'status': 'paused'}
 
     def stop(self):
-        if not self.is_running:
-            return {'status': 'not_running'}
-        self._stop_event.set()
-        self._running = False
-        self._paused = False
-        logger.info("Extraction stopped")
+        db_cmd = _get_db_command()
+        if db_cmd not in ('running', 'paused'):
+            _set_db_command('stop_requested')
+            time.sleep(0.5)
+            _set_db_command('idle')
+            return {'status': 'stopped'}
+        _set_db_command('stop_requested')
+        logger.info("Extraction stop requested via DB command")
         return {'status': 'stopped'}
+
+    def _check_should_stop(self):
+        cmd = _get_db_command()
+        return cmd in ('stop_requested', 'idle')
+
+    def _check_should_pause(self):
+        return _get_db_command() == 'paused'
 
     def _search_glassdoor(self, company_name, ticker=None):
         headers = None
@@ -297,65 +371,64 @@ class ExtractionManager:
     def _run_extraction(self, start_sector=None):
         logger.info("Extraction worker thread started")
 
-        sectors_to_process = SECTOR_ORDER[:]
-        if start_sector and start_sector in sectors_to_process:
-            idx = sectors_to_process.index(start_sector)
-            sectors_to_process = sectors_to_process[idx:]
+        try:
+            sectors_to_process = SECTOR_ORDER[:]
+            if start_sector and start_sector in sectors_to_process:
+                idx = sectors_to_process.index(start_sector)
+                sectors_to_process = sectors_to_process[idx:]
 
-        for sector in sectors_to_process:
-            if self._stop_event.is_set():
-                break
-
-            self._current_sector = sector
-            logger.info(f"=== Starting sector: {sector} ===")
-
-            try:
-                conn = get_db_connection()
-                cur = conn.cursor()
-                cur.execute("""
-                    SELECT id, issuer_name, issuer_ticker, isin, country,
-                           gics_industry, gics_sub_industry
-                    FROM extraction_queue
-                    WHERE gics_sector = %s AND status IN ('pending', 'failed')
-                    ORDER BY issuer_name
-                """, (sector,))
-                companies = cur.fetchall()
-                cur.close()
-                conn.close()
-            except Exception as e:
-                logger.error(f"Error loading sector {sector}: {e}")
-                continue
-
-            logger.info(f"Sector {sector}: {len(companies)} companies to process")
-
-            for company in companies:
-                if self._stop_event.is_set():
+            for sector in sectors_to_process:
+                if self._check_should_stop():
                     break
 
-                while self._paused and not self._stop_event.is_set():
-                    time.sleep(1)
-
-                if self._stop_event.is_set():
-                    break
-
-                q_id, issuer_name, ticker, isin, country, industry, sub_industry = company
-                self._current_company = issuer_name
+                _set_db_command('running', current_sector=sector)
+                logger.info(f"=== Starting sector: {sector} ===")
 
                 try:
-                    self._process_company(q_id, issuer_name, ticker, isin, country,
-                                         sector, industry, sub_industry)
+                    conn = get_db_connection()
+                    cur = conn.cursor()
+                    cur.execute("""
+                        SELECT id, issuer_name, issuer_ticker, isin, country,
+                               gics_industry, gics_sub_industry
+                        FROM extraction_queue
+                        WHERE gics_sector = %s AND status IN ('pending', 'failed')
+                        ORDER BY issuer_name
+                    """, (sector,))
+                    companies = cur.fetchall()
+                    cur.close()
+                    conn.close()
                 except Exception as e:
-                    logger.error(f"Error processing {issuer_name}: {e}")
-                    self._update_queue_status(q_id, 'failed', error_message=str(e)[:500])
+                    logger.error(f"Error loading sector {sector}: {e}")
+                    continue
 
-                time.sleep(0.3)
+                logger.info(f"Sector {sector}: {len(companies)} companies to process")
 
-            logger.info(f"=== Completed sector: {sector} ===")
+                for company in companies:
+                    if self._check_should_stop():
+                        break
 
-        self._running = False
-        self._current_company = None
-        self._current_sector = None
-        logger.info("Extraction worker thread finished")
+                    while self._check_should_pause() and not self._check_should_stop():
+                        time.sleep(1)
+
+                    if self._check_should_stop():
+                        break
+
+                    q_id, issuer_name, ticker, isin, country, industry, sub_industry = company
+                    _set_db_command('running', current_company=issuer_name, current_sector=sector)
+
+                    try:
+                        self._process_company(q_id, issuer_name, ticker, isin, country,
+                                             sector, industry, sub_industry)
+                    except Exception as e:
+                        logger.error(f"Error processing {issuer_name}: {e}")
+                        self._update_queue_status(q_id, 'failed', error_message=str(e)[:500])
+
+                    time.sleep(0.3)
+
+                logger.info(f"=== Completed sector: {sector} ===")
+        finally:
+            _set_db_command('idle')
+            logger.info("Extraction worker thread finished")
 
     def _process_company(self, q_id, issuer_name, ticker, isin, country,
                          sector, industry, sub_industry):

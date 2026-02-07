@@ -2384,5 +2384,8 @@ def internal_error(error):
 init_cache_table()
 init_extraction_queue()
 
+from extraction_manager import init_extraction_control
+init_extraction_control()
+
 if __name__ == '__main__':
     app.run(debug=False, host='0.0.0.0', port=int(os.environ.get('FLASK_PORT', os.environ.get('PORT', 8080))))

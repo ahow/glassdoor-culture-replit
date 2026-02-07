@@ -3555,7 +3555,7 @@
 
         function pauseExtraction() {
             addExtractionLog('Pausing extraction...');
-            fetch('/api/extraction/pause', { method: 'POST' })
+            fetch('/api/extraction/pause', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: '{}' })
                 .then(r => r.json())
                 .then(d => { console.log('Pause:', d); addExtractionLog('Paused: ' + d.status); loadExtractionStatus(); })
                 .catch(e => { console.error('Pause error:', e); addExtractionLog('Pause error: ' + e.message); });
@@ -3571,16 +3571,12 @@
 
         function stopExtraction() {
             addExtractionLog('Stopping extraction...');
-            fetch('/api/extraction/stop', { method: 'POST' })
+            fetch('/api/extraction/stop', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: '{}' })
                 .then(r => r.json())
                 .then(d => {
                     console.log('Stop:', d);
                     addExtractionLog('Stopped: ' + d.status);
                     loadExtractionStatus();
-                    if (extractionPollInterval) {
-                        clearInterval(extractionPollInterval);
-                        extractionPollInterval = null;
-                    }
                 })
                 .catch(e => { console.error('Stop error:', e); addExtractionLog('Stop error: ' + e.message); });
         }
@@ -3668,6 +3664,9 @@
                 if (data.current_company) statusMsg += ' (' + data.current_company + ')';
                 statusText.textContent = 'Status: ' + statusMsg;
                 statusText.style.color = '#22c55e';
+                if (!extractionPollInterval) {
+                    extractionPollInterval = setInterval(loadExtractionStatus, 5000);
+                }
             } else if (data.is_paused) {
                 btnStart.style.display = 'none';
                 btnPause.style.display = 'none';
@@ -3675,6 +3674,9 @@
                 btnStop.style.display = 'inline-block';
                 statusText.textContent = 'Status: Paused';
                 statusText.style.color = '#f59e0b';
+                if (!extractionPollInterval) {
+                    extractionPollInterval = setInterval(loadExtractionStatus, 5000);
+                }
             } else {
                 btnStart.style.display = 'inline-block';
                 btnPause.style.display = 'none';
