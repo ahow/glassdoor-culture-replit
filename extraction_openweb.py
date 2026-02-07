@@ -206,6 +206,7 @@ class OpenWebNinjaExtractor:
             saved = 0
             for review in reviews_batch:
                 try:
+                    cur.execute("SAVEPOINT review_insert")
                     cur.execute("""
                         INSERT INTO reviews 
                         (company_name, review_id, summary, pros, cons, rating, review_link, 
@@ -248,8 +249,10 @@ class OpenWebNinjaExtractor:
                         review.get('review_datetime'),
                         Json(review)
                     ))
+                    cur.execute("RELEASE SAVEPOINT review_insert")
                     saved += 1
                 except Exception as e:
+                    cur.execute("ROLLBACK TO SAVEPOINT review_insert")
                     logger.warning(f"Error inserting review {review.get('review_id')}: {e}")
 
             conn.commit()
