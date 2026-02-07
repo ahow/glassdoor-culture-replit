@@ -2178,6 +2178,84 @@ def export_companies_list():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+@app.route('/api/extraction/status')
+def extraction_status():
+    from extraction_manager import ExtractionManager
+    mgr = ExtractionManager.get_instance()
+    return jsonify(mgr.get_status())
+
+
+@app.route('/api/extraction/start', methods=['POST'])
+def extraction_start():
+    from extraction_manager import ExtractionManager
+    mgr = ExtractionManager.get_instance()
+    data = request.get_json() or {}
+    start_sector = data.get('sector')
+    result = mgr.start(start_sector=start_sector)
+    return jsonify(result)
+
+
+@app.route('/api/extraction/pause', methods=['POST'])
+def extraction_pause():
+    from extraction_manager import ExtractionManager
+    mgr = ExtractionManager.get_instance()
+    result = mgr.pause()
+    return jsonify(result)
+
+
+@app.route('/api/extraction/stop', methods=['POST'])
+def extraction_stop():
+    from extraction_manager import ExtractionManager
+    mgr = ExtractionManager.get_instance()
+    result = mgr.stop()
+    return jsonify(result)
+
+
+@app.route('/api/extraction/sector/<sector>')
+def extraction_sector_companies(sector):
+    from extraction_manager import ExtractionManager
+    mgr = ExtractionManager.get_instance()
+    companies = mgr.get_sector_companies(sector)
+    return jsonify({'companies': companies, 'sector': sector})
+
+
+@app.route('/api/extraction/retry/<int:queue_id>', methods=['POST'])
+def extraction_retry(queue_id):
+    from extraction_manager import ExtractionManager
+    mgr = ExtractionManager.get_instance()
+    success = mgr.retry_company(queue_id)
+    return jsonify({'success': success})
+
+
+@app.route('/api/extraction/skip/<int:queue_id>', methods=['POST'])
+def extraction_skip(queue_id):
+    from extraction_manager import ExtractionManager
+    mgr = ExtractionManager.get_instance()
+    success = mgr.skip_company(queue_id)
+    return jsonify({'success': success})
+
+
+@app.route('/api/extraction/retry-sector/<sector>', methods=['POST'])
+def extraction_retry_sector(sector):
+    from extraction_manager import ExtractionManager
+    mgr = ExtractionManager.get_instance()
+    updated = mgr.retry_sector(sector)
+    return jsonify({'success': True, 'updated': updated})
+
+
+@app.route('/api/extraction/update-match/<int:queue_id>', methods=['POST'])
+def extraction_update_match(queue_id):
+    from extraction_manager import ExtractionManager
+    data = request.get_json() or {}
+    glassdoor_name = data.get('glassdoor_name')
+    glassdoor_id = data.get('glassdoor_id')
+    if not glassdoor_name or not glassdoor_id:
+        return jsonify({'success': False, 'error': 'glassdoor_name and glassdoor_id required'}), 400
+    mgr = ExtractionManager.get_instance()
+    success = mgr.update_glassdoor_match(queue_id, glassdoor_name, int(glassdoor_id))
+    return jsonify({'success': success})
+
+
 @app.errorhandler(404)
 def not_found(error):
     """Handle 404 errors"""
@@ -2196,10 +2274,8 @@ def internal_error(error):
 # ============================================================================
 
 if __name__ == '__main__':
-    # Initialize cache table on startup
     init_cache_table()
     app.run(debug=False, host='0.0.0.0', port=int(os.environ.get('FLASK_PORT', os.environ.get('PORT', 8080))))
 
-# Initialize cache table when app starts (for Gunicorn/production)
 init_cache_table()
 # Force redeploy

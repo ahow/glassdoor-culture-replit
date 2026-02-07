@@ -481,6 +481,7 @@
             <button class="main-tab-button" onclick="switchMainTab('insights', event)">Performance Insights</button>
             <button class="main-tab-button" onclick="switchMainTab('culturePerf', event)">Culture vs Performance</button>
             <button class="main-tab-button" onclick="switchMainTab('exportData', event)">Export Data</button>
+            <button class="main-tab-button" onclick="switchMainTab('extractionMgr', event)">Extraction Manager</button>
         </div>
         
         <!-- Overview Tab -->
@@ -1195,6 +1196,39 @@
                 </div>
             </div>
         </div>
+
+        <!-- Extraction Manager Tab -->
+        <div id="extractionMgrTab" class="tab-content hidden-tab" style="display: none;">
+            <div class="chart-container">
+                <h2 class="chart-title">Extraction Manager</h2>
+                <p style="color: #64748b; margin-bottom: 1.5rem;">
+                    Manage the extraction of Glassdoor reviews for all 2,442 companies. Extraction proceeds sector by sector, completing all companies in each sector before moving to the next.
+                </p>
+
+                <div id="extractionControls" style="display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; margin-bottom: 1.5rem; padding: 1rem; background: #f8fafc; border-radius: 10px; border: 1px solid #e2e8f0;">
+                    <button id="btnStartExtraction" onclick="startExtraction()" style="padding: 0.625rem 1.5rem; background: #22c55e; color: white; border: none; border-radius: 8px; font-size: 0.875rem; font-weight: 600; cursor: pointer;">Start Extraction</button>
+                    <button id="btnPauseExtraction" onclick="pauseExtraction()" style="padding: 0.625rem 1.5rem; background: #f59e0b; color: white; border: none; border-radius: 8px; font-size: 0.875rem; font-weight: 600; cursor: pointer; display: none;">Pause</button>
+                    <button id="btnResumeExtraction" onclick="resumeExtraction()" style="padding: 0.625rem 1.5rem; background: #22c55e; color: white; border: none; border-radius: 8px; font-size: 0.875rem; font-weight: 600; cursor: pointer; display: none;">Resume</button>
+                    <button id="btnStopExtraction" onclick="stopExtraction()" style="padding: 0.625rem 1.5rem; background: #ef4444; color: white; border: none; border-radius: 8px; font-size: 0.875rem; font-weight: 600; cursor: pointer; display: none;">Stop</button>
+                    <span id="extractionStatusText" style="color: #64748b; font-size: 0.875rem; margin-left: 0.5rem;">Status: Idle</span>
+                </div>
+
+                <div id="extractionTotals" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+                </div>
+
+                <h3 style="color: #1e293b; margin-bottom: 1rem; font-size: 1.1rem; font-weight: 600;">Sector Progress</h3>
+                <div id="sectorProgressList" style="margin-bottom: 1.5rem;">
+                    <p style="color: #94a3b8;">Loading...</p>
+                </div>
+
+                <div id="sectorDetailPanel" style="display: none;">
+                    <h3 id="sectorDetailTitle" style="color: #1e293b; margin-bottom: 1rem; font-size: 1.1rem; font-weight: 600;"></h3>
+                    <div id="sectorCompanyList">
+                        <p style="color: #94a3b8;">Loading companies...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
     
     <script>
@@ -1258,7 +1292,7 @@
             console.log('switchMainTab called with tab:', tab);
             
             // Hide all tabs using both inline styles AND CSS class
-            const tabs = ['overviewTab', 'companiesTab', 'analysisTab', 'trendsTab', 'hofstedeTab', 'mitTab', 'insightsTab', 'culturePerfTab', 'exportDataTab'];
+            const tabs = ['overviewTab', 'companiesTab', 'analysisTab', 'trendsTab', 'hofstedeTab', 'mitTab', 'insightsTab', 'culturePerfTab', 'exportDataTab', 'extractionMgrTab'];
             tabs.forEach(tabId => {
                 const el = document.getElementById(tabId);
                 if (el) {
@@ -1282,7 +1316,8 @@
                 'mit': 'mitTab',
                 'insights': 'insightsTab',
                 'culturePerf': 'culturePerfTab',
-                'exportData': 'exportDataTab'
+                'exportData': 'exportDataTab',
+                'extractionMgr': 'extractionMgrTab'
             };
             
             const targetTabId = tabMapping[tab];
@@ -1308,6 +1343,8 @@
                 loadCulturePerfScatter();
             } else if (tab === 'exportData') {
                 loadExportCompanyList();
+            } else if (tab === 'extractionMgr') {
+                initExtractionManager();
             }
             
             event.target.classList.add('active');
@@ -3463,6 +3500,259 @@
         loadData();
         loadCompaniesForTrends();
         setInterval(loadData, 60000);
+
+        let extractionPollInterval = null;
+
+        function startExtraction() {
+            fetch('/api/extraction/start', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: '{}' })
+                .then(r => r.json())
+                .then(d => {
+                    console.log('Start extraction:', d);
+                    loadExtractionStatus();
+                    if (!extractionPollInterval) {
+                        extractionPollInterval = setInterval(loadExtractionStatus, 5000);
+                    }
+                })
+                .catch(e => console.error('Start error:', e));
+        }
+
+        function pauseExtraction() {
+            fetch('/api/extraction/pause', { method: 'POST' })
+                .then(r => r.json())
+                .then(d => { console.log('Pause:', d); loadExtractionStatus(); })
+                .catch(e => console.error('Pause error:', e));
+        }
+
+        function resumeExtraction() {
+            fetch('/api/extraction/start', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: '{}' })
+                .then(r => r.json())
+                .then(d => { console.log('Resume:', d); loadExtractionStatus(); })
+                .catch(e => console.error('Resume error:', e));
+        }
+
+        function stopExtraction() {
+            fetch('/api/extraction/stop', { method: 'POST' })
+                .then(r => r.json())
+                .then(d => {
+                    console.log('Stop:', d);
+                    loadExtractionStatus();
+                    if (extractionPollInterval) {
+                        clearInterval(extractionPollInterval);
+                        extractionPollInterval = null;
+                    }
+                })
+                .catch(e => console.error('Stop error:', e));
+        }
+
+        function startSectorExtraction(sector) {
+            fetch('/api/extraction/start', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({sector: sector}) })
+                .then(r => r.json())
+                .then(d => {
+                    console.log('Start sector:', d);
+                    loadExtractionStatus();
+                    if (!extractionPollInterval) {
+                        extractionPollInterval = setInterval(loadExtractionStatus, 5000);
+                    }
+                })
+                .catch(e => console.error('Start sector error:', e));
+        }
+
+        function retrySector(sector) {
+            fetch('/api/extraction/retry-sector/' + encodeURIComponent(sector), { method: 'POST' })
+                .then(r => r.json())
+                .then(d => { console.log('Retry sector:', d); loadExtractionStatus(); })
+                .catch(e => console.error('Retry sector error:', e));
+        }
+
+        function retryCompany(queueId) {
+            fetch('/api/extraction/retry/' + queueId, { method: 'POST' })
+                .then(r => r.json())
+                .then(d => { console.log('Retry:', d); loadSectorDetail(window._currentSectorView); })
+                .catch(e => console.error('Retry error:', e));
+        }
+
+        function skipCompany(queueId) {
+            fetch('/api/extraction/skip/' + queueId, { method: 'POST' })
+                .then(r => r.json())
+                .then(d => { console.log('Skip:', d); loadSectorDetail(window._currentSectorView); })
+                .catch(e => console.error('Skip error:', e));
+        }
+
+        function loadExtractionStatus() {
+            fetch('/api/extraction/status')
+                .then(r => r.json())
+                .then(data => {
+                    if (data.error) {
+                        console.error('Status error:', data.error);
+                        return;
+                    }
+                    updateExtractionUI(data);
+                })
+                .catch(e => console.error('Status fetch error:', e));
+        }
+
+        function updateExtractionUI(data) {
+            const btnStart = document.getElementById('btnStartExtraction');
+            const btnPause = document.getElementById('btnPauseExtraction');
+            const btnResume = document.getElementById('btnResumeExtraction');
+            const btnStop = document.getElementById('btnStopExtraction');
+            const statusText = document.getElementById('extractionStatusText');
+
+            if (data.is_running && !data.is_paused) {
+                btnStart.style.display = 'none';
+                btnPause.style.display = 'inline-block';
+                btnResume.style.display = 'none';
+                btnStop.style.display = 'inline-block';
+                let statusMsg = 'Running';
+                if (data.current_sector) statusMsg += ' - ' + data.current_sector;
+                if (data.current_company) statusMsg += ' (' + data.current_company + ')';
+                statusText.textContent = 'Status: ' + statusMsg;
+                statusText.style.color = '#22c55e';
+            } else if (data.is_paused) {
+                btnStart.style.display = 'none';
+                btnPause.style.display = 'none';
+                btnResume.style.display = 'inline-block';
+                btnStop.style.display = 'inline-block';
+                statusText.textContent = 'Status: Paused';
+                statusText.style.color = '#f59e0b';
+            } else {
+                btnStart.style.display = 'inline-block';
+                btnPause.style.display = 'none';
+                btnResume.style.display = 'none';
+                btnStop.style.display = 'none';
+                statusText.textContent = 'Status: Idle';
+                statusText.style.color = '#64748b';
+                if (extractionPollInterval) {
+                    clearInterval(extractionPollInterval);
+                    extractionPollInterval = null;
+                }
+            }
+
+            const t = data.totals || {};
+            const totalsDiv = document.getElementById('extractionTotals');
+            totalsDiv.innerHTML = [
+                {label: 'Total Companies', value: t.total || 0, color: '#3b82f6'},
+                {label: 'Completed', value: t.completed || 0, color: '#22c55e'},
+                {label: 'Failed', value: t.failed || 0, color: '#ef4444'},
+                {label: 'No Match', value: t.no_match || 0, color: '#f59e0b'},
+                {label: 'Pending', value: t.pending || 0, color: '#94a3b8'},
+                {label: 'Total Reviews', value: (t.total_reviews || 0).toLocaleString(), color: '#6366f1'},
+            ].map(s => `
+                <div style="background: #f8fafc; border-radius: 10px; padding: 1rem; border: 1px solid #e2e8f0; text-align: center;">
+                    <div style="font-size: 1.5rem; font-weight: 700; color: ${s.color};">${s.value}</div>
+                    <div style="font-size: 0.8125rem; color: #64748b; margin-top: 0.25rem;">${s.label}</div>
+                </div>
+            `).join('');
+
+            const sectorDiv = document.getElementById('sectorProgressList');
+            if (!data.sectors || data.sectors.length === 0) {
+                sectorDiv.innerHTML = '<p style="color: #94a3b8;">No sector data available.</p>';
+                return;
+            }
+
+            let html = '<div style="display: flex; flex-direction: column; gap: 0.75rem;">';
+            data.sectors.forEach(s => {
+                const pct = s.total > 0 ? Math.round(((s.completed + s.skipped) / s.total) * 100) : 0;
+                const isActive = data.current_sector === s.name;
+                const borderColor = isActive ? '#3b82f6' : '#e2e8f0';
+                const bgColor = isActive ? '#eff6ff' : '#f8fafc';
+
+                html += `<div style="background: ${bgColor}; border-radius: 10px; padding: 1rem; border: 1px solid ${borderColor}; cursor: pointer;" onclick="loadSectorDetail('${s.name.replace(/'/g, "\\'")}')">`;
+                html += `<div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0.5rem; align-items: center; margin-bottom: 0.5rem;">`;
+                html += `<span style="font-weight: 600; color: #1e293b; font-size: 0.9375rem;">${s.name}${isActive ? ' (active)' : ''}</span>`;
+                html += `<span style="font-size: 0.8125rem; color: #64748b;">${s.completed}/${s.total} done (${pct}%)`;
+                if (s.failed > 0) html += ` <span style="color: #ef4444;">${s.failed} failed</span>`;
+                if (s.no_match > 0) html += ` <span style="color: #f59e0b;">${s.no_match} no match</span>`;
+                html += `</span>`;
+                html += `</div>`;
+                html += `<div style="background: #e2e8f0; border-radius: 4px; height: 8px; overflow: hidden;">`;
+                html += `<div style="background: #22c55e; height: 100%; width: ${pct}%; border-radius: 4px; transition: width 0.3s;"></div>`;
+                html += `</div>`;
+                html += `<div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem; font-size: 0.75rem; color: #64748b;">`;
+                html += `<span>Reviews: ${(s.total_reviews || 0).toLocaleString()}</span>`;
+                if (s.extracting > 0) html += `<span style="color: #3b82f6;">Extracting: ${s.extracting}</span>`;
+                html += `</div>`;
+                html += `</div>`;
+            });
+            html += '</div>';
+            sectorDiv.innerHTML = html;
+        }
+
+        function loadSectorDetail(sector) {
+            window._currentSectorView = sector;
+            const panel = document.getElementById('sectorDetailPanel');
+            const title = document.getElementById('sectorDetailTitle');
+            const list = document.getElementById('sectorCompanyList');
+            
+            panel.style.display = 'block';
+            title.textContent = sector + ' - Companies';
+            list.innerHTML = '<p style="color: #94a3b8;">Loading...</p>';
+
+            fetch('/api/extraction/sector/' + encodeURIComponent(sector))
+                .then(r => r.json())
+                .then(data => {
+                    if (!data.companies || data.companies.length === 0) {
+                        list.innerHTML = '<p style="color: #94a3b8;">No companies found.</p>';
+                        return;
+                    }
+
+                    let html = '<div style="overflow-x: auto;"><table style="width: 100%; border-collapse: collapse; font-size: 0.8125rem;">';
+                    html += '<thead><tr style="border-bottom: 2px solid #e2e8f0; text-align: left;">';
+                    html += '<th style="padding: 0.5rem; color: #64748b;">Issuer Name</th>';
+                    html += '<th style="padding: 0.5rem; color: #64748b;">Ticker</th>';
+                    html += '<th style="padding: 0.5rem; color: #64748b;">Glassdoor Match</th>';
+                    html += '<th style="padding: 0.5rem; color: #64748b;">Confidence</th>';
+                    html += '<th style="padding: 0.5rem; color: #64748b;">Status</th>';
+                    html += '<th style="padding: 0.5rem; color: #64748b;">Reviews</th>';
+                    html += '<th style="padding: 0.5rem; color: #64748b;">Actions</th>';
+                    html += '</tr></thead><tbody>';
+
+                    data.companies.forEach(c => {
+                        const statusColors = {
+                            completed: '#22c55e', extracting: '#3b82f6', searching: '#6366f1',
+                            pending: '#94a3b8', failed: '#ef4444', no_match: '#f59e0b', skipped: '#9ca3af'
+                        };
+                        const statusColor = statusColors[c.status] || '#94a3b8';
+                        const confColors = { exact: '#22c55e', high: '#22c55e', medium: '#f59e0b', low: '#ef4444', manual: '#3b82f6', none: '#94a3b8' };
+                        const confColor = confColors[c.match_confidence] || '#94a3b8';
+
+                        html += '<tr style="border-bottom: 1px solid #f1f5f9;">';
+                        html += `<td style="padding: 0.5rem; color: #1e293b; font-weight: 500;">${c.issuer_name}</td>`;
+                        html += `<td style="padding: 0.5rem; color: #475569;">${c.issuer_ticker || '-'}</td>`;
+                        html += `<td style="padding: 0.5rem; color: #475569;">${c.glassdoor_name || '-'}${c.glassdoor_id ? ' (#' + c.glassdoor_id + ')' : ''}</td>`;
+                        html += `<td style="padding: 0.5rem;"><span style="color: ${confColor}; font-weight: 500;">${c.match_confidence || '-'}</span></td>`;
+                        html += `<td style="padding: 0.5rem;"><span style="display: inline-block; padding: 0.125rem 0.5rem; background: ${statusColor}20; color: ${statusColor}; border-radius: 4px; font-weight: 500; font-size: 0.75rem;">${c.status}</span></td>`;
+                        html += `<td style="padding: 0.5rem; color: #475569;">${c.reviews_extracted || 0}</td>`;
+
+                        let actions = '';
+                        if (c.status === 'failed' || c.status === 'no_match') {
+                            actions += `<button onclick="retryCompany(${c.id})" style="padding: 0.25rem 0.5rem; background: #f1f5f9; color: #3b82f6; border: 1px solid #e2e8f0; border-radius: 4px; font-size: 0.75rem; cursor: pointer; margin-right: 0.25rem;">Retry</button>`;
+                            actions += `<button onclick="skipCompany(${c.id})" style="padding: 0.25rem 0.5rem; background: #f1f5f9; color: #94a3b8; border: 1px solid #e2e8f0; border-radius: 4px; font-size: 0.75rem; cursor: pointer;">Skip</button>`;
+                        }
+                        if (c.error_message) {
+                            actions += `<span title="${c.error_message.replace(/"/g, '&quot;')}" style="color: #ef4444; cursor: help; margin-left: 0.25rem;">?</span>`;
+                        }
+                        html += `<td style="padding: 0.5rem;">${actions}</td>`;
+                        html += '</tr>';
+                    });
+
+                    html += '</tbody></table></div>';
+
+                    html += `<div style="margin-top: 1rem; display: flex; flex-wrap: wrap; gap: 0.5rem;">`;
+                    html += `<button onclick="retrySector('${sector.replace(/'/g, "\\'")}')" style="padding: 0.375rem 0.875rem; background: #f1f5f9; color: #3b82f6; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 0.8125rem; cursor: pointer;">Retry All Failed in ${sector}</button>`;
+                    html += `<button onclick="startSectorExtraction('${sector.replace(/'/g, "\\'")}')" style="padding: 0.375rem 0.875rem; background: #f1f5f9; color: #22c55e; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 0.8125rem; cursor: pointer;">Start from ${sector}</button>`;
+                    html += `</div>`;
+
+                    list.innerHTML = html;
+                })
+                .catch(e => {
+                    list.innerHTML = '<p style="color: #ef4444;">Error: ' + e.message + '</p>';
+                });
+        }
+
+        function initExtractionManager() {
+            loadExtractionStatus();
+        }
     </script>
 </body>
 </html>

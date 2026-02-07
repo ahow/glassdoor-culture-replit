@@ -25,7 +25,8 @@ The project contains two parallel implementations that serve different purposes:
 - `performance_analysis.py` - Culture-performance correlation analysis module
 - `extraction_worker.py` - RapidAPI data extraction for individual companies (legacy)
 - `extraction_openweb.py` - OpenWeb Ninja API extraction (primary) with RapidAPI fallback, CSV export support
-- `extraction_orchestrator.py` - Parallel extraction management across all companies
+- `extraction_manager.py` - Dashboard-controlled sector-by-sector extraction with pause/resume, company matching, and status tracking
+- `extraction_orchestrator.py` - Parallel extraction management across all companies (legacy)
 - `templates/` - Jinja2 HTML templates for the dashboard UI
 - Database: PostgreSQL via psycopg2 with direct SQL queries
 
