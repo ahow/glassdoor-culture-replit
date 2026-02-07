@@ -60,7 +60,8 @@ class OpenWebNinjaExtractor:
     """Extracts Glassdoor data using OpenWeb Ninja API (primary) with RapidAPI fallback."""
 
     def __init__(self, company_name, company_id, glassdoor_url=None, gics_sector=None,
-                 gics_industry=None, gics_sub_industry=None, isin=None, country=None):
+                 gics_industry=None, gics_sub_industry=None, isin=None, country=None,
+                 issuer_name=None):
         self.company_name = company_name
         self.company_id = company_id
         self.glassdoor_url = glassdoor_url
@@ -69,6 +70,7 @@ class OpenWebNinjaExtractor:
         self.gics_sub_industry = gics_sub_industry
         self.isin = isin
         self.country = country
+        self.issuer_name = issuer_name
 
         self.api_source = 'openweb_ninja'
         self.reviews = []
@@ -269,8 +271,9 @@ class OpenWebNinjaExtractor:
                 INSERT INTO companies 
                 (company_name, company_id, glassdoor_url, overall_rating, review_count, 
                  page_count, extraction_started, extraction_completed, total_reviews_extracted, 
-                 metadata, gics_sector, gics_industry, gics_sub_industry, isin, country, api_source)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                 metadata, gics_sector, gics_industry, gics_sub_industry, isin, country, api_source,
+                 issuer_name)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 ON CONFLICT (company_name) DO UPDATE SET
                     total_reviews_extracted = EXCLUDED.total_reviews_extracted,
                     extraction_completed = EXCLUDED.extraction_completed,
@@ -280,7 +283,8 @@ class OpenWebNinjaExtractor:
                     gics_sub_industry = COALESCE(EXCLUDED.gics_sub_industry, companies.gics_sub_industry),
                     isin = COALESCE(EXCLUDED.isin, companies.isin),
                     country = COALESCE(EXCLUDED.country, companies.country),
-                    api_source = EXCLUDED.api_source
+                    api_source = EXCLUDED.api_source,
+                    issuer_name = COALESCE(EXCLUDED.issuer_name, companies.issuer_name)
             """, (
                 self.company_name,
                 self.company_id,
@@ -297,7 +301,8 @@ class OpenWebNinjaExtractor:
                 self.gics_sub_industry,
                 self.isin,
                 self.country,
-                self.api_source
+                self.api_source,
+                self.issuer_name
             ))
 
             conn.commit()

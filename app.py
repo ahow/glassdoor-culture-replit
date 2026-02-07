@@ -2098,25 +2098,28 @@ def export_extraction_summary():
         
         cur = conn.cursor()
         cur.execute("""
-            SELECT c.company_name, c.company_id, c.overall_rating, c.review_count,
+            SELECT c.isin, c.issuer_name, c.company_name, c.company_id, 
+                   c.overall_rating, c.review_count,
                    c.total_reviews_extracted, c.gics_sector, c.gics_industry,
-                   c.isin, c.country, c.api_source,
+                   c.gics_sub_industry, c.country, c.api_source,
                    c.extraction_started, c.extraction_completed,
                    COUNT(r.id) as reviews_in_db
             FROM companies c
             LEFT JOIN reviews r ON c.company_name = r.company_name
-            GROUP BY c.company_name, c.company_id, c.overall_rating, c.review_count,
+            GROUP BY c.isin, c.issuer_name, c.company_name, c.company_id, 
+                     c.overall_rating, c.review_count,
                      c.total_reviews_extracted, c.gics_sector, c.gics_industry,
-                     c.isin, c.country, c.api_source,
+                     c.gics_sub_industry, c.country, c.api_source,
                      c.extraction_started, c.extraction_completed
             ORDER BY c.company_name
         """)
         
         rows = cur.fetchall()
         columns = [
-            'company_name', 'company_id', 'overall_rating', 'review_count_glassdoor',
+            'isin', 'issuer_name_spreadsheet', 'glassdoor_company_name', 'glassdoor_id',
+            'overall_rating', 'review_count_glassdoor',
             'total_extracted', 'gics_sector', 'gics_industry',
-            'isin', 'country', 'api_source',
+            'gics_sub_industry', 'country', 'api_source',
             'extraction_started', 'extraction_completed', 'reviews_in_db'
         ]
         
