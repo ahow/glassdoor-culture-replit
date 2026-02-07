@@ -380,8 +380,8 @@ class ExtractionManager:
             return
 
         glassdoor_name = match.get('name', issuer_name)
-        glassdoor_id = match.get('id')
-        glassdoor_url = match.get('url', '')
+        glassdoor_id = match.get('company_id') or match.get('id')
+        glassdoor_url = match.get('company_link') or match.get('reviews_link') or match.get('url', '')
 
         if not glassdoor_id:
             logger.warning(f"No Glassdoor ID for {issuer_name}")
