@@ -3745,7 +3745,7 @@
             const totalsDiv = document.getElementById('extractionTotals');
             totalsDiv.innerHTML = [
                 {label: 'Total Companies', value: t.total || 0, color: '#3b82f6'},
-                {label: 'Completed', value: t.completed || 0, color: '#22c55e'},
+                {label: 'Completed', value: t.companies_with_reviews || t.completed || 0, color: '#22c55e'},
                 {label: 'Failed', value: t.failed || 0, color: '#ef4444'},
                 {label: 'No Match', value: t.no_match || 0, color: '#f59e0b'},
                 {label: 'Pending', value: t.pending || 0, color: '#94a3b8'},

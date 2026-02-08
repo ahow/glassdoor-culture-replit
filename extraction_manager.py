@@ -192,6 +192,9 @@ class ExtractionManager:
             cur.execute("SELECT COUNT(*) FROM reviews")
             actual_review_count = cur.fetchone()[0]
 
+            cur.execute("SELECT COUNT(DISTINCT company_name) FROM reviews")
+            companies_with_reviews = cur.fetchone()[0]
+
             cur.close()
             conn.close()
 
@@ -217,7 +220,8 @@ class ExtractionManager:
                     'pending': totals[4],
                     'extracting': totals[5],
                     'skipped': totals[6],
-                    'total_reviews': actual_review_count
+                    'total_reviews': actual_review_count,
+                    'companies_with_reviews': companies_with_reviews
                 }
             }
         except Exception as e:
