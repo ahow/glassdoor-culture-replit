@@ -142,6 +142,7 @@ _company_sector_map_loaded = False
 
 UNLISTED_ASSET_MANAGERS = {
     'AllianceBernstein': 'Asset Management',
+    'Capital Group': 'Asset Management',
     'Dimensional Fund Advisors': 'Asset Management',
     'Eurazeo': 'Asset Management',
     'Federated Hermes': 'Asset Management',
