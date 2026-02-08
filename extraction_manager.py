@@ -69,9 +69,9 @@ def init_extraction_control():
         
         cur.execute("SELECT command FROM extraction_control WHERE id = 1")
         ctrl_row = cur.fetchone()
-        if ctrl_row and ctrl_row[0] == 'running':
+        if ctrl_row and ctrl_row[0] in ('running', 'paused'):
             cur.execute("UPDATE extraction_control SET command = 'idle', current_company = NULL, current_sector = NULL WHERE id = 1")
-            logger.info("Startup cleanup: reset stale 'running' command to idle (thread lost on restart)")
+            logger.info(f"Startup cleanup: reset stale '{ctrl_row[0]}' command to idle (thread lost on restart)")
         conn.commit()
 
         cur.close()
@@ -250,11 +250,34 @@ class ExtractionManager:
     def start(self, start_sector=None):
         db_cmd = _get_db_command()
         if db_cmd == 'paused':
-            _set_db_command('running')
-            logger.info("Extraction resumed via DB command")
-            return {'status': 'resumed'}
+            thread_alive = self._thread is not None and self._thread.is_alive()
+            if thread_alive:
+                _set_db_command('running')
+                logger.info("Extraction resumed via DB command (thread still alive)")
+                return {'status': 'resumed'}
+            else:
+                logger.info("Extraction was paused but thread is dead - starting fresh thread")
+                _set_db_command('running')
+                self._thread = threading.Thread(
+                    target=self._run_extraction,
+                    args=(start_sector,),
+                    daemon=True
+                )
+                self._thread.start()
+                return {'status': 'resumed'}
         if db_cmd == 'running':
-            return {'status': 'already_running'}
+            thread_alive = self._thread is not None and self._thread.is_alive()
+            if thread_alive:
+                return {'status': 'already_running'}
+            else:
+                logger.info("Command was running but thread is dead - starting fresh thread")
+                self._thread = threading.Thread(
+                    target=self._run_extraction,
+                    args=(start_sector,),
+                    daemon=True
+                )
+                self._thread.start()
+                return {'status': 'started'}
 
         _set_db_command('running')
 
