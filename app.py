@@ -163,6 +163,8 @@ def _build_company_sector_map():
             if issuer_name and issuer_name.strip():
                 eq_lookup[issuer_name.strip().lower()] = sector
         
+        ambiguous_words = {'capital', 'state', 'national', 'fidelity', 'hdfc', 'bank', 'general', 'international'}
+        
         for company in review_companies:
             cn_lower = company.lower().strip()
             if cn_lower in eq_lookup:
@@ -173,20 +175,26 @@ def _build_company_sector_map():
             for eq_name, sector in eq_lookup.items():
                 if len(eq_name) > 3 and len(cn_lower) > 3:
                     if cn_lower in eq_name or eq_name in cn_lower:
-                        _company_sector_map[company] = sector
-                        matched = True
-                        break
+                        cn_first = cn_lower.split()[0] if cn_lower.split() else ''
+                        if cn_first not in ambiguous_words:
+                            _company_sector_map[company] = sector
+                            matched = True
+                            break
             
             if not matched:
                 cn_words = cn_lower.replace(',', '').replace('.', '').replace('&', '').split()
                 if cn_words:
                     primary = cn_words[0]
-                    if len(primary) > 3:
+                    if len(primary) > 3 and primary not in ambiguous_words:
                         for eq_name, sector in eq_lookup.items():
                             eq_clean = eq_name.replace(',', '').replace('.', '').replace('&', '')
                             if primary in eq_clean.split():
                                 _company_sector_map[company] = sector
                                 break
+        
+        unmatched = [c for c in review_companies if c not in _company_sector_map]
+        if unmatched:
+            logger.info(f"Unmatched companies (no sector assigned): {unmatched}")
         
         _company_sector_map_loaded = True
         logger.info(f"Company-sector map built: {len(_company_sector_map)}/{len(review_companies)} companies matched")

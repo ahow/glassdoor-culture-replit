@@ -62,14 +62,17 @@ def init_extraction_control():
         cur.execute("INSERT INTO extraction_control (id, command) VALUES (1, 'idle') ON CONFLICT (id) DO NOTHING")
         conn.commit()
 
-        cur.execute("UPDATE extraction_queue SET status = 'pending', error_message = NULL WHERE status = 'no_match'")
-        reset_no_match = cur.rowcount
         cur.execute("UPDATE extraction_queue SET status = 'pending' WHERE status = 'extracting'")
         reset_extracting = cur.rowcount
-        cur.execute("UPDATE extraction_control SET command = 'idle', current_company = NULL, current_sector = NULL WHERE command != 'idle'")
+        if reset_extracting > 0:
+            logger.info(f"Startup cleanup: reset {reset_extracting} stuck 'extracting' entries to pending")
+        
+        cur.execute("SELECT command FROM extraction_control WHERE id = 1")
+        ctrl_row = cur.fetchone()
+        if ctrl_row and ctrl_row[0] == 'running':
+            cur.execute("UPDATE extraction_control SET command = 'idle', current_company = NULL, current_sector = NULL WHERE id = 1")
+            logger.info("Startup cleanup: reset stale 'running' command to idle (thread lost on restart)")
         conn.commit()
-        if reset_no_match > 0 or reset_extracting > 0:
-            logger.info(f"Startup cleanup: reset {reset_no_match} no_match and {reset_extracting} extracting entries to pending")
 
         cur.close()
         conn.close()
