@@ -316,7 +316,34 @@ class ExtractionManager:
     def _check_should_pause(self):
         return _get_db_command() == 'paused'
 
-    def _search_glassdoor(self, company_name, ticker=None):
+    def _resolve_isin_name(self, isin):
+        if not isin or len(isin) < 10:
+            return None
+        try:
+            resp = requests.post(
+                'https://api.openfigi.com/v3/mapping',
+                json=[{"idType": "ID_ISIN", "idValue": isin}],
+                headers={'Content-Type': 'application/json'},
+                timeout=10
+            )
+            if resp.status_code == 200:
+                results = resp.json()
+                if results and isinstance(results, list) and len(results) > 0:
+                    data = results[0].get('data', [])
+                    if data and len(data) > 0:
+                        name = data[0].get('name', '')
+                        if name:
+                            name = name.split('-')[0].strip()
+                            logger.info(f"ISIN {isin} resolved via OpenFIGI to: {name}")
+                            return name
+            elif resp.status_code == 429:
+                logger.warning(f"OpenFIGI rate limited for ISIN {isin}")
+                time.sleep(2)
+        except Exception as e:
+            logger.warning(f"ISIN lookup failed for {isin}: {e}")
+        return None
+
+    def _search_glassdoor(self, company_name, ticker=None, isin=None):
         headers = None
         url = None
 
@@ -334,28 +361,52 @@ class ExtractionManager:
         if not headers:
             raise Exception("No API keys configured")
 
-        try:
-            response = requests.get(url, headers=headers, params={'query': company_name}, timeout=15)
-            response.raise_for_status()
-            results = response.json().get('data', [])
-            
-            if not results and ticker:
-                time.sleep(0.5)
+        search_names = [company_name]
+
+        isin_name = self._resolve_isin_name(isin)
+        if isin_name and isin_name.lower().strip() != company_name.lower().strip():
+            search_names.append(isin_name)
+
+        all_results = []
+        seen_ids = set()
+
+        for name in search_names:
+            try:
+                response = requests.get(url, headers=headers, params={'query': name}, timeout=15)
+                response.raise_for_status()
+                results = response.json().get('data', [])
+                for r in results:
+                    rid = r.get('company_id') or r.get('id') or r.get('name')
+                    if rid not in seen_ids:
+                        seen_ids.add(rid)
+                        all_results.append(r)
+                time.sleep(0.3)
+            except Exception as e:
+                logger.error(f"Search error for '{name}': {e}")
+
+        if not all_results and ticker:
+            try:
+                time.sleep(0.3)
                 response = requests.get(url, headers=headers, params={'query': ticker}, timeout=15)
                 response.raise_for_status()
                 results = response.json().get('data', [])
+                for r in results:
+                    rid = r.get('company_id') or r.get('id') or r.get('name')
+                    if rid not in seen_ids:
+                        seen_ids.add(rid)
+                        all_results.append(r)
+            except Exception as e:
+                logger.error(f"Search error for ticker '{ticker}': {e}")
 
-            return results
-        except Exception as e:
-            logger.error(f"Search error for {company_name}: {e}")
-            return []
+        return all_results, isin_name
 
-    def _pick_best_match(self, search_results, issuer_name, ticker):
+    def _pick_best_match(self, search_results, issuer_name, ticker, isin_name=None):
         if not search_results:
             return None, 'none'
 
         issuer_lower = issuer_name.lower().strip()
         ticker_lower = (ticker or '').lower().strip()
+        isin_lower = (isin_name or '').lower().strip()
         filler = {'inc', 'inc.', 'corp', 'corp.', 'corporation', 'company', 'the', 'co', 'co.',
                   'ltd', 'ltd.', 'plc', 'group', 'holdings', 'holding', 'sa', 'se', 'ag', 'nv',
                   'limited', '&', 'of', 'de', 'and', 'n.v.', 'n.v', 'ab', 'as', 'a/s', 'asa',
@@ -371,34 +422,39 @@ class ExtractionManager:
         def meaningful_words(words):
             return words - filler
 
-        issuer_words = clean_words(issuer_lower)
-        meaningful_issuer = meaningful_words(issuer_words)
+        def calc_overlap(ref_text, candidate_name):
+            ref_words = meaningful_words(clean_words(ref_text))
+            cand_words = meaningful_words(clean_words(candidate_name))
+            if not ref_words or not cand_words:
+                return 0
+            common = ref_words & cand_words
+            return min(len(common) / len(ref_words), len(common) / len(cand_words))
+
+        reference_names = [issuer_lower]
+        if isin_lower and isin_lower != issuer_lower:
+            reference_names.append(isin_lower)
 
         for r in search_results:
             name = (r.get('name') or '').lower().strip()
-            if name == issuer_lower:
-                return r, 'exact'
+            for ref in reference_names:
+                if name == ref:
+                    logger.info(f"Exact match: '{name}' == '{ref}'")
+                    return r, 'exact'
 
         best_match = None
         best_overlap = 0
+        best_ref = ''
         for r in search_results:
             name = (r.get('name') or '').lower().strip()
-            name_words = clean_words(name)
-            meaningful_name = meaningful_words(name_words)
-            common = meaningful_issuer & meaningful_name
-
-            if not meaningful_issuer or not meaningful_name:
-                continue
-
-            overlap_ratio = len(common) / max(len(meaningful_issuer), 1)
-            reverse_ratio = len(common) / max(len(meaningful_name), 1)
-            combined = min(overlap_ratio, reverse_ratio)
-
-            if combined > best_overlap:
-                best_overlap = combined
-                best_match = r
+            for ref in reference_names:
+                overlap = calc_overlap(ref, name)
+                if overlap > best_overlap:
+                    best_overlap = overlap
+                    best_match = r
+                    best_ref = ref
 
         if best_match and best_overlap >= 0.5:
+            logger.info(f"High confidence match for '{issuer_name}' (ref='{best_ref}'): '{best_match.get('name')}' (overlap={best_overlap:.2f})")
             return best_match, 'high'
 
         if ticker_lower and len(ticker_lower) >= 3:
@@ -411,7 +467,7 @@ class ExtractionManager:
         if best_match and best_overlap >= 0.3:
             return best_match, 'low'
 
-        logger.info(f"Rejecting all {len(search_results)} search results for '{issuer_name}' - no sufficient match (best overlap: {best_overlap:.2f})")
+        logger.info(f"Rejecting all {len(search_results)} search results for '{issuer_name}' (isin_name='{isin_name}') - best overlap: {best_overlap:.2f}")
         return None, 'none'
 
     def _update_queue_status(self, queue_id, status, **kwargs):
@@ -498,13 +554,13 @@ class ExtractionManager:
 
     def _process_company(self, q_id, issuer_name, ticker, isin, country,
                          sector, industry, sub_industry):
-        logger.info(f"Processing: {issuer_name} ({ticker})")
+        logger.info(f"Processing: {issuer_name} ({ticker}, ISIN: {isin})")
         self._update_queue_status(q_id, 'searching', started_at=datetime.now())
 
-        search_results = self._search_glassdoor(issuer_name, ticker)
+        search_results, isin_name = self._search_glassdoor(issuer_name, ticker, isin=isin)
         time.sleep(0.5)
 
-        match, confidence = self._pick_best_match(search_results, issuer_name, ticker)
+        match, confidence = self._pick_best_match(search_results, issuer_name, ticker, isin_name=isin_name)
 
         self._update_queue_status(
             q_id, 'searching',
