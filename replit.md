@@ -7,7 +7,10 @@ This is a full-stack web application that analyzes employee reviews from Glassdo
 1. **Hofstede Framework** - 6 bipolar dimensions measuring organizational culture on a -1 to +1 scale
 2. **MIT Big 9 Framework** - 9 unipolar dimensions measuring culture attributes on a 0-10 scale
 
-The application extracts reviews via OpenWeb Ninja API (primary) or RapidAPI (fallback), scores them using keyword-based analysis, stores results in PostgreSQL, and presents insights through an interactive dashboard. It currently analyzes 44+ financial services companies with 187,000+ reviews, with infrastructure to expand to 2,442 companies across 11 GICS sectors.
+The application extracts reviews via OpenWeb Ninja API (primary) or RapidAPI (fallback), scores them using keyword-based analysis, stores results in PostgreSQL, and presents insights through an interactive dashboard. It currently analyzes 50+ companies with 147,000+ reviews, with infrastructure to expand to 2,442 companies across 11 GICS sectors plus a dedicated "Asset Management" category for 14 unlisted firms.
+
+### Unlisted Asset Managers
+14 private/unlisted asset management companies are hard-coded in `UNLISTED_ASSET_MANAGERS` dict in `app.py` with sector "Asset Management". These don't have ISINs and aren't in the extraction_queue (which contains 2,442 MSCI-listed companies). They're included in the analysis for sector-specific filtering and appear in the sector dropdown as a separate category. Companies: AllianceBernstein, Dimensional Fund Advisors, Eurazeo, Federated Hermes, Fidelity International, Fidelity Investments, Franklin Templeton, Invesco, Natixis Investment Managers, Nuveen, PIMCO, Robeco, Vanguard Group, Wellington Management.
 
 ## User Preferences
 

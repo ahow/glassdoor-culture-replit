@@ -140,6 +140,23 @@ _mit_max_values_by_sector = {}
 _company_sector_map = {}
 _company_sector_map_loaded = False
 
+UNLISTED_ASSET_MANAGERS = {
+    'AllianceBernstein': 'Asset Management',
+    'Dimensional Fund Advisors': 'Asset Management',
+    'Eurazeo': 'Asset Management',
+    'Federated Hermes': 'Asset Management',
+    'Fidelity International': 'Asset Management',
+    'Fidelity Investments': 'Asset Management',
+    'Franklin Templeton': 'Asset Management',
+    'Invesco': 'Asset Management',
+    'Natixis Investment Managers': 'Asset Management',
+    'Nuveen': 'Asset Management',
+    'PIMCO': 'Asset Management',
+    'Robeco': 'Asset Management',
+    'Vanguard Group': 'Asset Management',
+    'Wellington Management': 'Asset Management',
+}
+
 def _build_company_sector_map():
     """Build a mapping from review company names to GICS sectors using fuzzy matching."""
     global _company_sector_map, _company_sector_map_loaded
@@ -166,6 +183,10 @@ def _build_company_sector_map():
         ambiguous_words = {'capital', 'state', 'national', 'fidelity', 'hdfc', 'bank', 'general', 'international'}
         
         for company in review_companies:
+            if company in UNLISTED_ASSET_MANAGERS:
+                _company_sector_map[company] = UNLISTED_ASSET_MANAGERS[company]
+                continue
+            
             cn_lower = company.lower().strip()
             if cn_lower in eq_lookup:
                 _company_sector_map[company] = eq_lookup[cn_lower]
@@ -729,6 +750,9 @@ def index():
 def get_sectors():
     """Get list of GICS sectors available in the data"""
     sectors = fmp_analyzer.get_sector_list()
+    if 'Asset Management' not in sectors:
+        sectors.append('Asset Management')
+        sectors.sort()
     return jsonify({'success': True, 'sectors': sectors})
 
 
