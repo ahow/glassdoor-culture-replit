@@ -184,10 +184,13 @@ class ExtractionManager:
                        COUNT(*) FILTER (WHERE status = 'pending') as pending,
                        COUNT(*) FILTER (WHERE status = 'extracting') as extracting,
                        COUNT(*) FILTER (WHERE status = 'skipped') as skipped,
-                       COALESCE(SUM(reviews_extracted), 0) as total_reviews
+                       COALESCE(SUM(reviews_extracted), 0) as queue_reviews
                 FROM extraction_queue
             """)
             totals = cur.fetchone()
+
+            cur.execute("SELECT COUNT(*) FROM reviews")
+            actual_review_count = cur.fetchone()[0]
 
             cur.close()
             conn.close()
@@ -214,7 +217,7 @@ class ExtractionManager:
                     'pending': totals[4],
                     'extracting': totals[5],
                     'skipped': totals[6],
-                    'total_reviews': totals[7]
+                    'total_reviews': actual_review_count
                 }
             }
         except Exception as e:
