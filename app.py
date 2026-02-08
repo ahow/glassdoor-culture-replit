@@ -14,6 +14,7 @@ from datetime import datetime, timedelta
 from statistics import mean
 from culture_scoring import score_review_with_dictionary
 from performance_analysis import performance_analyzer
+from fmp_performance import fmp_analyzer, init_fmp_tables
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -133,6 +134,103 @@ def calculate_relative_confidence(metrics):
 
 # Cache for MIT max values (calculated once and reused)
 _mit_max_values_cache = {}
+_mit_max_values_by_sector = {}
+
+
+_company_sector_map = {}
+_company_sector_map_loaded = False
+
+def _build_company_sector_map():
+    """Build a mapping from review company names to GICS sectors using fuzzy matching."""
+    global _company_sector_map, _company_sector_map_loaded
+    conn = get_db_connection()
+    if not conn:
+        return
+    try:
+        cursor = conn.cursor()
+        cursor.execute("SELECT DISTINCT company_name FROM reviews")
+        review_companies = [row[0] for row in cursor.fetchall()]
+        
+        cursor.execute("SELECT glassdoor_name, issuer_name, gics_sector FROM extraction_queue WHERE gics_sector IS NOT NULL")
+        eq_rows = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        
+        eq_lookup = {}
+        for gd_name, issuer_name, sector in eq_rows:
+            if gd_name and gd_name.strip():
+                eq_lookup[gd_name.strip().lower()] = sector
+            if issuer_name and issuer_name.strip():
+                eq_lookup[issuer_name.strip().lower()] = sector
+        
+        for company in review_companies:
+            cn_lower = company.lower().strip()
+            if cn_lower in eq_lookup:
+                _company_sector_map[company] = eq_lookup[cn_lower]
+                continue
+            
+            matched = False
+            for eq_name, sector in eq_lookup.items():
+                if len(eq_name) > 3 and len(cn_lower) > 3:
+                    if cn_lower in eq_name or eq_name in cn_lower:
+                        _company_sector_map[company] = sector
+                        matched = True
+                        break
+            
+            if not matched:
+                cn_words = cn_lower.replace(',', '').replace('.', '').replace('&', '').split()
+                if cn_words:
+                    primary = cn_words[0]
+                    if len(primary) > 3:
+                        for eq_name, sector in eq_lookup.items():
+                            eq_clean = eq_name.replace(',', '').replace('.', '').replace('&', '')
+                            if primary in eq_clean.split():
+                                _company_sector_map[company] = sector
+                                break
+        
+        _company_sector_map_loaded = True
+        logger.info(f"Company-sector map built: {len(_company_sector_map)}/{len(review_companies)} companies matched")
+    except Exception as e:
+        logger.error(f"Error building company-sector map: {e}")
+        try:
+            conn.close()
+        except:
+            pass
+
+def get_companies_for_sector(sector=None):
+    """Get list of company names that have reviews, optionally filtered by sector."""
+    global _company_sector_map_loaded
+    if not _company_sector_map_loaded:
+        _build_company_sector_map()
+    
+    conn = get_db_connection()
+    if not conn:
+        return []
+    try:
+        cursor = conn.cursor()
+        cursor.execute("SELECT DISTINCT company_name FROM reviews ORDER BY company_name")
+        all_companies = [row[0] for row in cursor.fetchall()]
+        cursor.close()
+        conn.close()
+        
+        if sector:
+            return [c for c in all_companies if _company_sector_map.get(c) == sector]
+        return all_companies
+    except Exception as e:
+        logger.error(f"Error getting companies for sector: {e}")
+        try:
+            conn.close()
+        except:
+            pass
+        return []
+
+
+def get_company_sector(company_name):
+    """Look up GICS sector for a company using cached map."""
+    global _company_sector_map_loaded
+    if not _company_sector_map_loaded:
+        _build_company_sector_map()
+    return _company_sector_map.get(company_name)
 
 def get_mit_max_values():
     """Get maximum MIT values across all companies for rescaling"""
@@ -619,44 +717,57 @@ def index():
     return render_template('index.html')
 
 
+@app.route('/api/sectors', methods=['GET'])
+def get_sectors():
+    """Get list of GICS sectors available in the data"""
+    sectors = fmp_analyzer.get_sector_list()
+    return jsonify({'success': True, 'sectors': sectors})
+
+
 @app.route('/api/stats', methods=['GET'])
 def get_stats():
-    """Get overall dashboard statistics"""
+    """Get overall dashboard statistics, optionally filtered by sector"""
     try:
+        sector = request.args.get('sector')
+        
         conn = get_db_connection()
         if not conn:
             return jsonify({'success': False, 'error': 'Database connection failed'}), 500
         
         cursor = conn.cursor(cursor_factory=RealDictCursor)
         
-        # Get overall statistics
-        cursor.execute("""
-            SELECT 
-                COUNT(DISTINCT company_name) as total_companies,
-                COUNT(*) as total_reviews,
-                AVG(rating) as average_rating
-            FROM reviews
-        """)
+        if sector:
+            company_names_for_sector = get_companies_for_sector(sector)
+            if company_names_for_sector:
+                placeholders = ','.join(['%s'] * len(company_names_for_sector))
+                cursor.execute(f"""
+                    SELECT 
+                        COUNT(DISTINCT r.company_name) as total_companies,
+                        COUNT(*) as total_reviews,
+                        AVG(r.rating) as average_rating
+                    FROM reviews r
+                    WHERE r.company_name IN ({placeholders})
+                """, company_names_for_sector)
+            else:
+                cursor.execute("SELECT 0 as total_companies, 0 as total_reviews, NULL as average_rating")
+        else:
+            cursor.execute("""
+                SELECT 
+                    COUNT(DISTINCT company_name) as total_companies,
+                    COUNT(*) as total_reviews,
+                    AVG(rating) as average_rating
+                FROM reviews
+            """)
         
         stats = cursor.fetchone()
-        
-        # Get all companies with their metrics
-        cursor.execute("""
-            SELECT DISTINCT company_name FROM reviews
-            ORDER BY company_name
-        """)
-        
-        company_names = [row['company_name'] for row in cursor.fetchall()]
         cursor.close()
         conn.close()
         
-        # Get metrics for each company (with caching)
+        company_names = get_companies_for_sector(sector)
+        
         companies = []
         for company_name in company_names:
-            # Try to get from cache first
             metrics = get_cached_metrics(company_name)
-            
-            # If not in cache, calculate and cache it
             if not metrics:
                 metrics = get_company_metrics(company_name)
                 if metrics:
@@ -675,7 +786,7 @@ def get_stats():
                     'senior_management': metrics['senior_management'],
                     'recommend_percentage': metrics['recommend_percentage'],
                     'ceo_approval': metrics['ceo_approval'],
-                    'industry': ''
+                    'industry': get_company_sector(company_name) or ''
                 })
         
         return jsonify({
@@ -683,7 +794,8 @@ def get_stats():
             'total_companies': stats['total_companies'] or 0,
             'total_reviews': stats['total_reviews'] or 0,
             'avg_rating': round(float(stats['average_rating']), 2) if stats['average_rating'] else 0,
-            'companies': companies
+            'companies': companies,
+            'sector': sector
         })
     
     except Exception as e:
@@ -693,31 +805,14 @@ def get_stats():
 
 @app.route('/api/companies', methods=['GET'])
 def get_companies():
-    """Get all companies with their metrics"""
+    """Get all companies with their metrics, optionally filtered by sector"""
     try:
-        conn = get_db_connection()
-        if not conn:
-            return jsonify({'success': False, 'error': 'Database connection failed'}), 500
+        sector = request.args.get('sector')
+        company_names = get_companies_for_sector(sector)
         
-        cursor = conn.cursor(cursor_factory=RealDictCursor)
-        
-        # Get all companies
-        cursor.execute("""
-            SELECT DISTINCT company_name FROM reviews
-            ORDER BY company_name
-        """)
-        
-        company_names = [row['company_name'] for row in cursor.fetchall()]
-        cursor.close()
-        conn.close()
-        
-        # Get metrics for each company (with caching)
         companies = []
         for company_name in company_names:
-            # Try to get from cache first
             metrics = get_cached_metrics(company_name)
-            
-            # If not in cache, calculate and cache it
             if not metrics:
                 metrics = get_company_metrics(company_name)
                 if metrics:
@@ -736,17 +831,17 @@ def get_companies():
                     'senior_management': metrics['senior_management'],
                     'recommend_percentage': metrics['recommend_percentage'],
                     'ceo_approval': metrics['ceo_approval'],
-                    'industry': ''
+                    'industry': get_company_sector(company_name) or ''
                 })
         
-        # Calculate overall statistics
         all_ratings = [c['overall_rating'] for c in companies if c['overall_rating']]
         avg_rating = round(mean(all_ratings), 2) if all_ratings else 0
         
         return jsonify({
             'success': True,
             'companies': companies,
-            'avg_rating': avg_rating
+            'avg_rating': avg_rating,
+            'sector': sector
         })
     
     except Exception as e:
@@ -819,17 +914,10 @@ def get_culture_profile(company_name):
 
 @app.route('/api/industry-average', methods=['GET'])
 def get_industry_average():
-    """Get industry average culture profile"""
+    """Get industry average culture profile, optionally filtered by sector"""
     try:
-        conn = get_db_connection()
-        if not conn:
-            return jsonify({'success': False, 'error': 'Database connection failed'}), 500
-        
-        cursor = conn.cursor(cursor_factory=RealDictCursor)
-        cursor.execute("SELECT DISTINCT company_name FROM reviews ORDER BY company_name")
-        company_names = [row['company_name'] for row in cursor.fetchall()]
-        cursor.close()
-        conn.close()
+        sector = request.args.get('sector')
+        company_names = get_companies_for_sector(sector)
         
         hofstede_avg = {dim: [] for dim in HOFSTEDE_DIMENSIONS}
         mit_avg = {dim: [] for dim in MIT_DIMENSIONS}
@@ -906,9 +994,10 @@ def get_industry_average():
         
         return jsonify({
             'success': True,
-            'company_name': 'Industry Average',
+            'company_name': f'{sector} Average' if sector else 'Industry Average',
             'hofstede': hofstede_result,
             'mit': mit_result,
+            'sector': sector,
             'metadata': {
                 'review_count': total_reviews,
                 'overall_rating': 0,
@@ -1023,27 +1112,15 @@ def get_quarterly_trends():
 
 @app.route('/api/companies-list', methods=['GET'])
 def get_companies_list():
-    """Get list of all companies for dropdown menus"""
+    """Get list of all companies for dropdown menus, optionally filtered by sector"""
     try:
-        conn = get_db_connection()
-        if not conn:
-            return jsonify({'success': False, 'error': 'Database connection failed'}), 500
-        
-        cursor = conn.cursor(cursor_factory=RealDictCursor)
-        
-        # Get all unique company names sorted alphabetically
-        cursor.execute("""
-            SELECT DISTINCT company_name FROM reviews
-            ORDER BY company_name
-        """)
-        
-        companies = [row['company_name'] for row in cursor.fetchall()]
-        cursor.close()
-        conn.close()
+        sector = request.args.get('sector')
+        companies = get_companies_for_sector(sector)
         
         return jsonify({
             'success': True,
-            'companies': companies
+            'companies': companies,
+            'sector': sector
         })
     
     except Exception as e:
@@ -1243,27 +1320,18 @@ def claude_insights(company_name):
 
 @app.route('/api/culture-benchmarking/<company_name>', methods=['GET'])
 def culture_benchmarking(company_name):
-    """Get benchmarking data comparing company to industry averages"""
+    """Get benchmarking data comparing company to sector/industry averages"""
     try:
-        conn = get_db_connection()
-        if not conn:
-            return jsonify({'success': False, 'error': 'Database connection failed'}), 500
+        sector = request.args.get('sector')
+        if not sector:
+            sector = get_company_sector(company_name)
         
-        cursor = conn.cursor(cursor_factory=RealDictCursor)
-        
-        # Get company profile
         company_profile = get_company_metrics(company_name)
         if not company_profile:
             return jsonify({'success': False, 'error': 'Company not found'}), 404
         
-        # Get all companies for benchmarking
-        cursor.execute("""
-            SELECT DISTINCT company_name FROM reviews
-            WHERE company_name != %s
-            ORDER BY company_name
-        """, (company_name,))
-        
-        other_companies = [row['company_name'] for row in cursor.fetchall()]
+        all_companies = get_companies_for_sector(sector)
+        other_companies = [c for c in all_companies if c != company_name]
         
         # Calculate industry averages
         hofstede_avg = {dim: [] for dim in HOFSTEDE_DIMENSIONS}
@@ -1301,12 +1369,10 @@ def culture_benchmarking(company_name):
                 percentile = (sum(1 for v in industry_vals if v <= company_val) / len(industry_vals)) * 100
                 mit_percentiles[dim] = percentile
         
-        cursor.close()
-        conn.close()
-        
         return jsonify({
             'success': True,
             'company': company_name,
+            'sector': sector,
             'hofstede_benchmarking': {
                 'company': {dim: company_profile.get('hofstede', {}).get(dim, {}).get('value', 0) for dim in HOFSTEDE_DIMENSIONS},
                 'industry_average': hofstede_industry,
@@ -1332,28 +1398,19 @@ def culture_benchmarking(company_name):
 def get_performance_correlation():
     """Get correlation analysis between culture metrics and business performance"""
     try:
-        # Load performance data if not already loaded
+        sector = request.args.get('sector')
+        
         if not performance_analyzer.loaded:
             performance_analyzer.load_data()
         
-        # Get all companies with culture data
-        conn = get_db_connection()
-        if not conn:
-            return jsonify({'success': False, 'error': 'Database connection failed'}), 500
+        culture_companies = get_companies_for_sector(sector)
         
-        cursor = conn.cursor(cursor_factory=RealDictCursor)
-        cursor.execute('SELECT DISTINCT company_name FROM reviews ORDER BY company_name')
-        culture_companies = [row['company_name'] for row in cursor.fetchall()]
-        conn.close()
-        
-        # Collect culture and performance data for each company
         culture_data = []
         performance_data = []
         
         peer_stats = performance_analyzer.get_peer_statistics()
         
         for company in culture_companies:
-            # Get culture metrics
             metrics = get_cached_metrics(company)
             if not metrics:
                 metrics = get_company_metrics(company)
@@ -1365,16 +1422,13 @@ def get_performance_correlation():
                     'mit': metrics.get('mit_big_9', {})
                 })
             
-            # Get performance metrics
             perf_metrics = performance_analyzer.get_performance_metrics(company)
             if perf_metrics and len(perf_metrics) > 2:
-                # Calculate composite score
                 perf_metrics['composite_score'] = performance_analyzer.calculate_composite_score(
                     perf_metrics, peer_stats
                 )
                 performance_data.append(perf_metrics)
         
-        # Calculate correlations
         correlations = performance_analyzer.calculate_correlation(culture_data, performance_data)
         
         return jsonify({
@@ -1382,7 +1436,8 @@ def get_performance_correlation():
             'correlations': correlations,
             'companies_with_both': len([p for p in performance_data if p.get('composite_score')]),
             'culture_companies': len(culture_companies),
-            'performance_companies': len(performance_data)
+            'performance_companies': len(performance_data),
+            'sector': sector
         })
     
     except Exception as e:
@@ -1425,18 +1480,12 @@ def get_company_performance():
 def get_performance_rankings():
     """Get ranked list of companies by composite performance score"""
     try:
+        sector = request.args.get('sector')
+        
         if not performance_analyzer.loaded:
             performance_analyzer.load_data()
         
-        # Get all companies with culture data
-        conn = get_db_connection()
-        if not conn:
-            return jsonify({'success': False, 'error': 'Database connection failed'}), 500
-        
-        cursor = conn.cursor(cursor_factory=RealDictCursor)
-        cursor.execute('SELECT DISTINCT company_name FROM reviews ORDER BY company_name')
-        culture_companies = [row['company_name'] for row in cursor.fetchall()]
-        conn.close()
+        culture_companies = get_companies_for_sector(sector)
         
         rankings = []
         peer_stats = performance_analyzer.get_peer_statistics()
@@ -1446,7 +1495,6 @@ def get_performance_rankings():
             if perf_metrics and len(perf_metrics) > 2:
                 composite = performance_analyzer.calculate_composite_score(perf_metrics, peer_stats)
                 if composite is not None:
-                    # Get culture metrics
                     culture_metrics = get_cached_metrics(company)
                     if not culture_metrics:
                         culture_metrics = get_company_metrics(company)
@@ -1455,23 +1503,23 @@ def get_performance_rankings():
                         'company': company,
                         'composite_score': round(composite, 1),
                         'business_model': perf_metrics.get('business_model', 'Unknown'),
+                        'sector': get_company_sector(company) or '',
                         'roe_5y_avg': perf_metrics.get('roe_5y_avg'),
                         'aum_cagr_5y': round(perf_metrics.get('aum_cagr_5y', 0) * 100, 1) if perf_metrics.get('aum_cagr_5y') else None,
                         'tsr_cagr_5y': perf_metrics.get('tsr_cagr_5y'),
                         'culture_confidence': culture_metrics.get('overall_confidence', 0) if culture_metrics else 0
                     })
         
-        # Sort by composite score descending
         rankings.sort(key=lambda x: x['composite_score'], reverse=True)
         
-        # Add rank
         for i, r in enumerate(rankings):
             r['rank'] = i + 1
         
         return jsonify({
             'success': True,
             'rankings': rankings,
-            'total': len(rankings)
+            'total': len(rankings),
+            'sector': sector
         })
     
     except Exception as e:
@@ -1487,7 +1535,10 @@ def get_performance_rankings():
 def get_company_analysis(company_name):
     """Get company analysis with culture scores, industry averages, and correlations"""
     try:
-        # Get company culture profile
+        sector = request.args.get('sector')
+        if not sector:
+            sector = get_company_sector(company_name)
+        
         metrics = get_cached_metrics(company_name)
         if not metrics:
             metrics = get_company_metrics(company_name)
@@ -1497,16 +1548,7 @@ def get_company_analysis(company_name):
         if not metrics:
             return jsonify({'success': False, 'error': 'Company not found'}), 404
         
-        # Get industry averages
-        conn = get_db_connection()
-        if not conn:
-            return jsonify({'success': False, 'error': 'Database connection failed'}), 500
-        
-        cursor = conn.cursor(cursor_factory=RealDictCursor)
-        cursor.execute("SELECT DISTINCT company_name FROM reviews ORDER BY company_name")
-        company_names = [row['company_name'] for row in cursor.fetchall()]
-        cursor.close()
-        conn.close()
+        company_names = get_companies_for_sector(sector)
         
         hofstede_avg = {dim: [] for dim in HOFSTEDE_DIMENSIONS}
         mit_avg = {dim: [] for dim in MIT_DIMENSIONS}
@@ -1656,6 +1698,7 @@ def get_company_analysis(company_name):
         return jsonify({
             'success': True,
             'company_name': company_name,
+            'sector': sector,
             'company': {
                 'hofstede': company_hofstede,
                 'mit': company_mit
@@ -1875,20 +1918,12 @@ def get_company_culture_score_trend(company_name):
 def get_culture_performance_scatter():
     """Get all companies' culture scores and performance data for scatter plot"""
     try:
-        # Ensure performance data is loaded
+        sector = request.args.get('sector')
+        
         if not performance_analyzer.loaded:
             performance_analyzer.load_data()
         
-        # Get all company names
-        conn = get_db_connection()
-        if not conn:
-            return jsonify({'success': False, 'error': 'Database connection failed'}), 500
-        
-        cursor = conn.cursor(cursor_factory=RealDictCursor)
-        cursor.execute("SELECT DISTINCT company_name FROM reviews ORDER BY company_name")
-        company_names = [row['company_name'] for row in cursor.fetchall()]
-        cursor.close()
-        conn.close()
+        company_names = get_companies_for_sector(sector)
         
         # Calculate industry averages first
         hofstede_avg = {dim: [] for dim in HOFSTEDE_DIMENSIONS}
@@ -2062,7 +2097,8 @@ def get_culture_performance_scatter():
         return jsonify({
             'success': True,
             'companies': companies_data,
-            'business_models': list(set(c['business_model'] for c in companies_data))
+            'business_models': list(set(c['business_model'] for c in companies_data)),
+            'sector': sector
         })
     
     except Exception as e:
@@ -2386,6 +2422,7 @@ init_extraction_queue()
 
 from extraction_manager import init_extraction_control
 init_extraction_control()
+init_fmp_tables()
 
 if __name__ == '__main__':
     app.run(debug=False, host='0.0.0.0', port=int(os.environ.get('FLASK_PORT', os.environ.get('PORT', 8080))))

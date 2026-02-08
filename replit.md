@@ -37,6 +37,20 @@ The project contains two parallel implementations that serve different purposes:
 - API endpoints: `/api/performance-correlation`, `/api/company-performance`, `/api/performance-rankings`
 - Performance Insights tab displays correlation analysis with visualizations
 
+**FMP Performance Module** (`fmp_performance.py`)
+- ISIN-to-ticker resolution via FMP API search-isin endpoint
+- Financial data fetching: key metrics, income statements, ratios, stock price history
+- PostgreSQL caching with 30-day expiry (tables: fmp_ticker_map, fmp_financial_cache, fmp_performance_metrics)
+- Sector-specific peer statistics and composite performance scoring
+- Culture-performance correlation calculation using scipy Pearson correlations
+
+**Multi-Sector Filtering**
+- All major API endpoints accept optional `?sector=` parameter for GICS sector filtering
+- `/api/sectors` endpoint returns list of 11 GICS sectors from extraction_queue table
+- Dashboard header includes sector dropdown that propagates filter to all API calls
+- Industry averages, benchmarking, and correlations are computed per-sector when filtered
+- 2,442 companies across 11 sectors: Financials (456), Industrials (418), IT (309), etc.
+
 **TypeScript/Node.js Stack (Secondary/Development)**
 - `server/` - Express.js server with route handling
 - `client/` - React frontend with Vite, TailwindCSS, and shadcn/ui components

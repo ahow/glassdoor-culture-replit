@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- VERSION: 2026-02-01-v17 -->
+<!-- VERSION: 2026-02-01-v19-sector -->
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -461,6 +461,12 @@
             <div>
                 <h1>Culture Analytics Dashboard</h1>
                 <p>Financial Services Industry - Employee Review Analysis</p>
+            </div>
+            <div style="margin-left: auto; display: flex; align-items: center; gap: 0.75rem;">
+                <label for="sectorFilter" style="font-size: 0.85rem; color: #64748b; font-weight: 500; white-space: nowrap;">Sector:</label>
+                <select id="sectorFilter" onchange="onSectorChange(this.value)" style="padding: 0.4rem 0.75rem; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.85rem; background: #f8fafc; color: #1e293b; cursor: pointer; min-width: 180px;">
+                    <option value="">All Sectors</option>
+                </select>
             </div>
         </div>
     </div>
@@ -1242,8 +1248,52 @@
     
     <script>
         // Debug: Version check - look for this in browser console
-        console.log('Dashboard version: 2026-02-01-v18-export');
+        console.log('Dashboard version: 2026-02-01-v19-sector');
         
+        let currentSector = '';
+
+        function getSectorParam() {
+            return currentSector ? `sector=${encodeURIComponent(currentSector)}` : '';
+        }
+
+        function buildUrl(base, params = {}) {
+            const allParams = {...params};
+            if (currentSector) allParams.sector = currentSector;
+            const qs = Object.entries(allParams).filter(([k,v]) => v !== undefined && v !== '').map(([k,v]) => `${k}=${encodeURIComponent(v)}`).join('&');
+            return qs ? `${base}?${qs}` : base;
+        }
+
+        async function loadSectors() {
+            try {
+                const response = await fetch('/api/sectors');
+                const data = await response.json();
+                if (data.success && data.sectors) {
+                    const select = document.getElementById('sectorFilter');
+                    data.sectors.forEach(sector => {
+                        const option = document.createElement('option');
+                        option.value = sector;
+                        option.textContent = sector;
+                        select.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading sectors:', error);
+            }
+        }
+
+        async function onSectorChange(sector) {
+            currentSector = sector;
+            const headerP = document.querySelector('.header p');
+            if (headerP) {
+                headerP.textContent = sector ? `${sector} Sector - Employee Review Analysis` : 'All Sectors - Employee Review Analysis';
+            }
+            analysisCompaniesLoaded = false;
+            await loadData();
+            if (document.getElementById('analysisTab') && document.getElementById('analysisTab').style.display !== 'none') {
+                await loadAnalysisCompanies();
+            }
+        }
+
         // Helper function to get correlation-based color with intensity
         // Positive correlations = green, negative = red
         // Intensity varies based on correlation strength (abs value)
@@ -1274,7 +1324,7 @@
         // Fetch correlation data on page load
         async function loadCorrelationData() {
             try {
-                const response = await fetch('/api/performance-correlation');
+                const response = await fetch(buildUrl('/api/performance-correlation'));
                 if (response.ok) {
                     const data = await response.json();
                     window.mitCorrelations = data.correlations?.mit || {};
@@ -1417,7 +1467,7 @@
         
         async function loadData() {
             try {
-                const response = await fetch('/api/stats');
+                const response = await fetch(buildUrl('/api/stats'));
                 const data = await response.json();
                 
                 document.getElementById('totalReviews').textContent = data.total_reviews.toLocaleString();
@@ -1444,7 +1494,7 @@
         
         async function loadCultureCompanies(framework = 'hofstede') {
             try {
-                const response = await fetch('/api/companies-list');
+                const response = await fetch(buildUrl('/api/companies-list'));
                 const data = await response.json();
                 
                 // Handle framework parameter (hofstede or mit)
@@ -1560,7 +1610,7 @@
                 cacheStatus[company] = 'updating';
                 updateCacheStatusDisplay();
                 
-                let url = company === 'Industry Average' ? '/api/industry-average' : `/api/culture-profile/${encodeURIComponent(company)}`;
+                let url = company === 'Industry Average' ? buildUrl('/api/industry-average') : buildUrl(`/api/culture-profile/${encodeURIComponent(company)}`);
                 const response = await fetch(url);
                 if (!response.ok) {
                     document.getElementById(prefix + 'Message').textContent = 'Culture profile not available yet. Scoring in progress...';
@@ -1575,7 +1625,7 @@
                 // Load comparison profile if selected
                 let comparisonProfile = null;
                 if (comparison) {
-                    let compUrl = comparison === 'Industry Average' ? '/api/industry-average' : `/api/culture-profile/${encodeURIComponent(comparison)}`;
+                    let compUrl = comparison === 'Industry Average' ? buildUrl('/api/industry-average') : buildUrl(`/api/culture-profile/${encodeURIComponent(comparison)}`);
                     const compResponse = await fetch(compUrl);
                     if (compResponse.ok) {
                         comparisonProfile = await compResponse.json();
@@ -2043,7 +2093,7 @@
             if (!company) return;
             
             try {
-                const response = await fetch(`/api/culture-benchmarking/${encodeURIComponent(company)}`);
+                const response = await fetch(buildUrl(`/api/culture-benchmarking/${encodeURIComponent(company)}`));
                 if (!response.ok) {
                     document.getElementById('benchmarkingMessage').textContent = 'Benchmarking data not available yet';
                     document.getElementById('benchmarkingContainer').style.display = 'none';
@@ -2208,7 +2258,7 @@
         }
         
         function exportToCSV() {
-            fetch('/api/stats')
+            fetch(buildUrl('/api/stats'))
                 .then(r => r.json())
                 .then(data => {
                     const csv = 'Company,Reviews,Average Rating\n' + 
@@ -2225,7 +2275,7 @@
         
         async function loadCompaniesForTrends() {
             try {
-                const response = await fetch('/api/companies-list');
+                const response = await fetch(buildUrl('/api/companies-list'));
                 const data = await response.json();
                 
                 const select = document.getElementById('trendCompany');
@@ -2258,7 +2308,7 @@
             if (!company) return;
             
             try {
-                const response = await fetch(`/api/quarterly-trends?company=${encodeURIComponent(company)}&dimension=${encodeURIComponent(rating)}`);
+                const response = await fetch(buildUrl('/api/quarterly-trends', {company: company, dimension: rating}));
                 if (!response.ok) {
                     document.getElementById('trendsMessage').textContent = 'Trends data not available';
                     document.getElementById('trendsChartContainer').style.display = 'none';
@@ -2294,7 +2344,7 @@
                 let compDataMap = {};
                 
                 if (comparator && comparator !== '-- None --') {
-                    const compResponse = await fetch(`/api/quarterly-trends?company=${encodeURIComponent(comparator)}&dimension=${encodeURIComponent(rating)}`);
+                    const compResponse = await fetch(buildUrl('/api/quarterly-trends', {company: comparator, dimension: rating}));
                     if (compResponse.ok) {
                         const compData = await compResponse.json();
                         compData.main_trends.forEach(t => {
@@ -2424,8 +2474,8 @@
             
             try {
                 const [corrResponse, rankResponse] = await Promise.all([
-                    fetch('/api/performance-correlation'),
-                    fetch('/api/performance-rankings')
+                    fetch(buildUrl('/api/performance-correlation')),
+                    fetch(buildUrl('/api/performance-rankings'))
                 ]);
                 
                 const corrData = await corrResponse.json();
@@ -2578,7 +2628,7 @@
             document.getElementById('culturePerfContent').style.display = 'none';
             
             try {
-                const response = await fetch('/api/culture-performance-scatter');
+                const response = await fetch(buildUrl('/api/culture-performance-scatter'));
                 const data = await response.json();
                 
                 if (!data.success) {
@@ -2738,7 +2788,7 @@
             if (analysisCompaniesLoaded) return;
             
             try {
-                const response = await fetch('/api/companies-list');
+                const response = await fetch(buildUrl('/api/companies-list'));
                 const data = await response.json();
                 
                 if (data.success && data.companies) {
@@ -2773,8 +2823,8 @@
             
             try {
                 const [analysisResponse, trendResponse, scoreTrendResponse] = await Promise.all([
-                    fetch('/api/company-analysis/' + encodeURIComponent(companyName)),
-                    fetch('/api/company-culture-trend/' + encodeURIComponent(companyName)),
+                    fetch(buildUrl('/api/company-analysis/' + encodeURIComponent(companyName))),
+                    fetch(buildUrl('/api/company-culture-trend/' + encodeURIComponent(companyName))),
                     fetch('/api/company-culture-score-trend/' + encodeURIComponent(companyName))
                 ]);
                 
@@ -3506,6 +3556,7 @@
                 });
         }
         
+        loadSectors();
         loadData();
         loadCompaniesForTrends();
         setInterval(loadData, 60000);
