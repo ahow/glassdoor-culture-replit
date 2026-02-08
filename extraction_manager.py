@@ -356,32 +356,62 @@ class ExtractionManager:
 
         issuer_lower = issuer_name.lower().strip()
         ticker_lower = (ticker or '').lower().strip()
+        filler = {'inc', 'inc.', 'corp', 'corp.', 'corporation', 'company', 'the', 'co', 'co.',
+                  'ltd', 'ltd.', 'plc', 'group', 'holdings', 'holding', 'sa', 'se', 'ag', 'nv',
+                  'limited', '&', 'of', 'de', 'and', 'n.v.', 'n.v', 'ab', 'as', 'a/s', 'asa',
+                  'oyj', 'tbk', 'pt', 'bhd', 'berhad', 'pjsc', 'sjsc', 'jsc', 'public',
+                  'anonim', 'sirketi', 'ortakligi', 'turk', 'bank', 'financial', 'services',
+                  'insurance', 'international', 'global', 'management', 'investment', 'investments',
+                  'capital', 'asset', 'fund', 'trust', 'advisors', 'partners', 'bancorp',
+                  'national', 'first', 'new', 'american', 'india', 'china'}
+
+        def clean_words(text):
+            return set(text.replace(',', '').replace('.', '').replace('-', ' ').lower().split())
+
+        def meaningful_words(words):
+            return words - filler
+
+        issuer_words = clean_words(issuer_lower)
+        meaningful_issuer = meaningful_words(issuer_words)
 
         for r in search_results:
             name = (r.get('name') or '').lower().strip()
             if name == issuer_lower:
                 return r, 'exact'
 
+        best_match = None
+        best_overlap = 0
         for r in search_results:
             name = (r.get('name') or '').lower().strip()
-            issuer_words = set(issuer_lower.replace(',', '').replace('.', '').split())
-            name_words = set(name.replace(',', '').replace('.', '').split())
-            common = issuer_words & name_words
-            filler = {'inc', 'inc.', 'corp', 'corp.', 'corporation', 'company', 'the', 'co', 'co.', 'ltd', 'ltd.', 'plc', 'group', 'holdings', 'sa', 'se', 'ag', 'nv', 'limited', '&'}
-            meaningful_issuer = issuer_words - filler
-            meaningful_common = common - filler
-            if meaningful_issuer and meaningful_common and len(meaningful_common) >= len(meaningful_issuer) * 0.6:
-                return r, 'high'
+            name_words = clean_words(name)
+            meaningful_name = meaningful_words(name_words)
+            common = meaningful_issuer & meaningful_name
 
-        if ticker_lower and len(ticker_lower) >= 2:
+            if not meaningful_issuer or not meaningful_name:
+                continue
+
+            overlap_ratio = len(common) / max(len(meaningful_issuer), 1)
+            reverse_ratio = len(common) / max(len(meaningful_name), 1)
+            combined = min(overlap_ratio, reverse_ratio)
+
+            if combined > best_overlap:
+                best_overlap = combined
+                best_match = r
+
+        if best_match and best_overlap >= 0.5:
+            return best_match, 'high'
+
+        if ticker_lower and len(ticker_lower) >= 3:
             for r in search_results:
                 name = (r.get('name') or '').lower()
-                if ticker_lower in name:
+                name_words_set = clean_words(name)
+                if ticker_lower in name_words_set:
                     return r, 'medium'
 
-        if search_results:
-            return search_results[0], 'low'
+        if best_match and best_overlap >= 0.3:
+            return best_match, 'low'
 
+        logger.info(f"Rejecting all {len(search_results)} search results for '{issuer_name}' - no sufficient match (best overlap: {best_overlap:.2f})")
         return None, 'none'
 
     def _update_queue_status(self, queue_id, status, **kwargs):
@@ -486,6 +516,13 @@ class ExtractionManager:
             logger.warning(f"No Glassdoor match for {issuer_name}")
             self._update_queue_status(q_id, 'no_match',
                                       error_message='No matching company found on Glassdoor')
+            return
+
+        if confidence == 'low':
+            glassdoor_candidate = match.get('name', '?')
+            logger.warning(f"Low confidence match for {issuer_name} -> {glassdoor_candidate} — skipping to avoid wrong company")
+            self._update_queue_status(q_id, 'no_match',
+                                      error_message=f'Low confidence match rejected: {glassdoor_candidate}')
             return
 
         glassdoor_name = match.get('name', issuer_name)
