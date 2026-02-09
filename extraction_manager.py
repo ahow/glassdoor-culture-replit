@@ -374,6 +374,15 @@ class ExtractionManager:
         if isin_name and isin_name.lower().strip() != company_name.lower().strip():
             search_names.append(isin_name)
 
+        legal_suffixes = {'inc', 'inc.', 'corp', 'corp.', 'corporation', 'company', 'co', 'co.',
+                          'ltd', 'ltd.', 'plc', 'group', 'holdings', 'holding', 'sa', 'se', 'ag', 'nv',
+                          'limited', 'n.v.', 'n.v', 'ab', 'as', 'a/s', 'asa', 'oyj', 'tbk', 'pt',
+                          'bhd', 'berhad', 'pjsc', 'sjsc', 'jsc', 'public', 'anonim', 'sirketi',
+                          'ortakligi', 'the', '&', 'of', 'de', 'and'}
+        cleaned = ' '.join(w for w in company_name.split() if w.lower().strip('.') not in legal_suffixes and w.lower() not in legal_suffixes)
+        if cleaned and cleaned.lower() != company_name.lower() and len(cleaned) >= 3:
+            search_names.append(cleaned)
+
         all_results = []
         seen_ids = set()
 
@@ -562,6 +571,33 @@ class ExtractionManager:
     def _process_company(self, q_id, issuer_name, ticker, isin, country,
                          sector, industry, sub_industry):
         logger.info(f"Processing: {issuer_name} ({ticker}, ISIN: {isin})")
+
+        try:
+            conn = get_db_connection()
+            cur = conn.cursor()
+            cur.execute("SELECT company_name, COUNT(*) FROM reviews GROUP BY company_name")
+            existing_companies = {row[0].lower(): (row[0], row[1]) for row in cur.fetchall()}
+            cur.close()
+            conn.close()
+        except Exception:
+            existing_companies = {}
+
+        issuer_words = set(issuer_name.lower().replace(',', '').replace('.', '').split())
+        for comp_lower, (comp_name, rev_count) in existing_companies.items():
+            comp_words = set(comp_lower.replace(',', '').replace('.', '').split())
+            common = issuer_words & comp_words
+            filler_only = {'inc', 'corp', 'corporation', 'company', 'the', 'ltd', 'plc', 'group',
+                           'holdings', 'holding', 'sa', 'se', 'ag', 'nv', 'limited', '&', 'of', 'and'}
+            meaningful_common = common - filler_only
+            if meaningful_common and len(meaningful_common) >= min(len(issuer_words - filler_only), len(comp_words - filler_only)):
+                logger.info(f"Skipping {issuer_name} - already has {rev_count} reviews as '{comp_name}'")
+                self._update_queue_status(q_id, 'completed',
+                                          glassdoor_name=comp_name,
+                                          reviews_extracted=rev_count,
+                                          match_confidence='existing',
+                                          completed_at=datetime.now())
+                return
+
         self._update_queue_status(q_id, 'searching', started_at=datetime.now())
 
         search_results, isin_name = self._search_glassdoor(issuer_name, ticker, isin=isin)
