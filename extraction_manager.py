@@ -16,6 +16,7 @@ import psycopg2
 from psycopg2.extras import Json
 from datetime import datetime
 from extraction_openweb import OpenWebNinjaExtractor, get_db_connection, get_db_url
+from culture_scoring import score_review_with_dictionary
 
 logging.basicConfig(
     level=logging.INFO,
@@ -667,11 +668,95 @@ class ExtractionManager:
                 completed_at=datetime.now()
             )
             logger.info(f"Completed {issuer_name}: {reviews_saved} reviews extracted")
+
+            try:
+                extractor.save_company_metadata()
+                logger.info(f"Saved company metadata for {glassdoor_name}")
+            except Exception as e:
+                logger.error(f"Error saving company metadata for {glassdoor_name}: {e}")
+
+            self._score_company_reviews(glassdoor_name)
         else:
             self._update_queue_status(q_id, 'failed',
                                       error_message='Extraction failed - see extraction_failures table',
                                       reviews_extracted=extractor.new_reviews_saved)
             logger.error(f"Failed extraction for {issuer_name}")
+
+    def _score_company_reviews(self, company_name):
+        """Score all unscored reviews for a company using culture dictionary."""
+        try:
+            conn = get_db_connection()
+            if not conn:
+                logger.error(f"No DB connection for scoring {company_name}")
+                return
+            cur = conn.cursor()
+
+            cur.execute("""
+                SELECT r.id, r.summary, r.pros, r.cons
+                FROM reviews r
+                LEFT JOIN review_culture_scores rcs ON r.id = rcs.review_id
+                WHERE r.company_name = %s AND rcs.review_id IS NULL
+            """, (company_name,))
+            unscored = cur.fetchall()
+
+            if not unscored:
+                logger.info(f"No unscored reviews for {company_name}")
+                cur.close()
+                conn.close()
+                return
+
+            logger.info(f"Scoring {len(unscored)} reviews for {company_name}")
+            scored = 0
+            for review_id, summary, pros, cons in unscored:
+                review_text = f"{summary or ''} {pros or ''} {cons or ''}"
+                if not review_text.strip():
+                    continue
+                scores = score_review_with_dictionary(review_text)
+                if not scores:
+                    continue
+                try:
+                    cur.execute("""
+                        INSERT INTO review_culture_scores
+                        (review_id, company_name,
+                         process_results_score, job_employee_score, professional_parochial_score,
+                         open_closed_score, tight_loose_score, pragmatic_normative_score,
+                         agility_score, collaboration_score, customer_orientation_score,
+                         diversity_score, execution_score, innovation_score, integrity_score,
+                         performance_score, respect_score, scoring_method, confidence_level)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        ON CONFLICT (review_id) DO NOTHING
+                    """, (
+                        review_id, company_name,
+                        scores['hofstede']['process_results']['score'],
+                        scores['hofstede']['job_employee']['score'],
+                        scores['hofstede']['professional_parochial']['score'],
+                        scores['hofstede']['open_closed']['score'],
+                        scores['hofstede']['tight_loose']['score'],
+                        scores['hofstede']['pragmatic_normative']['score'],
+                        scores['mit_big_9']['agility']['score'],
+                        scores['mit_big_9']['collaboration']['score'],
+                        scores['mit_big_9']['customer_orientation']['score'],
+                        scores['mit_big_9']['diversity']['score'],
+                        scores['mit_big_9']['execution']['score'],
+                        scores['mit_big_9']['innovation']['score'],
+                        scores['mit_big_9']['integrity']['score'],
+                        scores['mit_big_9']['performance']['score'],
+                        scores['mit_big_9']['respect']['score'],
+                        scores['scoring_method'],
+                        'medium'
+                    ))
+                    scored += 1
+                    if scored % 500 == 0:
+                        conn.commit()
+                except Exception as e:
+                    logger.warning(f"Error scoring review {review_id}: {e}")
+
+            conn.commit()
+            logger.info(f"Scored {scored}/{len(unscored)} reviews for {company_name}")
+            cur.close()
+            conn.close()
+        except Exception as e:
+            logger.error(f"Error in _score_company_reviews for {company_name}: {e}")
 
     def retry_company(self, queue_id):
         try:
