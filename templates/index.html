@@ -3531,6 +3531,7 @@
                     let html = '<div style="overflow-x: auto;"><table style="width: 100%; border-collapse: collapse; font-size: 0.875rem;">';
                     html += '<thead><tr style="border-bottom: 2px solid #e2e8f0; text-align: left;">';
                     html += '<th style="padding: 0.75rem; color: #64748b; font-weight: 600;">Company</th>';
+                    html += '<th style="padding: 0.75rem; color: #64748b; font-weight: 600;">Glassdoor ID</th>';
                     html += '<th style="padding: 0.75rem; color: #64748b; font-weight: 600;">Rating</th>';
                     html += '<th style="padding: 0.75rem; color: #64748b; font-weight: 600;">Reviews in DB</th>';
                     html += '<th style="padding: 0.75rem; color: #64748b; font-weight: 600;">Sector</th>';
@@ -3541,6 +3542,7 @@
                         const encodedName = encodeURIComponent(c.company_name);
                         html += '<tr style="border-bottom: 1px solid #f1f5f9;">';
                         html += '<td style="padding: 0.75rem; font-weight: 500; color: #1e293b;">' + c.company_name + '</td>';
+                        html += '<td style="padding: 0.75rem; color: #475569;">' + (c.company_id || '-') + '</td>';
                         html += '<td style="padding: 0.75rem; color: #475569;">' + (c.overall_rating ? parseFloat(c.overall_rating).toFixed(1) : '-') + '</td>';
                         html += '<td style="padding: 0.75rem; color: #475569;">' + (c.reviews_in_db || 0).toLocaleString() + '</td>';
                         html += '<td style="padding: 0.75rem; color: #475569;">' + (c.gics_sector || '-') + '</td>';
