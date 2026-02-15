@@ -43,7 +43,7 @@ SECTOR_ORDER = [
 ]
 
 
-def init_extraction_control():
+def init_extraction_control(is_worker=False):
     try:
         conn = get_db_connection()
         if not conn:
@@ -67,12 +67,14 @@ def init_extraction_control():
         reset_extracting = cur.rowcount
         if reset_extracting > 0:
             logger.info(f"Startup cleanup: reset {reset_extracting} stuck 'extracting' entries to pending")
-        
-        cur.execute("SELECT command FROM extraction_control WHERE id = 1")
-        ctrl_row = cur.fetchone()
-        if ctrl_row and ctrl_row[0] in ('running', 'paused'):
-            cur.execute("UPDATE extraction_control SET command = 'idle', current_company = NULL, current_sector = NULL WHERE id = 1")
-            logger.info(f"Startup cleanup: reset stale '{ctrl_row[0]}' command to idle (thread lost on restart)")
+
+        use_worker = os.environ.get('USE_WORKER', '').lower() in ('true', '1', 'yes')
+        if not is_worker and not use_worker:
+            cur.execute("SELECT command FROM extraction_control WHERE id = 1")
+            ctrl_row = cur.fetchone()
+            if ctrl_row and ctrl_row[0] in ('running', 'paused'):
+                cur.execute("UPDATE extraction_control SET command = 'idle', current_company = NULL, current_sector = NULL WHERE id = 1")
+                logger.info(f"Startup cleanup: reset stale '{ctrl_row[0]}' command to idle (thread lost on restart)")
         conn.commit()
 
         cur.close()
@@ -255,8 +257,23 @@ class ExtractionManager:
             logger.error(f"Error getting sector companies: {e}")
             return []
 
+    def _use_worker_dyno(self):
+        return os.environ.get('USE_WORKER', '').lower() in ('true', '1', 'yes')
+
     def start(self, start_sector=None):
         db_cmd = _get_db_command()
+
+        if self._use_worker_dyno():
+            if db_cmd == 'paused':
+                _set_db_command('running')
+                logger.info("Extraction resumed via DB command (worker dyno will pick up)")
+                return {'status': 'resumed'}
+            if db_cmd == 'running':
+                return {'status': 'already_running'}
+            _set_db_command('running', current_sector=start_sector)
+            logger.info(f"Extraction command set to running (worker dyno will execute, sector: {start_sector or 'all'})")
+            return {'status': 'started'}
+
         if db_cmd == 'paused':
             thread_alive = self._thread is not None and self._thread.is_alive()
             if thread_alive:
