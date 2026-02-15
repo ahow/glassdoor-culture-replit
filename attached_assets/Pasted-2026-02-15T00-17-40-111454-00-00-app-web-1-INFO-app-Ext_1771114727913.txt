@@ -1,0 +1,19 @@
+2026-02-15T00:17:40.111454+00:00 app[web.1]: INFO:app:Extraction queue already has 2442 companies
+2026-02-15T00:17:40.158465+00:00 app[web.1]: INFO:fmp_performance:FMP tables initialized
+2026-02-15T00:18:00.787236+00:00 app[api]: Scaled to web@1:Eco worker@1:Eco by user andywhowardw@gmail.com
+2026-02-15T00:18:06.080574+00:00 heroku[worker.1]: Starting process with command `python extraction_worker_process.py`
+2026-02-15T00:18:06.642598+00:00 heroku[worker.1]: State changed from starting to up
+2026-02-15T00:18:06.804167+00:00 app[worker.1]: 2026-02-15 00:18:06,804 - extraction_worker - INFO - ============================================================
+2026-02-15T00:18:06.804201+00:00 app[worker.1]: 2026-02-15 00:18:06,804 - extraction_worker - INFO - Extraction Worker Process started
+2026-02-15T00:18:06.804202+00:00 app[worker.1]: 2026-02-15 00:18:06,804 - extraction_worker - INFO - ============================================================
+2026-02-15T00:18:06.904625+00:00 app[worker.1]: 2026-02-15 00:18:06,904 - extraction_worker - INFO - Auto-resume delay: 30s, Poll interval: 10s
+2026-02-15T00:18:06.904656+00:00 app[worker.1]: 2026-02-15 00:18:06,904 - extraction_worker - INFO - Waiting 30s before auto-resume check...
+2026-02-15T00:18:22.155938+00:00 app[api]: Log session created by user andywhowardw@gmail.com
+2026-02-15T00:18:24.507069+00:00 app[web.1]: INFO:app:Unmatched companies (no sector assigned): ['BNY Investments']
+2026-02-15T00:18:24.507090+00:00 app[web.1]: INFO:app:Company-sector map built: 113/114 companies matched
+2026-02-15T00:18:26.766133+00:00 heroku[router]: at=info method=GET path="/api/stats" host=glassdoor-culture-replit-4e40ef269b11.herokuapp.com request_id=472e9ad2-b3e1-4e06-1862-063680339051 fwd="77.98.249.91" dyno=web.1 connect=0ms service=2458ms status=200 bytes=32211 protocol=http1.1 tls=true tls_version=unknown
+2026-02-15T00:18:26.766140+00:00 app[web.1]: 10.1.16.89 - - [15/Feb/2026:00:18:26 +0000] "GET /api/stats HTTP/1.1" 200 32211 "https://glassdoor-culture-replit-4e40ef269b11.herokuapp.com/" "Mozilla/5.0 (X11; CrOS x86_64 14541.0.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36"
+2026-02-15T00:18:27.025863+00:00 heroku[router]: at=info method=GET path="/api/companies-list" host=glassdoor-culture-replit-4e40ef269b11.herokuapp.com request_id=75fc666f-e2de-9486-bc16-dccb4f8bbd4c fwd="77.98.249.91" dyno=web.1 connect=0ms service=56ms status=200 bytes=1894 protocol=http1.1 tls=true tls_version=unknown
+2026-02-15T00:18:27.123989+00:00 heroku[router]: at=info method=GET path="/api/companies-list" host=glassdoor-culture-replit-4e40ef269b11.herokuapp.com request_id=6992c65b-d04d-51a5-4807-79d401b75e4d fwd="77.98.249.91" dyno=web.1 connect=0ms service=48ms status=200 bytes=1894 protocol=http1.1 tls=true tls_version=unknown
+2026-02-15T00:18:27.026008+00:00 app[web.1]: 10.1.16.89 - - [15/Feb/2026:00:18:27 +0000] "GET /api/companies-list HTTP/1.1" 200 1894 "https://glassdoor-culture-replit-4e40ef269b11.herokuapp.com/" "Mozilla/5.0 (X11; CrOS x86_64 14541.0.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36"
+2026-02-15T00:18:27.123834+00:00 app[web.1]: 10.1.16.89 - - [15/Feb/2026:00:18:27 +0000] "GET /api/companies-list HTTP/1.1" 200 1894 "https://glassdoor-culture-replit-4e40ef269b11.herokuapp.com/" "Mozilla/5.0 (X11; CrOS x86_64 14541.0.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36"
