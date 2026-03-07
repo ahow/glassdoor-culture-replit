@@ -333,7 +333,8 @@ def get_mit_max_values():
         return {dim: 1 for dim in MIT_DIMENSIONS}
 
 def get_company_metrics(company_name):
-    """Get aggregated metrics for a company from the database"""
+    """Get aggregated metrics for a company from the database.
+    Uses SQL aggregation instead of loading all reviews into memory."""
     try:
         conn = get_db_connection()
         if not conn:
@@ -341,52 +342,55 @@ def get_company_metrics(company_name):
         
         cursor = conn.cursor(cursor_factory=RealDictCursor)
         
-        # Get all reviews for this company
         cursor.execute("""
-            SELECT * FROM reviews 
+            SELECT 
+                COUNT(*) as review_count,
+                AVG(rating) as avg_rating,
+                AVG(work_life_balance_rating) as avg_wlb,
+                AVG(culture_and_values_rating) as avg_culture,
+                AVG(career_opportunities_rating) as avg_career,
+                AVG(compensation_and_benefits_rating) as avg_comp,
+                AVG(senior_management_rating) as avg_mgmt
+            FROM reviews
             WHERE company_name = %s
-            ORDER BY review_datetime DESC
         """, (company_name,))
         
-        reviews = cursor.fetchall()
-        review_count = len(reviews)
+        rating_result = cursor.fetchone()
+        review_count = rating_result['review_count'] if rating_result else 0
         
         if review_count == 0:
             cursor.close()
             conn.close()
             return None
         
-        # Extract and aggregate ratings
-        ratings = [r['rating'] for r in reviews if r['rating']]
-        wlb_ratings = [r['work_life_balance_rating'] for r in reviews if r['work_life_balance_rating']]
-        culture_ratings = [r['culture_and_values_rating'] for r in reviews if r['culture_and_values_rating']]
-        career_ratings = [r['career_opportunities_rating'] for r in reviews if r['career_opportunities_rating']]
-        comp_ratings = [r['compensation_and_benefits_rating'] for r in reviews if r['compensation_and_benefits_rating']]
-        mgmt_ratings = [r['senior_management_rating'] for r in reviews if r['senior_management_rating']]
+        recommend_pct = 0
+        ceo_avg = 0
+        try:
+            cursor.execute("""
+                SELECT 
+                    AVG(CASE 
+                        WHEN review_data->>'recommend_to_friend_rating' IS NOT NULL 
+                             AND review_data->>'recommend_to_friend_rating' ~ '^[0-9.]+$'
+                             AND (review_data->>'recommend_to_friend_rating')::float >= 4 
+                        THEN 1.0 ELSE 0.0 END) * 100 as recommend_pct,
+                    AVG(CASE 
+                        WHEN review_data->>'ceo_rating' IS NOT NULL 
+                             AND review_data->>'ceo_rating' ~ '^[0-9.]+$'
+                        THEN (review_data->>'ceo_rating')::float 
+                        ELSE NULL END) as ceo_avg
+                FROM reviews
+                WHERE company_name = %s 
+                  AND review_data IS NOT NULL
+                  AND jsonb_typeof(review_data) = 'object'
+            """, (company_name,))
+            rec_result = cursor.fetchone()
+            if rec_result:
+                recommend_pct = round(float(rec_result['recommend_pct']), 1) if rec_result['recommend_pct'] else 0
+                ceo_avg = round(float(rec_result['ceo_avg']), 2) if rec_result['ceo_avg'] else 0
+        except Exception as e:
+            logger.warning(f"Error computing recommend/ceo for {company_name}: {e}")
+            conn.rollback()
         
-        # Parse recommend and CEO ratings from review_data JSON
-        recommend_ratings = []
-        ceo_ratings = []
-        
-        for review in reviews:
-            if review['review_data']:
-                try:
-                    data = review['review_data'] if isinstance(review['review_data'], dict) else json.loads(review['review_data'])
-                    if data.get('recommend_to_friend_rating'):
-                        try:
-                            recommend_ratings.append(float(data['recommend_to_friend_rating']))
-                        except (ValueError, TypeError):
-                            pass
-                    if data.get('ceo_rating'):
-                        try:
-                            ceo_ratings.append(float(data['ceo_rating']))
-                        except (ValueError, TypeError):
-                            pass
-                except:
-                    pass
-        
-        # Use pre-calculated culture scores from review_culture_scores table
-        # This is much faster than scoring each review fresh
         cursor.execute("""
             SELECT 
                 COUNT(*) as score_count,
@@ -427,7 +431,6 @@ def get_company_metrics(company_name):
         culture_result = cursor.fetchone()
         scored_review_count = culture_result['score_count'] if culture_result else 0
         
-        # Map database columns to dimension names
         hofstede_dim_map = {
             'process_results': 'process_results',
             'job_employee': 'job_employee', 
@@ -449,7 +452,6 @@ def get_company_metrics(company_name):
             'respect': 'respect'
         }
         
-        # Build Hofstede metrics from pre-calculated aggregates
         hofstede_avg = {}
         if culture_result and scored_review_count > 0:
             for db_col, dim in hofstede_dim_map.items():
@@ -468,17 +470,14 @@ def get_company_metrics(company_name):
             for dim in HOFSTEDE_DIMENSIONS:
                 hofstede_avg[dim] = {'value': 0, 'confidence': 0, 'confidence_level': 'Low', 'total_evidence': 0}
         
-        # Build MIT metrics from pre-calculated aggregates
-        # Store raw values - rescaling to 0-10 scale is done in the API response
         mit_avg = {}
         if culture_result and scored_review_count > 0:
             for db_col, dim in mit_dim_map.items():
                 value = culture_result.get(db_col)
                 count = culture_result.get(f'{db_col}_count', 0)
                 if value is not None and count > 0:
-                    # Store raw value - rescaling happens in API response
                     mit_avg[dim] = {
-                        'value': round(float(value), 4),  # Raw value
+                        'value': round(float(value), 4),
                         'confidence': 0,
                         'confidence_level': 'High' if count >= MIN_REVIEWS_FOR_HIGH_CONFIDENCE else 'Medium' if count >= MIN_REVIEWS_FOR_MEDIUM_CONFIDENCE else 'Low',
                         'total_evidence': count
@@ -492,25 +491,21 @@ def get_company_metrics(company_name):
         metrics = {
             'company_name': company_name,
             'total_reviews': review_count,
-            'overall_rating': round(mean(ratings), 2) if ratings else 0,
-            'culture_values': round(mean(culture_ratings), 2) if culture_ratings else 0,
-            'work_life_balance': round(mean(wlb_ratings), 2) if wlb_ratings else 0,
-            'career_opportunities': round(mean(career_ratings), 2) if career_ratings else 0,
-            'compensation_benefits': round(mean(comp_ratings), 2) if comp_ratings else 0,
-            'senior_management': round(mean(mgmt_ratings), 2) if mgmt_ratings else 0,
-            'recommend_percentage': round((sum(1 for r in recommend_ratings if r and r >= 4) / len(recommend_ratings) * 100), 1) if recommend_ratings else 0,
-            'ceo_approval': round(mean(ceo_ratings), 2) if ceo_ratings else 0,
+            'overall_rating': round(float(rating_result['avg_rating']), 2) if rating_result['avg_rating'] else 0,
+            'culture_values': round(float(rating_result['avg_culture']), 2) if rating_result['avg_culture'] else 0,
+            'work_life_balance': round(float(rating_result['avg_wlb']), 2) if rating_result['avg_wlb'] else 0,
+            'career_opportunities': round(float(rating_result['avg_career']), 2) if rating_result['avg_career'] else 0,
+            'compensation_benefits': round(float(rating_result['avg_comp']), 2) if rating_result['avg_comp'] else 0,
+            'senior_management': round(float(rating_result['avg_mgmt']), 2) if rating_result['avg_mgmt'] else 0,
+            'recommend_percentage': recommend_pct,
+            'ceo_approval': ceo_avg,
             'hofstede': hofstede_avg,
             'mit_big_9': mit_avg
         }
         
-        # Calculate relative confidence scores based on evidence
         metrics = calculate_relative_confidence(metrics)
         
-        # Debug logging
-        logger.info(f"Metrics for {company_name} after confidence calc:")
-        logger.info(f"  Hofstede sample: {list(metrics['hofstede'].items())[0] if metrics['hofstede'] else 'empty'}")
-        logger.info(f"  MIT sample: {list(metrics['mit_big_9'].items())[0] if metrics['mit_big_9'] else 'empty'}")
+        logger.info(f"Metrics for {company_name}: {review_count} reviews (SQL aggregated)")
         
         cursor.close()
         conn.close()
@@ -747,6 +742,42 @@ def index():
     return render_template('index.html')
 
 
+@app.route('/api/warm-cache', methods=['POST'])
+def warm_cache():
+    """Warm the metrics cache for uncached companies (batch of 20 at a time)"""
+    try:
+        company_names = get_companies_for_sector(None)
+        
+        conn = get_db_connection()
+        if not conn:
+            return jsonify({'success': False, 'error': 'Database connection failed'}), 500
+        cursor = conn.cursor()
+        cursor.execute("SELECT company_name FROM company_metrics_cache")
+        cached = set(row[0] for row in cursor.fetchall())
+        cursor.close()
+        conn.close()
+        
+        uncached = [c for c in company_names if c not in cached]
+        batch_size = 20
+        warmed = 0
+        for company_name in uncached[:batch_size]:
+            metrics = get_company_metrics(company_name)
+            if metrics:
+                cache_metrics(company_name, metrics)
+                warmed += 1
+        
+        return jsonify({
+            'success': True,
+            'warmed': warmed,
+            'remaining': max(0, len(uncached) - batch_size),
+            'total_cached': len(cached) + warmed,
+            'total_companies': len(company_names)
+        })
+    except Exception as e:
+        logger.error(f"Error warming cache: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 @app.route('/api/sectors', methods=['GET'])
 def get_sectors():
     """Get list of GICS sectors available in the data"""
@@ -769,58 +800,68 @@ def get_stats():
         
         cursor = conn.cursor(cursor_factory=RealDictCursor)
         
-        if sector:
-            company_names_for_sector = get_companies_for_sector(sector)
-            if company_names_for_sector:
-                placeholders = ','.join(['%s'] * len(company_names_for_sector))
-                cursor.execute(f"""
-                    SELECT 
-                        COUNT(DISTINCT r.company_name) as total_companies,
-                        COUNT(*) as total_reviews,
-                        AVG(r.rating) as average_rating
-                    FROM reviews r
-                    WHERE r.company_name IN ({placeholders})
-                """, company_names_for_sector)
-            else:
-                cursor.execute("SELECT 0 as total_companies, 0 as total_reviews, NULL as average_rating")
-        else:
-            cursor.execute("""
+        company_names = get_companies_for_sector(sector)
+        
+        if company_names:
+            placeholders = ','.join(['%s'] * len(company_names))
+            cursor.execute(f"""
                 SELECT 
                     COUNT(DISTINCT company_name) as total_companies,
                     COUNT(*) as total_reviews,
                     AVG(rating) as average_rating
                 FROM reviews
-            """)
+                WHERE company_name IN ({placeholders})
+            """, company_names)
+        else:
+            cursor.execute("SELECT 0 as total_companies, 0 as total_reviews, NULL as average_rating")
         
         stats = cursor.fetchone()
+        
+        cached_metrics_map = {}
+        if company_names:
+            placeholders = ','.join(['%s'] * len(company_names))
+            cursor.execute(f"""
+                SELECT company_name, metrics_json FROM company_metrics_cache
+                WHERE company_name IN ({placeholders})
+            """, company_names)
+            for row in cursor.fetchall():
+                m = row['metrics_json'] if isinstance(row['metrics_json'], dict) else json.loads(row['metrics_json'])
+                cached_metrics_map[row['company_name']] = m
+        
         cursor.close()
         conn.close()
         
-        company_names = get_companies_for_sector(sector)
-        
         companies = []
+        uncached_count = 0
         for company_name in company_names:
-            metrics = get_cached_metrics(company_name)
+            metrics = cached_metrics_map.get(company_name)
             if not metrics:
-                metrics = get_company_metrics(company_name)
-                if metrics:
-                    cache_metrics(company_name, metrics)
+                uncached_count += 1
+                if uncached_count <= 50:
+                    metrics = get_company_metrics(company_name)
+                    if metrics:
+                        cache_metrics(company_name, metrics)
+                else:
+                    continue
             
             if metrics:
                 companies.append({
                     'id': company_name.lower().replace(' ', ''),
                     'name': company_name,
-                    'total_reviews': metrics['total_reviews'],
-                    'overall_rating': metrics['overall_rating'],
-                    'culture_values': metrics['culture_values'],
-                    'work_life_balance': metrics['work_life_balance'],
-                    'career_opportunities': metrics['career_opportunities'],
-                    'compensation_benefits': metrics['compensation_benefits'],
-                    'senior_management': metrics['senior_management'],
-                    'recommend_percentage': metrics['recommend_percentage'],
-                    'ceo_approval': metrics['ceo_approval'],
+                    'total_reviews': metrics.get('total_reviews', 0),
+                    'overall_rating': metrics.get('overall_rating', 0),
+                    'culture_values': metrics.get('culture_values', 0),
+                    'work_life_balance': metrics.get('work_life_balance', 0),
+                    'career_opportunities': metrics.get('career_opportunities', 0),
+                    'compensation_benefits': metrics.get('compensation_benefits', 0),
+                    'senior_management': metrics.get('senior_management', 0),
+                    'recommend_percentage': metrics.get('recommend_percentage', 0),
+                    'ceo_approval': metrics.get('ceo_approval', 0),
                     'industry': get_company_sector(company_name) or ''
                 })
+        
+        if uncached_count > 50:
+            logger.warning(f"Stats: {uncached_count} uncached companies, loaded first 50. Use /api/warm-cache to populate rest.")
         
         return jsonify({
             'success': True,
@@ -843,13 +884,39 @@ def get_companies():
         sector = request.args.get('sector')
         company_names = get_companies_for_sector(sector)
         
+        cached_metrics_map = {}
+        conn = get_db_connection()
+        if conn and company_names:
+            try:
+                cursor = conn.cursor(cursor_factory=RealDictCursor)
+                placeholders = ','.join(['%s'] * len(company_names))
+                cursor.execute(f"""
+                    SELECT company_name, metrics_json FROM company_metrics_cache
+                    WHERE company_name IN ({placeholders})
+                """, company_names)
+                for row in cursor.fetchall():
+                    m = row['metrics_json'] if isinstance(row['metrics_json'], dict) else json.loads(row['metrics_json'])
+                    cached_metrics_map[row['company_name']] = m
+                cursor.close()
+                conn.close()
+            except Exception:
+                try:
+                    conn.close()
+                except:
+                    pass
+        
         companies = []
+        uncached_count = 0
         for company_name in company_names:
-            metrics = get_cached_metrics(company_name)
+            metrics = cached_metrics_map.get(company_name)
             if not metrics:
-                metrics = get_company_metrics(company_name)
-                if metrics:
-                    cache_metrics(company_name, metrics)
+                uncached_count += 1
+                if uncached_count <= 50:
+                    metrics = get_company_metrics(company_name)
+                    if metrics:
+                        cache_metrics(company_name, metrics)
+                else:
+                    continue
             
             if metrics:
                 companies.append({
@@ -952,18 +1019,41 @@ def get_industry_average():
         sector = request.args.get('sector')
         company_names = get_companies_for_sector(sector)
         
+        cached_metrics_map = {}
+        conn = get_db_connection()
+        if conn and company_names:
+            try:
+                cursor = conn.cursor(cursor_factory=RealDictCursor)
+                placeholders = ','.join(['%s'] * len(company_names))
+                cursor.execute(f"""
+                    SELECT company_name, metrics_json FROM company_metrics_cache
+                    WHERE company_name IN ({placeholders})
+                """, company_names)
+                for row in cursor.fetchall():
+                    m = row['metrics_json'] if isinstance(row['metrics_json'], dict) else json.loads(row['metrics_json'])
+                    cached_metrics_map[row['company_name']] = m
+                cursor.close()
+                conn.close()
+            except Exception:
+                try:
+                    conn.close()
+                except:
+                    pass
+        
         hofstede_avg = {dim: [] for dim in HOFSTEDE_DIMENSIONS}
         mit_avg = {dim: [] for dim in MIT_DIMENSIONS}
         total_reviews = 0
+        all_company_metrics = []
         
         for company_name in company_names:
-            metrics = get_cached_metrics(company_name)
+            metrics = cached_metrics_map.get(company_name)
             if not metrics:
                 metrics = get_company_metrics(company_name)
                 if metrics:
                     cache_metrics(company_name, metrics)
             
             if metrics:
+                all_company_metrics.append(metrics)
                 total_reviews += metrics.get('total_reviews', 0)
                 for dim in HOFSTEDE_DIMENSIONS:
                     val = metrics.get('hofstede', {}).get(dim, {}).get('value', 0)
@@ -974,15 +1064,6 @@ def get_industry_average():
         
         hofstede_result = {}
         mit_result = {}
-        
-        # Calculate max evidence across all dimensions for relative confidence
-        all_company_metrics = []
-        for company_name in company_names:
-            metrics = get_cached_metrics(company_name)
-            if not metrics:
-                metrics = get_company_metrics(company_name)
-            if metrics:
-                all_company_metrics.append(metrics)
         
         # Get max evidence values for normalization
         hofstede_max_evidence = {}
@@ -2450,8 +2531,35 @@ def internal_error(error):
 # APPLICATION ENTRY POINT
 # ============================================================================
 
+def ensure_db_indexes():
+    """Create database indexes for performance on large tables"""
+    try:
+        conn = get_db_connection()
+        if not conn:
+            return
+        cursor = conn.cursor()
+        indexes = [
+            "CREATE INDEX IF NOT EXISTS idx_reviews_company_name ON reviews(company_name)",
+            "CREATE INDEX IF NOT EXISTS idx_reviews_company_rating ON reviews(company_name, rating)",
+            "CREATE INDEX IF NOT EXISTS idx_review_culture_scores_company ON review_culture_scores(company_name)",
+            "CREATE INDEX IF NOT EXISTS idx_extraction_queue_status ON extraction_queue(status)",
+            "CREATE INDEX IF NOT EXISTS idx_extraction_queue_sector ON extraction_queue(gics_sector)",
+        ]
+        for idx_sql in indexes:
+            try:
+                cursor.execute(idx_sql)
+            except Exception as e:
+                logger.warning(f"Index creation note: {e}")
+        conn.commit()
+        cursor.close()
+        conn.close()
+        logger.info("Database indexes verified")
+    except Exception as e:
+        logger.warning(f"Error ensuring indexes: {e}")
+
 init_cache_table()
 init_extraction_queue()
+ensure_db_indexes()
 
 from extraction_manager import init_extraction_control
 init_extraction_control()
