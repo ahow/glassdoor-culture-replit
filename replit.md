@@ -47,12 +47,29 @@ The project contains two parallel implementations that serve different purposes:
 - Sector-specific peer statistics and composite performance scoring
 - Culture-performance correlation calculation using scipy Pearson correlations
 
-**Multi-Sector Filtering**
-- All major API endpoints accept optional `?sector=` parameter for GICS sector filtering
-- `/api/sectors` endpoint returns list of 11 GICS sectors from extraction_queue table
-- Dashboard header includes sector dropdown that propagates filter to all API calls
-- Industry averages, benchmarking, and correlations are computed per-sector when filtered
-- 2,442 companies across 11 sectors: Financials (456), Industrials (418), IT (309), etc.
+**Multi-Level GICS Filtering**
+- All major API endpoints accept `?gics_level=` (sector/industry/sub_industry) and `?gics_value=` parameters
+- Legacy `?sector=` parameter still works (treated as gics_level=sector)
+- `/api/sectors` returns list of 11 GICS sectors
+- `/api/gics-hierarchy` returns full hierarchy: sectors → industries → sub-industries for companies with reviews
+- Dashboard header has cascading GICS filter: Level selector (Sector/Industry/Sub-Industry) → Value dropdown
+- `_company_gics_map` stores full GICS info (sector, industry, sub_industry) for each company
+- `get_companies_for_sector()` accepts `gics_level` and `gics_value` for flexible filtering
+- 2,442 companies across 11 sectors / 73 industries / 158 sub-industries
+
+**FMP Financial Performance Integration**
+- `/api/fetch-fmp-performance` POST endpoint batch-fetches FMP data for companies with ISINs
+- Processes companies that have reviews but no performance data yet
+- `fmp_performance_metrics` table stores: ROE, operating margin, TSR, revenue growth, market cap
+- Table includes `gics_industry`, `gics_sub_industry`, and `data_source` columns
+- `data_source` tracks origin: 'fmp' (API) or 'excel' (uploaded spreadsheet)
+
+**Excel Performance Data for Asset Management**
+- `load_excel_performance_data()` runs on startup, loads from `attached_assets/asset_manager_comprehensive_database_1769351810411.xlsx`
+- Reads 4 sheets: AUM Data, Financials & Profitability, Business Performance, Shareholder Returns
+- Maps Glassdoor company names to Excel names via `GLASSDOOR_TO_EXCEL` dict
+- Inserts into `fmp_performance_metrics` with `data_source='excel'`, `gics_sector='Asset Management'`
+- Excel data is primary source; FMP supplements for listed asset managers
 
 **TypeScript/Node.js Stack (Secondary/Development)**
 - `server/` - Express.js server with route handling

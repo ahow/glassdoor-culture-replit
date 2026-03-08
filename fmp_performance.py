@@ -66,6 +66,8 @@ def init_fmp_tables():
                 isin VARCHAR(50),
                 ticker VARCHAR(50),
                 gics_sector VARCHAR(255),
+                gics_industry VARCHAR(255),
+                gics_sub_industry VARCHAR(255),
                 roe_latest REAL,
                 roe_5y_avg REAL,
                 op_margin_latest REAL,
@@ -75,9 +77,22 @@ def init_fmp_tables():
                 tsr_5y REAL,
                 market_cap REAL,
                 metrics_json JSONB,
+                data_source VARCHAR(50) DEFAULT 'fmp',
                 last_updated TIMESTAMP DEFAULT NOW()
             )
         """)
+        for col_name, col_type in [
+            ('gics_industry', 'VARCHAR(255)'),
+            ('gics_sub_industry', 'VARCHAR(255)'),
+            ('data_source', "VARCHAR(50) DEFAULT 'fmp'"),
+        ]:
+            try:
+                cur.execute(f"""
+                    ALTER TABLE fmp_performance_metrics ADD COLUMN IF NOT EXISTS {col_name} {col_type}
+                """)
+            except Exception:
+                conn.rollback()
+        
         conn.commit()
         cur.close()
         conn.close()
@@ -405,22 +420,27 @@ class FMPPerformanceAnalyzer:
         self._cache_performance_metrics(company_name, isin, ticker, metrics)
         return metrics if len(metrics) > 3 else None
 
-    def _cache_performance_metrics(self, company_name: str, isin: str, ticker: str, metrics: Dict):
+    def _cache_performance_metrics(self, company_name: str, isin: str, ticker: str, metrics: Dict, data_source: str = 'fmp'):
         conn = get_db_connection()
         if not conn:
             return
         try:
-            sector = self._get_company_sector(company_name)
+            gics = self._get_company_gics(company_name)
+            sector = gics.get('sector') or metrics.get('gics_sector')
+            industry = gics.get('industry') or metrics.get('gics_industry', '')
+            sub_industry = gics.get('sub_industry') or metrics.get('gics_sub_industry', '')
             cur = conn.cursor()
             cur.execute("""
                 INSERT INTO fmp_performance_metrics 
-                (company_name, isin, ticker, gics_sector, roe_latest, roe_5y_avg,
-                 op_margin_latest, op_margin_5y_avg, net_margin_latest,
-                 revenue_growth_5y, tsr_5y, market_cap, metrics_json, last_updated)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
+                (company_name, isin, ticker, gics_sector, gics_industry, gics_sub_industry,
+                 roe_latest, roe_5y_avg, op_margin_latest, op_margin_5y_avg, net_margin_latest,
+                 revenue_growth_5y, tsr_5y, market_cap, metrics_json, data_source, last_updated)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
                 ON CONFLICT (company_name) DO UPDATE SET
                     isin = EXCLUDED.isin, ticker = EXCLUDED.ticker,
                     gics_sector = EXCLUDED.gics_sector,
+                    gics_industry = EXCLUDED.gics_industry,
+                    gics_sub_industry = EXCLUDED.gics_sub_industry,
                     roe_latest = EXCLUDED.roe_latest, roe_5y_avg = EXCLUDED.roe_5y_avg,
                     op_margin_latest = EXCLUDED.op_margin_latest,
                     op_margin_5y_avg = EXCLUDED.op_margin_5y_avg,
@@ -428,9 +448,10 @@ class FMPPerformanceAnalyzer:
                     revenue_growth_5y = EXCLUDED.revenue_growth_5y,
                     tsr_5y = EXCLUDED.tsr_5y, market_cap = EXCLUDED.market_cap,
                     metrics_json = EXCLUDED.metrics_json,
+                    data_source = EXCLUDED.data_source,
                     last_updated = NOW()
             """, (
-                company_name, isin, ticker, sector,
+                company_name, isin, ticker, sector, industry, sub_industry,
                 metrics.get('roe_latest'), metrics.get('roe_5y_avg'),
                 metrics.get('op_margin_latest'), metrics.get('op_margin_5y_avg'),
                 metrics.get('net_margin_latest'), metrics.get('revenue_growth_5y'),
@@ -439,7 +460,8 @@ class FMPPerformanceAnalyzer:
                       if k not in ('company', 'ticker', 'matched_name', 'roe_latest',
                                    'roe_5y_avg', 'op_margin_latest', 'op_margin_5y_avg',
                                    'net_margin_latest', 'revenue_growth_5y', 'tsr_cagr_5y',
-                                   'market_cap', 'gics_sector')})
+                                   'market_cap', 'gics_sector', 'gics_industry', 'gics_sub_industry')}),
+                data_source
             ))
             conn.commit()
             cur.close()
@@ -452,26 +474,36 @@ class FMPPerformanceAnalyzer:
                 pass
 
     def _get_company_sector(self, company_name: str) -> Optional[str]:
+        gics = self._get_company_gics(company_name)
+        return gics.get('sector') if gics else None
+
+    def _get_company_gics(self, company_name: str) -> Dict:
         conn = get_db_connection()
         if not conn:
-            return None
+            return {}
         try:
-            cur = conn.cursor()
+            cur = conn.cursor(cursor_factory=RealDictCursor)
             cur.execute("""
-                SELECT gics_sector FROM extraction_queue 
+                SELECT gics_sector, gics_industry, gics_sub_industry FROM extraction_queue 
                 WHERE glassdoor_name = %s OR issuer_name = %s
                 LIMIT 1
             """, (company_name, company_name))
             row = cur.fetchone()
             cur.close()
             conn.close()
-            return row[0] if row else None
+            if row:
+                return {
+                    'sector': row['gics_sector'],
+                    'industry': row.get('gics_industry', ''),
+                    'sub_industry': row.get('gics_sub_industry', '')
+                }
+            return {}
         except Exception:
             try:
                 conn.close()
             except:
                 pass
-            return None
+            return {}
 
     def get_company_info_from_queue(self, company_name: str) -> Optional[Dict]:
         conn = get_db_connection()
@@ -496,8 +528,9 @@ class FMPPerformanceAnalyzer:
                 pass
             return None
 
-    def get_peer_statistics(self, sector: str = None) -> Dict:
-        cache_key = sector or '__all__'
+    def get_peer_statistics(self, sector: str = None, gics_level: str = 'sector', gics_value: str = None) -> Dict:
+        filter_val = gics_value or sector
+        cache_key = f"{gics_level}:{filter_val}" if filter_val else '__all__'
         if cache_key in self._sector_peer_stats_cache:
             cached_at, stats = self._sector_peer_stats_cache[cache_key]
             if (datetime.now() - cached_at).total_seconds() < 3600:
@@ -509,12 +542,18 @@ class FMPPerformanceAnalyzer:
 
         try:
             cur = conn.cursor(cursor_factory=RealDictCursor)
-            if sector:
-                cur.execute("""
+            if filter_val:
+                col_map = {
+                    'sector': 'gics_sector',
+                    'industry': 'gics_industry',
+                    'sub_industry': 'gics_sub_industry'
+                }
+                col = col_map.get(gics_level, 'gics_sector')
+                cur.execute(f"""
                     SELECT roe_5y_avg, op_margin_5y_avg, tsr_5y, revenue_growth_5y
                     FROM fmp_performance_metrics
-                    WHERE gics_sector = %s
-                """, (sector,))
+                    WHERE {col} = %s
+                """, (filter_val,))
             else:
                 cur.execute("""
                     SELECT roe_5y_avg, op_margin_5y_avg, tsr_5y, revenue_growth_5y

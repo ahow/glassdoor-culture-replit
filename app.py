@@ -138,6 +138,7 @@ _mit_max_values_by_sector = {}
 
 
 _company_sector_map = {}
+_company_gics_map = {}
 _company_sector_map_loaded = False
 
 UNLISTED_ASSET_MANAGERS = {
@@ -159,8 +160,8 @@ UNLISTED_ASSET_MANAGERS = {
 }
 
 def _build_company_sector_map():
-    """Build a mapping from review company names to GICS sectors using fuzzy matching."""
-    global _company_sector_map, _company_sector_map_loaded
+    """Build a mapping from review company names to GICS sectors/industries/sub-industries using fuzzy matching."""
+    global _company_sector_map, _company_gics_map, _company_sector_map_loaded
     conn = get_db_connection()
     if not conn:
         return
@@ -169,37 +170,54 @@ def _build_company_sector_map():
         cursor.execute("SELECT DISTINCT company_name FROM reviews")
         review_companies = [row[0] for row in cursor.fetchall()]
         
-        cursor.execute("SELECT glassdoor_name, issuer_name, gics_sector FROM extraction_queue WHERE gics_sector IS NOT NULL")
+        cursor.execute("""
+            SELECT glassdoor_name, issuer_name, gics_sector, gics_industry, gics_sub_industry 
+            FROM extraction_queue WHERE gics_sector IS NOT NULL
+        """)
         eq_rows = cursor.fetchall()
         cursor.close()
         conn.close()
         
         eq_lookup = {}
-        for gd_name, issuer_name, sector in eq_rows:
+        for gd_name, issuer_name, sector, industry, sub_industry in eq_rows:
+            gics_info = {
+                'sector': sector,
+                'industry': industry or '',
+                'sub_industry': sub_industry or ''
+            }
             if gd_name and gd_name.strip():
-                eq_lookup[gd_name.strip().lower()] = sector
+                eq_lookup[gd_name.strip().lower()] = gics_info
             if issuer_name and issuer_name.strip():
-                eq_lookup[issuer_name.strip().lower()] = sector
+                eq_lookup[issuer_name.strip().lower()] = gics_info
         
         ambiguous_words = {'capital', 'state', 'national', 'fidelity', 'hdfc', 'bank', 'general', 'international'}
+        
+        def assign_company(company, gics_info):
+            _company_sector_map[company] = gics_info['sector']
+            _company_gics_map[company] = gics_info
         
         for company in review_companies:
             if company in UNLISTED_ASSET_MANAGERS:
                 _company_sector_map[company] = UNLISTED_ASSET_MANAGERS[company]
+                _company_gics_map[company] = {
+                    'sector': 'Asset Management',
+                    'industry': 'Asset Management',
+                    'sub_industry': 'Asset Management'
+                }
                 continue
             
             cn_lower = company.lower().strip()
             if cn_lower in eq_lookup:
-                _company_sector_map[company] = eq_lookup[cn_lower]
+                assign_company(company, eq_lookup[cn_lower])
                 continue
             
             matched = False
-            for eq_name, sector in eq_lookup.items():
+            for eq_name, gics_info in eq_lookup.items():
                 if len(eq_name) > 3 and len(cn_lower) > 3:
                     if cn_lower in eq_name or eq_name in cn_lower:
                         cn_first = cn_lower.split()[0] if cn_lower.split() else ''
                         if cn_first not in ambiguous_words:
-                            _company_sector_map[company] = sector
+                            assign_company(company, gics_info)
                             matched = True
                             break
             
@@ -208,10 +226,10 @@ def _build_company_sector_map():
                 if cn_words:
                     primary = cn_words[0]
                     if len(primary) > 3 and primary not in ambiguous_words:
-                        for eq_name, sector in eq_lookup.items():
+                        for eq_name, gics_info in eq_lookup.items():
                             eq_clean = eq_name.replace(',', '').replace('.', '').replace('&', '')
                             if primary in eq_clean.split():
-                                _company_sector_map[company] = sector
+                                assign_company(company, gics_info)
                                 break
         
         unmatched = [c for c in review_companies if c not in _company_sector_map]
@@ -227,11 +245,19 @@ def _build_company_sector_map():
         except:
             pass
 
-def get_companies_for_sector(sector=None):
-    """Get list of company names that have reviews, optionally filtered by sector."""
+def get_companies_for_sector(sector=None, gics_level='sector', gics_value=None):
+    """Get list of company names that have reviews, optionally filtered by GICS level.
+    
+    Args:
+        sector: Legacy parameter - GICS sector name (for backward compatibility)
+        gics_level: 'sector', 'industry', or 'sub_industry'
+        gics_value: The value to filter by at the specified level
+    """
     global _company_sector_map_loaded
     if not _company_sector_map_loaded:
         _build_company_sector_map()
+    
+    filter_value = gics_value or sector
     
     conn = get_db_connection()
     if not conn:
@@ -243,8 +269,13 @@ def get_companies_for_sector(sector=None):
         cursor.close()
         conn.close()
         
-        if sector:
-            return [c for c in all_companies if _company_sector_map.get(c) == sector]
+        if filter_value:
+            if gics_level == 'industry':
+                return [c for c in all_companies if _company_gics_map.get(c, {}).get('industry') == filter_value]
+            elif gics_level == 'sub_industry':
+                return [c for c in all_companies if _company_gics_map.get(c, {}).get('sub_industry') == filter_value]
+            else:
+                return [c for c in all_companies if _company_sector_map.get(c) == filter_value]
         return all_companies
     except Exception as e:
         logger.error(f"Error getting companies for sector: {e}")
@@ -261,6 +292,14 @@ def get_company_sector(company_name):
     if not _company_sector_map_loaded:
         _build_company_sector_map()
     return _company_sector_map.get(company_name)
+
+
+def get_company_gics(company_name):
+    """Look up full GICS info (sector, industry, sub_industry) for a company."""
+    global _company_sector_map_loaded
+    if not _company_sector_map_loaded:
+        _build_company_sector_map()
+    return _company_gics_map.get(company_name, {})
 
 def get_mit_max_values():
     """Get maximum MIT values across all companies for rescaling"""
@@ -875,6 +914,125 @@ def score_unscored_reviews():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+@app.route('/api/fetch-fmp-performance', methods=['POST'])
+def fetch_fmp_performance():
+    """Batch fetch FMP financial data for companies that have ISINs but no performance data yet."""
+    try:
+        batch_size = int(request.args.get('batch', 5))
+        batch_size = min(batch_size, 20)
+        force = request.args.get('force', 'false').lower() == 'true'
+        
+        conn = get_db_connection()
+        if not conn:
+            return jsonify({'success': False, 'error': 'Database connection failed'}), 500
+        
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        
+        if force:
+            cursor.execute("""
+                SELECT eq.glassdoor_name, eq.issuer_name, eq.isin, eq.issuer_ticker,
+                       eq.gics_sector, eq.gics_industry, eq.gics_sub_industry
+                FROM extraction_queue eq
+                INNER JOIN reviews r ON r.company_name = eq.glassdoor_name
+                WHERE eq.isin IS NOT NULL AND eq.isin != ''
+                GROUP BY eq.id, eq.glassdoor_name, eq.issuer_name, eq.isin, eq.issuer_ticker,
+                         eq.gics_sector, eq.gics_industry, eq.gics_sub_industry
+                ORDER BY eq.glassdoor_name
+                LIMIT %s
+            """, (batch_size,))
+        else:
+            cursor.execute("""
+                SELECT eq.glassdoor_name, eq.issuer_name, eq.isin, eq.issuer_ticker,
+                       eq.gics_sector, eq.gics_industry, eq.gics_sub_industry
+                FROM extraction_queue eq
+                INNER JOIN reviews r ON r.company_name = eq.glassdoor_name
+                LEFT JOIN fmp_performance_metrics fpm ON fpm.company_name = eq.glassdoor_name
+                WHERE eq.isin IS NOT NULL AND eq.isin != ''
+                  AND fpm.company_name IS NULL
+                GROUP BY eq.id, eq.glassdoor_name, eq.issuer_name, eq.isin, eq.issuer_ticker,
+                         eq.gics_sector, eq.gics_industry, eq.gics_sub_industry
+                ORDER BY eq.glassdoor_name
+                LIMIT %s
+            """, (batch_size,))
+        
+        companies_to_fetch = cursor.fetchall()
+        
+        cursor.execute("""
+            SELECT COUNT(DISTINCT eq.glassdoor_name) 
+            FROM extraction_queue eq
+            INNER JOIN reviews r ON r.company_name = eq.glassdoor_name
+            LEFT JOIN fmp_performance_metrics fpm ON fpm.company_name = eq.glassdoor_name
+            WHERE eq.isin IS NOT NULL AND eq.isin != ''
+              AND fpm.company_name IS NULL
+        """)
+        total_remaining = cursor.fetchone()['count']
+        
+        cursor.close()
+        conn.close()
+        
+        if not companies_to_fetch:
+            return jsonify({
+                'success': True,
+                'message': 'All companies with ISINs have performance data',
+                'fetched': 0,
+                'remaining': 0
+            })
+        
+        results = []
+        import time
+        for company in companies_to_fetch:
+            company_name = company['glassdoor_name']
+            isin = company['isin']
+            ticker_hint = company.get('issuer_ticker')
+            
+            try:
+                metrics = fmp_analyzer.get_performance_metrics(
+                    company_name, isin=isin, ticker_hint=ticker_hint
+                )
+                if metrics:
+                    results.append({
+                        'company': company_name,
+                        'isin': isin,
+                        'ticker': metrics.get('ticker', ''),
+                        'status': 'success',
+                        'roe_5y_avg': metrics.get('roe_5y_avg'),
+                        'tsr_5y': metrics.get('tsr_cagr_5y')
+                    })
+                else:
+                    results.append({
+                        'company': company_name,
+                        'isin': isin,
+                        'status': 'no_data'
+                    })
+            except Exception as e:
+                results.append({
+                    'company': company_name,
+                    'isin': isin,
+                    'status': f'error: {str(e)}'
+                })
+            
+            time.sleep(0.5)
+        
+        return jsonify({
+            'success': True,
+            'fetched': len(results),
+            'remaining': total_remaining - len([r for r in results if r['status'] == 'success']),
+            'results': results
+        })
+    except Exception as e:
+        logger.error(f"Error fetching FMP performance: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+def get_gics_filter_params():
+    """Extract GICS filtering parameters from request args."""
+    gics_level = request.args.get('gics_level', 'sector')
+    gics_value = request.args.get('gics_value') or request.args.get('sector')
+    if gics_level not in ('sector', 'industry', 'sub_industry'):
+        gics_level = 'sector'
+    return gics_level, gics_value
+
+
 @app.route('/api/sectors', methods=['GET'])
 def get_sectors():
     """Get list of GICS sectors available in the data"""
@@ -885,11 +1043,52 @@ def get_sectors():
     return jsonify({'success': True, 'sectors': sectors})
 
 
+@app.route('/api/gics-hierarchy', methods=['GET'])
+def get_gics_hierarchy():
+    """Get full GICS hierarchy (sectors -> industries -> sub-industries) for companies with reviews."""
+    global _company_sector_map_loaded
+    if not _company_sector_map_loaded:
+        _build_company_sector_map()
+    
+    hierarchy = {}
+    industry_list = set()
+    sub_industry_list = set()
+    
+    for company, gics in _company_gics_map.items():
+        sector = gics.get('sector', '')
+        industry = gics.get('industry', '')
+        sub_industry = gics.get('sub_industry', '')
+        
+        if sector not in hierarchy:
+            hierarchy[sector] = {}
+        if industry and industry not in hierarchy[sector]:
+            hierarchy[sector][industry] = set()
+        if industry and sub_industry:
+            hierarchy[sector][industry].add(sub_industry)
+            sub_industry_list.add(sub_industry)
+        if industry:
+            industry_list.add(industry)
+    
+    hierarchy_serializable = {}
+    for sector, industries in sorted(hierarchy.items()):
+        hierarchy_serializable[sector] = {}
+        for industry, sub_industries in sorted(industries.items()):
+            hierarchy_serializable[sector][industry] = sorted(sub_industries)
+    
+    return jsonify({
+        'success': True,
+        'hierarchy': hierarchy_serializable,
+        'sectors': sorted(hierarchy.keys()),
+        'industry_count': len(industry_list),
+        'sub_industry_count': len(sub_industry_list)
+    })
+
+
 @app.route('/api/stats', methods=['GET'])
 def get_stats():
     """Get overall dashboard statistics, optionally filtered by sector"""
     try:
-        sector = request.args.get('sector')
+        gics_level, gics_value = get_gics_filter_params()
         
         conn = get_db_connection()
         if not conn:
@@ -897,7 +1096,7 @@ def get_stats():
         
         cursor = conn.cursor(cursor_factory=RealDictCursor)
         
-        company_names = get_companies_for_sector(sector)
+        company_names = get_companies_for_sector(gics_level=gics_level, gics_value=gics_value)
         
         if company_names:
             placeholders = ','.join(['%s'] * len(company_names))
@@ -966,7 +1165,7 @@ def get_stats():
             'total_reviews': stats['total_reviews'] or 0,
             'avg_rating': round(float(stats['average_rating']), 2) if stats['average_rating'] else 0,
             'companies': companies,
-            'sector': sector
+            'sector': gics_value
         })
     
     except Exception as e:
@@ -978,8 +1177,8 @@ def get_stats():
 def get_companies():
     """Get all companies with their metrics, optionally filtered by sector"""
     try:
-        sector = request.args.get('sector')
-        company_names = get_companies_for_sector(sector)
+        gics_level, gics_value = get_gics_filter_params()
+        company_names = get_companies_for_sector(gics_level=gics_level, gics_value=gics_value)
         
         cached_metrics_map = {}
         conn = get_db_connection()
@@ -1038,7 +1237,7 @@ def get_companies():
             'success': True,
             'companies': companies,
             'avg_rating': avg_rating,
-            'sector': sector
+            'sector': gics_value
         })
     
     except Exception as e:
@@ -1113,8 +1312,8 @@ def get_culture_profile(company_name):
 def get_industry_average():
     """Get industry average culture profile, optionally filtered by sector"""
     try:
-        sector = request.args.get('sector')
-        company_names = get_companies_for_sector(sector)
+        gics_level, gics_value = get_gics_filter_params()
+        company_names = get_companies_for_sector(gics_level=gics_level, gics_value=gics_value)
         
         cached_metrics_map = {}
         conn = get_db_connection()
@@ -1205,10 +1404,10 @@ def get_industry_average():
         
         return jsonify({
             'success': True,
-            'company_name': f'{sector} Average' if sector else 'Industry Average',
+            'company_name': f'{gics_value} Average' if gics_value else 'Industry Average',
             'hofstede': hofstede_result,
             'mit': mit_result,
-            'sector': sector,
+            'sector': gics_value,
             'metadata': {
                 'review_count': total_reviews,
                 'overall_rating': 0,
@@ -1325,13 +1524,13 @@ def get_quarterly_trends():
 def get_companies_list():
     """Get list of all companies for dropdown menus, optionally filtered by sector"""
     try:
-        sector = request.args.get('sector')
-        companies = get_companies_for_sector(sector)
+        gics_level, gics_value = get_gics_filter_params()
+        companies = get_companies_for_sector(gics_level=gics_level, gics_value=gics_value)
         
         return jsonify({
             'success': True,
             'companies': companies,
-            'sector': sector
+            'sector': gics_value
         })
     
     except Exception as e:
@@ -1533,15 +1732,15 @@ def claude_insights(company_name):
 def culture_benchmarking(company_name):
     """Get benchmarking data comparing company to sector/industry averages"""
     try:
-        sector = request.args.get('sector')
-        if not sector:
-            sector = get_company_sector(company_name)
+        gics_level, gics_value = get_gics_filter_params()
+        if not gics_value:
+            gics_value = get_company_sector(company_name)
         
         company_profile = get_company_metrics(company_name)
         if not company_profile:
             return jsonify({'success': False, 'error': 'Company not found'}), 404
         
-        all_companies = get_companies_for_sector(sector)
+        all_companies = get_companies_for_sector(gics_level=gics_level, gics_value=gics_value)
         other_companies = [c for c in all_companies if c != company_name]
         
         cached_map = get_cached_metrics_batch(other_companies)
@@ -1588,7 +1787,7 @@ def culture_benchmarking(company_name):
         return jsonify({
             'success': True,
             'company': company_name,
-            'sector': sector,
+            'sector': gics_value,
             'hofstede_benchmarking': {
                 'company': {dim: company_profile.get('hofstede', {}).get(dim, {}).get('value', 0) for dim in HOFSTEDE_DIMENSIONS},
                 'industry_average': hofstede_industry,
@@ -1614,12 +1813,12 @@ def culture_benchmarking(company_name):
 def get_performance_correlation():
     """Get correlation analysis between culture metrics and business performance"""
     try:
-        sector = request.args.get('sector')
+        gics_level, gics_value = get_gics_filter_params()
         
         if not performance_analyzer.loaded:
             performance_analyzer.load_data()
         
-        culture_companies = get_companies_for_sector(sector)
+        culture_companies = get_companies_for_sector(gics_level=gics_level, gics_value=gics_value)
         
         cached_map = get_cached_metrics_batch(culture_companies)
         
@@ -1657,7 +1856,7 @@ def get_performance_correlation():
             'companies_with_both': len([p for p in performance_data if p.get('composite_score')]),
             'culture_companies': len(culture_companies),
             'performance_companies': len(performance_data),
-            'sector': sector
+            'sector': gics_value
         })
     
     except Exception as e:
@@ -1700,12 +1899,12 @@ def get_company_performance():
 def get_performance_rankings():
     """Get ranked list of companies by composite performance score"""
     try:
-        sector = request.args.get('sector')
+        gics_level, gics_value = get_gics_filter_params()
         
         if not performance_analyzer.loaded:
             performance_analyzer.load_data()
         
-        culture_companies = get_companies_for_sector(sector)
+        culture_companies = get_companies_for_sector(gics_level=gics_level, gics_value=gics_value)
         
         cached_map = get_cached_metrics_batch(culture_companies)
         
@@ -1741,7 +1940,7 @@ def get_performance_rankings():
             'success': True,
             'rankings': rankings,
             'total': len(rankings),
-            'sector': sector
+            'sector': gics_value
         })
     
     except Exception as e:
@@ -1757,9 +1956,9 @@ def get_performance_rankings():
 def get_company_analysis(company_name):
     """Get company analysis with culture scores, industry averages, and correlations"""
     try:
-        sector = request.args.get('sector')
-        if not sector:
-            sector = get_company_sector(company_name)
+        gics_level, gics_value = get_gics_filter_params()
+        if not gics_value:
+            gics_value = get_company_sector(company_name)
         
         metrics = get_cached_metrics(company_name)
         if not metrics:
@@ -1770,7 +1969,7 @@ def get_company_analysis(company_name):
         if not metrics:
             return jsonify({'success': False, 'error': 'Company not found'}), 404
         
-        company_names = get_companies_for_sector(sector)
+        company_names = get_companies_for_sector(gics_level=gics_level, gics_value=gics_value)
         
         cached_map = get_cached_metrics_batch(company_names)
         
@@ -1923,7 +2122,7 @@ def get_company_analysis(company_name):
         return jsonify({
             'success': True,
             'company_name': company_name,
-            'sector': sector,
+            'sector': gics_value,
             'company': {
                 'hofstede': company_hofstede,
                 'mit': company_mit
@@ -2143,12 +2342,12 @@ def get_company_culture_score_trend(company_name):
 def get_culture_performance_scatter():
     """Get all companies' culture scores and performance data for scatter plot"""
     try:
-        sector = request.args.get('sector')
+        gics_level, gics_value = get_gics_filter_params()
         
         if not performance_analyzer.loaded:
             performance_analyzer.load_data()
         
-        company_names = get_companies_for_sector(sector)
+        company_names = get_companies_for_sector(gics_level=gics_level, gics_value=gics_value)
         
         cached_metrics_map = {}
         conn = get_db_connection()
@@ -2348,7 +2547,7 @@ def get_culture_performance_scatter():
             'success': True,
             'companies': companies_data,
             'business_models': list(set(c['business_model'] for c in companies_data)),
-            'sector': sector
+            'sector': gics_value
         })
     
     except Exception as e:
@@ -2732,6 +2931,174 @@ def ensure_db_indexes():
     except Exception as e:
         logger.warning(f"Error ensuring indexes: {e}")
 
+def load_excel_performance_data():
+    """Load asset management performance data from Excel into fmp_performance_metrics table."""
+    try:
+        import pandas as pd
+        excel_path = 'attached_assets/asset_manager_comprehensive_database_1769351810411.xlsx'
+        if not os.path.exists(excel_path):
+            logger.warning(f"Excel file not found: {excel_path}")
+            return 0
+        
+        GLASSDOOR_TO_EXCEL = {
+            'Goldman Sachs Group': 'Goldman Sachs Group',
+            'Fidelity Investments': 'Fidelity Investments',
+            'Fidelity International': 'Fidelity International',
+            'Franklin Templeton': 'Franklin Templeton',
+            'Invesco': 'Invesco',
+            'AllianceBernstein': 'AllianceBernstein',
+            'Dimensional Fund Advisors': 'Dimensional Fund Advisors',
+            'Federated Hermes': 'Federated Hermes',
+            'Wellington Management': 'Wellington Management',
+            'PIMCO': 'Pimco',
+            'Vanguard Group': 'Vanguard Group',
+            'Capital Group': 'Capital Group',
+            'Robeco': 'Robeco',
+            'Natixis Investment Managers': 'Natixis',
+            'Nuveen': 'Nuveen',
+            'Eurazeo': 'Eurazeo',
+        }
+        
+        aum_df = pd.read_excel(excel_path, 'AUM Data')
+        fin_df = pd.read_excel(excel_path, 'Financials & Profitability')
+        perf_df = pd.read_excel(excel_path, 'Business Performance')
+        tsr_df = pd.read_excel(excel_path, 'Shareholder Returns')
+        
+        excel_data = {}
+        for _, row in perf_df.iterrows():
+            name = row.get('Company', '')
+            if not name:
+                continue
+            excel_data[name] = {
+                'roe_5y_avg': row.get('5Y Avg ROE (%)'),
+            }
+        
+        for _, row in fin_df.iterrows():
+            name = row.get('Company', '')
+            if name in excel_data:
+                excel_data[name]['op_margin_5y_avg'] = row.get('5Y Avg Op Margin')
+                excel_data[name]['revenue_growth_5y'] = row.get('5Y Rev CAGR')
+                excel_data[name]['net_margin_latest'] = row.get('2024 Net Margin')
+                excel_data[name]['op_margin_latest'] = row.get('2024 Op Margin')
+        
+        for _, row in tsr_df.iterrows():
+            name = row.get('Company', '')
+            if name in excel_data:
+                excel_data[name]['tsr_cagr_5y'] = row.get('5Y TSR CAGR (%)')
+                excel_data[name]['market_cap'] = row.get('2024 Market Cap ($bn)')
+                excel_data[name]['ticker'] = row.get('Ticker', '')
+        
+        for _, row in aum_df.iterrows():
+            name = row.get('Company', '')
+            if name in excel_data:
+                cagr = row.get('5Y CAGR')
+                if cagr is not None:
+                    try:
+                        excel_data[name]['aum_cagr_5y'] = float(cagr) * 100 if abs(float(cagr)) < 1 else float(cagr)
+                    except (ValueError, TypeError):
+                        pass
+        
+        conn = get_db_connection()
+        if not conn:
+            return 0
+        
+        loaded = 0
+        cursor = conn.cursor()
+        
+        all_mappings = dict(GLASSDOOR_TO_EXCEL)
+        for name in excel_data:
+            if name not in all_mappings.values():
+                all_mappings[name] = name
+        
+        for glassdoor_name, excel_name in all_mappings.items():
+            data = excel_data.get(excel_name)
+            if not data:
+                continue
+            
+            roe = data.get('roe_5y_avg')
+            op_margin = data.get('op_margin_5y_avg')
+            tsr = data.get('tsr_cagr_5y')
+            rev_growth = data.get('revenue_growth_5y')
+            
+            if roe is not None:
+                try:
+                    roe = float(roe)
+                except (ValueError, TypeError):
+                    roe = None
+            if op_margin is not None:
+                try:
+                    op_margin = float(op_margin)
+                except (ValueError, TypeError):
+                    op_margin = None
+            if tsr is not None:
+                try:
+                    tsr = float(tsr)
+                except (ValueError, TypeError):
+                    tsr = None
+            if rev_growth is not None:
+                try:
+                    rev_growth = float(rev_growth) * 100 if rev_growth and abs(float(rev_growth)) < 1 else float(rev_growth)
+                except (ValueError, TypeError):
+                    rev_growth = None
+            
+            market_cap = data.get('market_cap')
+            if market_cap is not None:
+                try:
+                    market_cap = float(market_cap) * 1e9
+                except (ValueError, TypeError):
+                    market_cap = None
+            
+            ticker = data.get('ticker', '')
+            
+            extra_json = {}
+            if data.get('aum_cagr_5y') is not None:
+                extra_json['aum_cagr_5y'] = data['aum_cagr_5y']
+            
+            try:
+                cursor.execute("""
+                    INSERT INTO fmp_performance_metrics
+                    (company_name, isin, ticker, gics_sector, gics_industry, gics_sub_industry,
+                     roe_latest, roe_5y_avg, op_margin_latest, op_margin_5y_avg,
+                     net_margin_latest, revenue_growth_5y, tsr_5y, market_cap,
+                     metrics_json, data_source, last_updated)
+                    VALUES (%s, NULL, %s, 'Asset Management', 'Asset Management', 'Asset Management',
+                            %s, %s, %s, %s, %s, %s, %s, %s, %s, 'excel', NOW())
+                    ON CONFLICT (company_name) DO UPDATE SET
+                        roe_5y_avg = COALESCE(EXCLUDED.roe_5y_avg, fmp_performance_metrics.roe_5y_avg),
+                        op_margin_5y_avg = COALESCE(EXCLUDED.op_margin_5y_avg, fmp_performance_metrics.op_margin_5y_avg),
+                        tsr_5y = COALESCE(EXCLUDED.tsr_5y, fmp_performance_metrics.tsr_5y),
+                        revenue_growth_5y = COALESCE(EXCLUDED.revenue_growth_5y, fmp_performance_metrics.revenue_growth_5y),
+                        market_cap = COALESCE(EXCLUDED.market_cap, fmp_performance_metrics.market_cap),
+                        metrics_json = EXCLUDED.metrics_json,
+                        data_source = 'excel',
+                        gics_sector = 'Asset Management',
+                        gics_industry = 'Asset Management',
+                        gics_sub_industry = 'Asset Management',
+                        last_updated = NOW()
+                """, (
+                    glassdoor_name, ticker,
+                    roe, roe, 
+                    float(data.get('op_margin_latest', 0) or 0) if data.get('op_margin_latest') else None,
+                    op_margin,
+                    float(data.get('net_margin_latest', 0) or 0) if data.get('net_margin_latest') else None,
+                    rev_growth, tsr, market_cap,
+                    json.dumps(extra_json)
+                ))
+                loaded += 1
+            except Exception as e:
+                logger.warning(f"Error loading Excel data for {glassdoor_name}: {e}")
+                conn.rollback()
+        
+        conn.commit()
+        cursor.close()
+        conn.close()
+        logger.info(f"Loaded {loaded} asset management companies from Excel")
+        return loaded
+    except Exception as e:
+        logger.error(f"Error loading Excel performance data: {e}")
+        return 0
+
+
 init_cache_table()
 init_extraction_queue()
 init_culture_scores_table()
@@ -2740,6 +3107,7 @@ ensure_db_indexes()
 from extraction_manager import init_extraction_control
 init_extraction_control()
 init_fmp_tables()
+load_excel_performance_data()
 
 if __name__ == '__main__':
     app.run(debug=False, host='0.0.0.0', port=int(os.environ.get('FLASK_PORT', os.environ.get('PORT', 8080))))

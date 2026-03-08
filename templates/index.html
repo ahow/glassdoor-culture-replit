@@ -462,10 +462,15 @@
                 <h1>Culture Analytics Dashboard</h1>
                 <p>Financial Services Industry - Employee Review Analysis</p>
             </div>
-            <div style="margin-left: auto; display: flex; align-items: center; gap: 0.75rem;">
-                <label for="sectorFilter" style="font-size: 0.85rem; color: #64748b; font-weight: 500; white-space: nowrap;">Sector:</label>
-                <select id="sectorFilter" onchange="onSectorChange(this.value)" style="padding: 0.4rem 0.75rem; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.85rem; background: #f8fafc; color: #1e293b; cursor: pointer; min-width: 180px;">
-                    <option value="">All Sectors</option>
+            <div style="margin-left: auto; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                <label style="font-size: 0.85rem; color: #64748b; font-weight: 500; white-space: nowrap;">GICS Level:</label>
+                <select id="gicsLevelFilter" onchange="onGicsLevelChange(this.value)" data-testid="select-gics-level" style="padding: 0.4rem 0.6rem; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.85rem; background: #f8fafc; color: #1e293b; cursor: pointer; min-width: 120px;">
+                    <option value="sector">Sector</option>
+                    <option value="industry">Industry</option>
+                    <option value="sub_industry">Sub-Industry</option>
+                </select>
+                <select id="gicsValueFilter" onchange="onGicsValueChange(this.value)" data-testid="select-gics-value" style="padding: 0.4rem 0.6rem; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.85rem; background: #f8fafc; color: #1e293b; cursor: pointer; min-width: 200px; max-width: 320px;">
+                    <option value="">All</option>
                 </select>
             </div>
         </div>
@@ -1250,42 +1255,87 @@
         // Debug: Version check - look for this in browser console
         console.log('Dashboard version: 2026-02-01-v19-sector');
         
+        let currentGicsLevel = 'sector';
+        let currentGicsValue = '';
         let currentSector = '';
+        let gicsHierarchy = {};
 
         function getSectorParam() {
-            return currentSector ? `sector=${encodeURIComponent(currentSector)}` : '';
+            if (!currentGicsValue) return '';
+            return `gics_level=${encodeURIComponent(currentGicsLevel)}&gics_value=${encodeURIComponent(currentGicsValue)}`;
         }
 
         function buildUrl(base, params = {}) {
             const allParams = {...params};
-            if (currentSector) allParams.sector = currentSector;
+            if (currentGicsValue) {
+                allParams.gics_level = currentGicsLevel;
+                allParams.gics_value = currentGicsValue;
+            }
             const qs = Object.entries(allParams).filter(([k,v]) => v !== undefined && v !== '').map(([k,v]) => `${k}=${encodeURIComponent(v)}`).join('&');
             return qs ? `${base}?${qs}` : base;
         }
 
-        async function loadSectors() {
+        async function loadGicsHierarchy() {
             try {
-                const response = await fetch('/api/sectors');
+                const response = await fetch('/api/gics-hierarchy');
                 const data = await response.json();
-                if (data.success && data.sectors) {
-                    const select = document.getElementById('sectorFilter');
-                    data.sectors.forEach(sector => {
-                        const option = document.createElement('option');
-                        option.value = sector;
-                        option.textContent = sector;
-                        select.appendChild(option);
-                    });
+                if (data.success) {
+                    gicsHierarchy = data.hierarchy;
+                    populateGicsValues(currentGicsLevel);
                 }
             } catch (error) {
-                console.error('Error loading sectors:', error);
+                console.error('Error loading GICS hierarchy:', error);
             }
         }
 
-        async function onSectorChange(sector) {
-            currentSector = sector;
+        function populateGicsValues(level) {
+            const select = document.getElementById('gicsValueFilter');
+            select.innerHTML = '<option value="">All</option>';
+            
+            let values = [];
+            if (level === 'sector') {
+                values = Object.keys(gicsHierarchy).sort();
+            } else if (level === 'industry') {
+                for (const sector in gicsHierarchy) {
+                    values.push(...Object.keys(gicsHierarchy[sector]));
+                }
+                values = [...new Set(values)].sort();
+            } else if (level === 'sub_industry') {
+                for (const sector in gicsHierarchy) {
+                    for (const industry in gicsHierarchy[sector]) {
+                        values.push(...gicsHierarchy[sector][industry]);
+                    }
+                }
+                values = [...new Set(values)].sort();
+            }
+            
+            values.forEach(val => {
+                const option = document.createElement('option');
+                option.value = val;
+                option.textContent = val;
+                select.appendChild(option);
+            });
+        }
+
+        function onGicsLevelChange(level) {
+            currentGicsLevel = level;
+            currentGicsValue = '';
+            populateGicsValues(level);
+            onGicsValueChange('');
+        }
+
+        async function onGicsValueChange(value) {
+            currentGicsValue = value;
+            currentSector = (currentGicsLevel === 'sector') ? value : '';
             const headerP = document.querySelector('.header p');
             if (headerP) {
-                headerP.textContent = sector ? `${sector} Sector - Employee Review Analysis` : 'All Sectors - Employee Review Analysis';
+                if (value) {
+                    const levelLabel = currentGicsLevel === 'sub_industry' ? 'Sub-Industry' : 
+                                       currentGicsLevel.charAt(0).toUpperCase() + currentGicsLevel.slice(1);
+                    headerP.textContent = `${value} (${levelLabel}) - Employee Review Analysis`;
+                } else {
+                    headerP.textContent = 'All Sectors - Employee Review Analysis';
+                }
             }
             analysisCompaniesLoaded = false;
             await loadData();
@@ -3558,7 +3608,7 @@
                 });
         }
         
-        loadSectors();
+        loadGicsHierarchy();
         loadData();
         loadCompaniesForTrends();
         setInterval(loadData, 60000);
