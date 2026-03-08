@@ -804,6 +804,77 @@ def warm_cache():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+@app.route('/api/score-reviews', methods=['POST'])
+def score_unscored_reviews():
+    """Score unscored reviews for companies that have reviews but no culture scores.
+    Processes a batch at a time to avoid timeouts."""
+    try:
+        batch_size = int(request.args.get('batch', 5))
+        batch_size = min(batch_size, 20)
+        
+        conn = get_db_connection()
+        if not conn:
+            return jsonify({'success': False, 'error': 'Database connection failed'}), 500
+        
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT DISTINCT r.company_name, COUNT(r.id) as review_count
+            FROM reviews r
+            LEFT JOIN review_culture_scores rcs ON r.id = rcs.review_id
+            WHERE rcs.review_id IS NULL
+            GROUP BY r.company_name
+            ORDER BY COUNT(r.id) ASC
+            LIMIT %s
+        """, (batch_size,))
+        companies_to_score = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        
+        if not companies_to_score:
+            return jsonify({
+                'success': True,
+                'message': 'All reviews are scored',
+                'scored_companies': 0,
+                'remaining': 0
+            })
+        
+        from extraction_manager import ExtractionManager
+        mgr = ExtractionManager.get_instance()
+        
+        results = []
+        for company_name, unscored_count in companies_to_score:
+            try:
+                mgr._score_company_reviews(company_name)
+                invalidate_cache(company_name)
+                results.append({'company': company_name, 'unscored_reviews': unscored_count, 'status': 'scored'})
+            except Exception as e:
+                results.append({'company': company_name, 'unscored_reviews': unscored_count, 'status': f'error: {str(e)}'})
+        
+        conn = get_db_connection()
+        remaining = 0
+        if conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT COUNT(DISTINCT r.company_name)
+                FROM reviews r
+                LEFT JOIN review_culture_scores rcs ON r.id = rcs.review_id
+                WHERE rcs.review_id IS NULL
+            """)
+            remaining = cursor.fetchone()[0]
+            cursor.close()
+            conn.close()
+        
+        return jsonify({
+            'success': True,
+            'scored_companies': len(results),
+            'remaining': remaining,
+            'results': results
+        })
+    except Exception as e:
+        logger.error(f"Error scoring reviews: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 @app.route('/api/sectors', methods=['GET'])
 def get_sectors():
     """Get list of GICS sectors available in the data"""
@@ -2596,6 +2667,45 @@ def internal_error(error):
 # APPLICATION ENTRY POINT
 # ============================================================================
 
+def init_culture_scores_table():
+    """Ensure the review_culture_scores table exists"""
+    try:
+        conn = get_db_connection()
+        if not conn:
+            return
+        cursor = conn.cursor()
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS review_culture_scores (
+                review_id INTEGER PRIMARY KEY,
+                company_name VARCHAR(255),
+                process_results_score REAL,
+                job_employee_score REAL,
+                professional_parochial_score REAL,
+                open_closed_score REAL,
+                tight_loose_score REAL,
+                pragmatic_normative_score REAL,
+                agility_score REAL,
+                collaboration_score REAL,
+                customer_orientation_score REAL,
+                diversity_score REAL,
+                execution_score REAL,
+                innovation_score REAL,
+                integrity_score REAL,
+                performance_score REAL,
+                respect_score REAL,
+                scoring_method VARCHAR(50),
+                confidence_level VARCHAR(20),
+                scored_at TIMESTAMP DEFAULT NOW()
+            )
+        """)
+        conn.commit()
+        cursor.close()
+        conn.close()
+        logger.info("review_culture_scores table verified")
+    except Exception as e:
+        logger.warning(f"Error initializing culture scores table: {e}")
+
+
 def ensure_db_indexes():
     """Create database indexes for performance on large tables"""
     try:
@@ -2624,6 +2734,7 @@ def ensure_db_indexes():
 
 init_cache_table()
 init_extraction_queue()
+init_culture_scores_table()
 ensure_db_indexes()
 
 from extraction_manager import init_extraction_control
