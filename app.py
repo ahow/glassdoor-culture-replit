@@ -654,6 +654,32 @@ def init_extraction_queue():
         logger.error(f"Error initializing extraction queue: {e}")
         return False
 
+def get_cached_metrics_batch(company_names):
+    """Get metrics from cache for multiple companies in a single query"""
+    if not company_names:
+        return {}
+    try:
+        conn = get_db_connection()
+        if not conn:
+            return {}
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        placeholders = ','.join(['%s'] * len(company_names))
+        cursor.execute(f"""
+            SELECT company_name, metrics_json FROM company_metrics_cache
+            WHERE company_name IN ({placeholders})
+        """, list(company_names))
+        result = {}
+        for row in cursor.fetchall():
+            m = row['metrics_json'] if isinstance(row['metrics_json'], dict) else json.loads(row['metrics_json'])
+            result[row['company_name']] = m
+        cursor.close()
+        conn.close()
+        return result
+    except Exception as e:
+        logger.error(f"Error getting batch cached metrics: {e}")
+        return {}
+
+
 def get_cached_metrics(company_name):
     """Get metrics from cache if available"""
     try:
@@ -1447,12 +1473,17 @@ def culture_benchmarking(company_name):
         all_companies = get_companies_for_sector(sector)
         other_companies = [c for c in all_companies if c != company_name]
         
-        # Calculate industry averages
+        cached_map = get_cached_metrics_batch(other_companies)
+        
         hofstede_avg = {dim: [] for dim in HOFSTEDE_DIMENSIONS}
         mit_avg = {dim: [] for dim in MIT_DIMENSIONS}
         
         for other_company in other_companies:
-            other_profile = get_company_metrics(other_company)
+            other_profile = cached_map.get(other_company)
+            if not other_profile:
+                other_profile = get_company_metrics(other_company)
+                if other_profile:
+                    cache_metrics(other_company, other_profile)
             if other_profile:
                 for dim in HOFSTEDE_DIMENSIONS:
                     val = other_profile.get('hofstede', {}).get(dim, {}).get('value', 0)
@@ -1519,15 +1550,19 @@ def get_performance_correlation():
         
         culture_companies = get_companies_for_sector(sector)
         
+        cached_map = get_cached_metrics_batch(culture_companies)
+        
         culture_data = []
         performance_data = []
         
         peer_stats = performance_analyzer.get_peer_statistics()
         
         for company in culture_companies:
-            metrics = get_cached_metrics(company)
+            metrics = cached_map.get(company)
             if not metrics:
                 metrics = get_company_metrics(company)
+                if metrics:
+                    cache_metrics(company, metrics)
             
             if metrics:
                 culture_data.append({
@@ -1601,6 +1636,8 @@ def get_performance_rankings():
         
         culture_companies = get_companies_for_sector(sector)
         
+        cached_map = get_cached_metrics_batch(culture_companies)
+        
         rankings = []
         peer_stats = performance_analyzer.get_peer_statistics()
         
@@ -1609,7 +1646,7 @@ def get_performance_rankings():
             if perf_metrics and len(perf_metrics) > 2:
                 composite = performance_analyzer.calculate_composite_score(perf_metrics, peer_stats)
                 if composite is not None:
-                    culture_metrics = get_cached_metrics(company)
+                    culture_metrics = cached_map.get(company)
                     if not culture_metrics:
                         culture_metrics = get_company_metrics(company)
                     
@@ -1664,13 +1701,17 @@ def get_company_analysis(company_name):
         
         company_names = get_companies_for_sector(sector)
         
+        cached_map = get_cached_metrics_batch(company_names)
+        
         hofstede_avg = {dim: [] for dim in HOFSTEDE_DIMENSIONS}
         mit_avg = {dim: [] for dim in MIT_DIMENSIONS}
         
         for name in company_names:
-            m = get_cached_metrics(name)
+            m = cached_map.get(name)
             if not m:
                 m = get_company_metrics(name)
+                if m:
+                    cache_metrics(name, m)
             if m:
                 for dim in HOFSTEDE_DIMENSIONS:
                     val = m.get('hofstede', {}).get(dim, {}).get('value', 0)
@@ -1693,7 +1734,6 @@ def get_company_analysis(company_name):
                 max_val = mit_max_values.get(dim, 1)
                 industry_mit[dim] = round(10 * (raw_avg / max_val), 2) if max_val > 0 else 0
         
-        # Get correlations with composite score
         if not performance_analyzer.loaded:
             performance_analyzer.load_data()
         
@@ -1702,7 +1742,7 @@ def get_company_analysis(company_name):
         peer_stats = performance_analyzer.get_peer_statistics()
         
         for name in company_names:
-            m = get_cached_metrics(name)
+            m = cached_map.get(name)
             if not m:
                 m = get_company_metrics(name)
             if m:
@@ -2039,15 +2079,40 @@ def get_culture_performance_scatter():
         
         company_names = get_companies_for_sector(sector)
         
-        # Calculate industry averages first
+        cached_metrics_map = {}
+        conn = get_db_connection()
+        if conn and company_names:
+            try:
+                cursor = conn.cursor(cursor_factory=RealDictCursor)
+                placeholders = ','.join(['%s'] * len(company_names))
+                cursor.execute(f"""
+                    SELECT company_name, metrics_json FROM company_metrics_cache
+                    WHERE company_name IN ({placeholders})
+                """, company_names)
+                for row in cursor.fetchall():
+                    m = row['metrics_json'] if isinstance(row['metrics_json'], dict) else json.loads(row['metrics_json'])
+                    cached_metrics_map[row['company_name']] = m
+                cursor.close()
+                conn.close()
+            except Exception:
+                try:
+                    conn.close()
+                except:
+                    pass
+        
         hofstede_avg = {dim: [] for dim in HOFSTEDE_DIMENSIONS}
         mit_avg = {dim: [] for dim in MIT_DIMENSIONS}
         all_metrics = {}
         
+        uncached_count = 0
         for name in company_names:
-            m = get_cached_metrics(name)
+            m = cached_metrics_map.get(name)
             if not m:
-                m = get_company_metrics(name)
+                uncached_count += 1
+                if uncached_count <= 50:
+                    m = get_company_metrics(name)
+                    if m:
+                        cache_metrics(name, m)
             if m:
                 all_metrics[name] = m
                 for dim in HOFSTEDE_DIMENSIONS:
