@@ -914,6 +914,66 @@ def score_unscored_reviews():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+@app.route('/api/score-status', methods=['GET'])
+def get_score_status():
+    """Get count of companies with unscored reviews vs total."""
+    try:
+        conn = get_db_connection()
+        if not conn:
+            return jsonify({'success': False, 'error': 'Database connection failed'}), 500
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT COUNT(DISTINCT company_name) FROM reviews
+        """)
+        total_companies = cur.fetchone()[0]
+        cur.execute("""
+            SELECT COUNT(DISTINCT r.company_name)
+            FROM reviews r
+            LEFT JOIN review_culture_scores rcs ON r.id = rcs.review_id
+            WHERE rcs.review_id IS NULL
+        """)
+        unscored_companies = cur.fetchone()[0]
+        cur.close()
+        conn.close()
+        return jsonify({
+            'success': True,
+            'total_companies': total_companies,
+            'unscored_companies': unscored_companies,
+            'scored_companies': total_companies - unscored_companies
+        })
+    except Exception as e:
+        logger.error(f"Error getting score status: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/score-company/<company_name>', methods=['POST'])
+def score_single_company(company_name):
+    """Score reviews for a single specific company on demand."""
+    try:
+        from extraction_manager import ExtractionManager
+        mgr = ExtractionManager.get_instance()
+        mgr._score_company_reviews(company_name)
+        invalidate_cache(company_name)
+        conn = get_db_connection()
+        scored_count = 0
+        if conn:
+            cur = conn.cursor()
+            cur.execute("""
+                SELECT COUNT(*) FROM review_culture_scores WHERE company_name = %s
+            """, (company_name,))
+            scored_count = cur.fetchone()[0]
+            cur.close()
+            conn.close()
+        return jsonify({
+            'success': True,
+            'company': company_name,
+            'scored_reviews': scored_count
+        })
+    except Exception as e:
+        logger.error(f"Error scoring company {company_name}: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 @app.route('/api/fetch-fmp-performance', methods=['POST'])
 def fetch_fmp_performance():
     """Batch fetch FMP financial data for companies that have ISINs but no performance data yet."""
@@ -2948,6 +3008,7 @@ def ensure_db_indexes():
             "CREATE INDEX IF NOT EXISTS idx_reviews_company_name ON reviews(company_name)",
             "CREATE INDEX IF NOT EXISTS idx_reviews_company_rating ON reviews(company_name, rating)",
             "CREATE INDEX IF NOT EXISTS idx_review_culture_scores_company ON review_culture_scores(company_name)",
+            "CREATE UNIQUE INDEX IF NOT EXISTS idx_review_culture_scores_review_id ON review_culture_scores(review_id)",
             "CREATE INDEX IF NOT EXISTS idx_extraction_queue_status ON extraction_queue(status)",
             "CREATE INDEX IF NOT EXISTS idx_extraction_queue_sector ON extraction_queue(gics_sector)",
         ]

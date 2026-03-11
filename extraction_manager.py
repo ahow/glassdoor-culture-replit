@@ -732,6 +732,7 @@ class ExtractionManager:
                 if not scores:
                     continue
                 try:
+                    cur.execute("SAVEPOINT score_review")
                     cur.execute("""
                         INSERT INTO review_culture_scores
                         (review_id, company_name,
@@ -762,10 +763,12 @@ class ExtractionManager:
                         scores['scoring_method'],
                         'medium'
                     ))
+                    cur.execute("RELEASE SAVEPOINT score_review")
                     scored += 1
                     if scored % 500 == 0:
                         conn.commit()
                 except Exception as e:
+                    cur.execute("ROLLBACK TO SAVEPOINT score_review")
                     logger.warning(f"Error scoring review {review_id}: {e}")
 
             conn.commit()

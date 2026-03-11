@@ -1148,6 +1148,23 @@
                     </div>
                 </div>
 
+                <!-- Culture Scoring Section -->
+                <div style="margin-bottom: 2rem; padding: 1.25rem; background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 10px;">
+                    <h3 style="color: #0369a1; margin-bottom: 0.5rem; font-size: 1rem; font-weight: 600;">Culture Score Processing</h3>
+                    <p style="color: #0c4a6e; font-size: 0.85rem; margin-bottom: 1rem;">
+                        Processes extracted review text through the Hofstede and MIT Big 9 keyword analysis to generate culture dimension scores. Run this after extraction to ensure all companies have scores.
+                    </p>
+                    <div style="display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; margin-bottom: 1rem;">
+                        <button id="btnScoreReviews" onclick="startScoringBatch()" style="padding: 0.625rem 1.5rem; background: #0ea5e9; color: white; border: none; border-radius: 8px; font-size: 0.875rem; font-weight: 600; cursor: pointer;">Process Culture Scores</button>
+                        <button id="btnStopScoring" onclick="stopScoring()" style="padding: 0.625rem 1.5rem; background: #ef4444; color: white; border: none; border-radius: 8px; font-size: 0.875rem; font-weight: 600; cursor: pointer; display: none;">Stop</button>
+                        <span id="scoringStatusText" style="color: #0369a1; font-size: 0.875rem;"></span>
+                    </div>
+                    <div id="scoringProgressBar" style="display: none; background: #e0f2fe; border-radius: 6px; height: 10px; overflow: hidden; margin-bottom: 0.5rem;">
+                        <div id="scoringProgressFill" style="height: 100%; background: #0ea5e9; width: 0%; transition: width 0.4s ease;"></div>
+                    </div>
+                    <div id="scoringStats" style="font-size: 0.8rem; color: #0369a1;"></div>
+                </div>
+
                 <h3 style="color: #1e293b; margin-bottom: 1rem; font-size: 1.1rem; font-weight: 600;">Sector Progress</h3>
                 <div id="sectorProgressList" style="margin-bottom: 1.5rem;">
                     <p style="color: #94a3b8;">Loading sector data...</p>
@@ -1568,6 +1585,14 @@
             }
         }
         
+        function profileHasNoScores(profile) {
+            const hofstede = profile.hofstede || {};
+            const mit = profile.mit || {};
+            const allDims = [...Object.values(hofstede), ...Object.values(mit)];
+            if (allDims.length === 0) return true;
+            return allDims.every(d => !d.value || d.value === 0);
+        }
+
         async function loadCultureProfile(framework = 'hofstede') {
             const prefix = framework === 'mit' ? 'mit' : 'hofstede';
             const company = document.getElementById(prefix + 'CompanySelect').value;
@@ -1586,17 +1611,42 @@
                     return;
                 }
                 
-                const profile = await response.json();
+                let profile = await response.json();
+
+                // If all scores are zero, auto-trigger scoring for this company then reload
+                if (company !== 'Industry Average' && profileHasNoScores(profile)) {
+                    const msgEl = document.getElementById(prefix + 'Message');
+                    msgEl.textContent = `Generating culture scores for ${company}... please wait.`;
+                    msgEl.style.display = 'block';
+                    document.getElementById(prefix + 'ProfileContainer').style.display = 'none';
+                    try {
+                        await fetch(`/api/score-company/${encodeURIComponent(company)}`, { method: 'POST' });
+                        const refreshed = await fetch(url);
+                        if (refreshed.ok) profile = await refreshed.json();
+                    } catch(e) {
+                        console.warn('Auto-scoring failed:', e);
+                    }
+                    msgEl.textContent = '';
+                    msgEl.style.display = 'none';
+                }
+
                 cacheStatus[company] = 'cached';
                 updateCacheStatusDisplay();
                 
-                // Load comparison profile if selected
                 let comparisonProfile = null;
                 if (comparison) {
                     let compUrl = comparison === 'Industry Average' ? buildUrl('/api/industry-average') : buildUrl(`/api/culture-profile/${encodeURIComponent(comparison)}`);
                     const compResponse = await fetch(compUrl);
                     if (compResponse.ok) {
                         comparisonProfile = await compResponse.json();
+                        // Auto-score comparison company too if needed
+                        if (comparison !== 'Industry Average' && profileHasNoScores(comparisonProfile)) {
+                            try {
+                                await fetch(`/api/score-company/${encodeURIComponent(comparison)}`, { method: 'POST' });
+                                const refreshed = await fetch(compUrl);
+                                if (refreshed.ok) comparisonProfile = await refreshed.json();
+                            } catch(e) { console.warn('Auto-scoring comparison failed:', e); }
+                        }
                     }
                 }
                 
@@ -3529,6 +3579,88 @@
                 });
         }
         
+        // ── Culture Scoring ──────────────────────────────────────────────────────
+        let scoringActive = false;
+        let scoringTotalCompanies = 0;
+
+        async function loadScoringStatus() {
+            try {
+                const r = await fetch('/api/score-status');
+                const d = await r.json();
+                if (!d.success) return;
+                const unscored = d.unscored_companies;
+                const total = d.total_companies;
+                scoringTotalCompanies = total;
+                const statsEl = document.getElementById('scoringStats');
+                const statusEl = document.getElementById('scoringStatusText');
+                if (statsEl) {
+                    if (unscored === 0) {
+                        statsEl.textContent = `All ${total} companies scored.`;
+                        statusEl.textContent = '';
+                    } else {
+                        statsEl.textContent = `${total - unscored} of ${total} companies scored — ${unscored} still need processing.`;
+                    }
+                }
+                return d;
+            } catch(e) { console.warn('Could not load scoring status:', e); }
+        }
+
+        async function startScoringBatch() {
+            scoringActive = true;
+            document.getElementById('btnScoreReviews').style.display = 'none';
+            document.getElementById('btnStopScoring').style.display = 'inline-block';
+            document.getElementById('scoringProgressBar').style.display = 'block';
+
+            const statusEl = document.getElementById('scoringStatusText');
+            const progressFill = document.getElementById('scoringProgressFill');
+
+            async function runBatch() {
+                if (!scoringActive) {
+                    statusEl.textContent = 'Stopped.';
+                    document.getElementById('btnScoreReviews').style.display = 'inline-block';
+                    document.getElementById('btnStopScoring').style.display = 'none';
+                    return;
+                }
+                try {
+                    const r = await fetch('/api/score-reviews?batch=10', { method: 'POST' });
+                    const d = await r.json();
+                    if (!d.success) {
+                        statusEl.textContent = 'Error: ' + (d.error || 'unknown');
+                        scoringActive = false;
+                        document.getElementById('btnScoreReviews').style.display = 'inline-block';
+                        document.getElementById('btnStopScoring').style.display = 'none';
+                        return;
+                    }
+                    const remaining = d.remaining || 0;
+                    const scored = scoringTotalCompanies - remaining;
+                    const pct = scoringTotalCompanies > 0 ? Math.round(scored / scoringTotalCompanies * 100) : 100;
+                    progressFill.style.width = pct + '%';
+                    statusEl.textContent = `Processing... ${scored} of ${scoringTotalCompanies} companies scored (${remaining} remaining)`;
+                    document.getElementById('scoringStats').textContent = statusEl.textContent;
+                    if (remaining === 0 || d.scored_companies === 0) {
+                        scoringActive = false;
+                        statusEl.textContent = `Done — all ${scoringTotalCompanies} companies scored.`;
+                        document.getElementById('btnScoreReviews').style.display = 'inline-block';
+                        document.getElementById('btnStopScoring').style.display = 'none';
+                        loadScoringStatus();
+                        return;
+                    }
+                    setTimeout(runBatch, 500);
+                } catch(e) {
+                    statusEl.textContent = 'Error: ' + e.message;
+                    scoringActive = false;
+                    document.getElementById('btnScoreReviews').style.display = 'inline-block';
+                    document.getElementById('btnStopScoring').style.display = 'none';
+                }
+            }
+            await loadScoringStatus();
+            runBatch();
+        }
+
+        function stopScoring() {
+            scoringActive = false;
+        }
+
         loadGicsHierarchy();
         loadData();
         loadCompaniesForTrends();
@@ -3838,6 +3970,7 @@
 
         function initExtractionManager() {
             loadExtractionStatus();
+            loadScoringStatus();
         }
     </script>
 </body>
