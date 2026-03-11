@@ -1268,6 +1268,7 @@
             }
             analysisCompaniesLoaded = false;
             culturePerfData = null;
+            insightsLoaded = false;
             await loadData();
             loadCompaniesForTrends();
             if (document.getElementById('analysisTab') && document.getElementById('analysisTab').style.display !== 'none') {
@@ -1275,6 +1276,9 @@
             }
             if (document.getElementById('culturePerfTab') && document.getElementById('culturePerfTab').style.display !== 'none') {
                 loadCulturePerfScatter();
+            }
+            if (document.getElementById('insightsTab') && document.getElementById('insightsTab').style.display !== 'none') {
+                loadPerformanceInsights();
             }
             loadCorrelationData();
         }

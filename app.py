@@ -4,6 +4,7 @@ Simplified approach: Query database on-demand instead of pre-loading all data
 """
 
 import os
+import re
 import json
 import logging
 import math
@@ -1869,6 +1870,45 @@ def culture_benchmarking(company_name):
 # PERFORMANCE CORRELATION API
 # ============================================================================
 
+def _load_fmp_perf_map():
+    """Load all rows from fmp_performance_metrics as a company→dict map."""
+    fmp_map = {}
+    try:
+        conn = get_db_connection()
+        if conn:
+            cur = conn.cursor(cursor_factory=RealDictCursor)
+            cur.execute("""
+                SELECT company_name, roe_5y_avg, op_margin_5y_avg,
+                       tsr_5y, revenue_growth_5y, data_source, gics_sector
+                FROM fmp_performance_metrics
+            """)
+            for row in cur.fetchall():
+                fmp_map[row['company_name']] = dict(row)
+            cur.close()
+            conn.close()
+    except Exception as e:
+        logger.warning(f"Could not load fmp_performance_metrics: {e}")
+    return fmp_map
+
+
+def _fmp_row_to_perf_metrics(company, fmp_row):
+    """Convert a fmp_performance_metrics row to the performance_analyzer metrics format."""
+    data_source = fmp_row.get('data_source', 'fmp')
+    business_model = performance_analyzer.get_business_model(company)
+    if business_model == 'Unknown':
+        business_model = 'Listed' if data_source == 'fmp' else 'Traditional'
+    raw = {
+        'company': company,
+        'matched_name': company,
+        'business_model': business_model,
+        'roe_5y_avg': fmp_row.get('roe_5y_avg'),
+        'op_margin_5y_avg': fmp_row.get('op_margin_5y_avg'),
+        'tsr_cagr_5y': fmp_row.get('tsr_5y'),
+        'revenue_growth_5y': fmp_row.get('revenue_growth_5y'),
+    }
+    return {k: v for k, v in raw.items() if v is not None}
+
+
 @app.route('/api/performance-correlation', methods=['GET'])
 def get_performance_correlation():
     """Get correlation analysis between culture metrics and business performance"""
@@ -1879,6 +1919,7 @@ def get_performance_correlation():
             performance_analyzer.load_data()
         
         culture_companies = get_companies_for_sector(gics_level=gics_level, gics_value=gics_value)
+        fmp_perf_map = _load_fmp_perf_map()
         
         cached_map = get_cached_metrics_batch(culture_companies)
         
@@ -1902,6 +1943,11 @@ def get_performance_correlation():
                 })
             
             perf_metrics = performance_analyzer.get_performance_metrics(company)
+            if not perf_metrics or len(perf_metrics) <= 2:
+                fmp_row = fmp_perf_map.get(company)
+                if fmp_row:
+                    perf_metrics = _fmp_row_to_perf_metrics(company, fmp_row)
+            
             if perf_metrics and len(perf_metrics) > 2:
                 perf_metrics['composite_score'] = performance_analyzer.calculate_composite_score(
                     perf_metrics, peer_stats
@@ -1965,6 +2011,7 @@ def get_performance_rankings():
             performance_analyzer.load_data()
         
         culture_companies = get_companies_for_sector(gics_level=gics_level, gics_value=gics_value)
+        fmp_perf_map = _load_fmp_perf_map()
         
         cached_map = get_cached_metrics_batch(culture_companies)
         
@@ -1973,6 +2020,11 @@ def get_performance_rankings():
         
         for company in culture_companies:
             perf_metrics = performance_analyzer.get_performance_metrics(company)
+            if not perf_metrics or len(perf_metrics) <= 2:
+                fmp_row = fmp_perf_map.get(company)
+                if fmp_row:
+                    perf_metrics = _fmp_row_to_perf_metrics(company, fmp_row)
+            
             if perf_metrics and len(perf_metrics) > 2:
                 composite = performance_analyzer.calculate_composite_score(perf_metrics, peer_stats)
                 if composite is not None:
@@ -1980,13 +2032,14 @@ def get_performance_rankings():
                     if not culture_metrics:
                         culture_metrics = get_company_metrics(company)
                     
+                    aum_raw = perf_metrics.get('aum_cagr_5y')
                     rankings.append({
                         'company': company,
                         'composite_score': round(composite, 1),
                         'business_model': perf_metrics.get('business_model', 'Unknown'),
                         'sector': get_company_sector(company) or '',
                         'roe_5y_avg': perf_metrics.get('roe_5y_avg'),
-                        'aum_cagr_5y': round(perf_metrics.get('aum_cagr_5y', 0) * 100, 1) if perf_metrics.get('aum_cagr_5y') else None,
+                        'aum_cagr_5y': round(aum_raw * 100, 1) if aum_raw else None,
                         'tsr_cagr_5y': perf_metrics.get('tsr_cagr_5y'),
                         'culture_confidence': culture_metrics.get('overall_confidence', 0) if culture_metrics else 0
                     })
@@ -2497,8 +2550,8 @@ def get_culture_performance_scatter():
             if fmp_conn:
                 fmp_cur = fmp_conn.cursor(cursor_factory=RealDictCursor)
                 fmp_cur.execute("""
-                    SELECT company_name, roe_5y_avg, operating_margin_5y_avg, 
-                           tsr_cagr_5y, revenue_growth_5y, market_cap, data_source
+                    SELECT company_name, roe_5y_avg, op_margin_5y_avg,
+                           tsr_5y, revenue_growth_5y, market_cap, data_source
                     FROM fmp_performance_metrics
                 """)
                 for row in fmp_cur.fetchall():
@@ -2520,15 +2573,7 @@ def get_culture_performance_scatter():
             if not perf_metrics or len(perf_metrics) <= 2:
                 fmp_row = fmp_perf_map.get(name)
                 if fmp_row:
-                    perf_metrics = {
-                        'company': name,
-                        'matched_name': name,
-                        'roe_5y_avg': fmp_row.get('roe_5y_avg'),
-                        'op_margin_5y_avg': fmp_row.get('operating_margin_5y_avg'),
-                        'tsr_cagr_5y': fmp_row.get('tsr_cagr_5y'),
-                        'revenue_growth_5y': fmp_row.get('revenue_growth_5y'),
-                    }
-                    perf_metrics = {k: v for k, v in perf_metrics.items() if v is not None}
+                    perf_metrics = _fmp_row_to_perf_metrics(name, fmp_row)
                     if len(perf_metrics) <= 2:
                         continue
                 else:
@@ -3057,10 +3102,22 @@ def load_excel_performance_data():
         perf_df = pd.read_excel(excel_path, 'Business Performance')
         tsr_df = pd.read_excel(excel_path, 'Shareholder Returns')
         
+        JUNK_PATTERNS = re.compile(
+            r'EXPLAINED|METRICS|ROE \(Return|Revenue Yield|Fee-Earning|Operating Margin|Net Margin|NaN|^\s*$',
+            re.IGNORECASE
+        )
+        def is_valid_company(name):
+            if not name or not isinstance(name, str):
+                return False
+            name_str = str(name).strip()
+            if not name_str or name_str.lower() == 'nan':
+                return False
+            return not JUNK_PATTERNS.search(name_str)
+        
         excel_data = {}
         for _, row in perf_df.iterrows():
             name = row.get('Company', '')
-            if not name:
+            if not is_valid_company(name):
                 continue
             excel_data[name] = {
                 'roe_5y_avg': row.get('5Y Avg ROE (%)'),
@@ -3183,6 +3240,26 @@ def load_excel_performance_data():
                 conn.rollback()
         
         conn.commit()
+        # Purge any junk rows that may have slipped through (Excel header rows)
+        try:
+            cursor2 = conn.cursor()
+            cursor2.execute("""
+                DELETE FROM fmp_performance_metrics
+                WHERE data_source = 'excel'
+                  AND (
+                    company_name IS NULL
+                    OR company_name ~* '(EXPLAINED|METRICS|ROE \(Return|Revenue Yield|Fee-Earning|Operating Margin|Net Margin)'
+                    OR LOWER(company_name) = 'nan'
+                    OR TRIM(company_name) = ''
+                  )
+            """)
+            purged = cursor2.rowcount
+            conn.commit()
+            cursor2.close()
+            if purged > 0:
+                logger.info(f"Purged {purged} junk rows from fmp_performance_metrics")
+        except Exception as e:
+            logger.warning(f"Junk purge error: {e}")
         cursor.close()
         conn.close()
         logger.info(f"Loaded {loaded} asset management companies from Excel")
