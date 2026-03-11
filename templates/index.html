@@ -621,50 +621,6 @@
                             <select id="hofstedeComparisonSelect" onchange="loadCultureProfile('hofstede')">
                                 <option value="">None</option>
                                 <option value="Industry Average">Industry Average</option>
-                                <option value="AllianceBernstein">AllianceBernstein</option>
-                                <option value="Allianz Group">Allianz Group</option>
-                                <option value="Ameriprise Financial">Ameriprise Financial</option>
-                                <option value="Amundi">Amundi</option>
-                                <option value="Apollo Global Management">Apollo Global Management</option>
-                                <option value="Ares Management">Ares Management</option>
-                                <option value="AXA Group">AXA Group</option>
-                                <option value="BlackRock">BlackRock</option>
-                                <option value="Blackstone">Blackstone</option>
-                                <option value="BNP Paribas">BNP Paribas</option>
-                                <option value="BNY Investments">BNY Investments</option>
-                                <option value="Brookfield">Brookfield</option>
-                                <option value="Capital Group">Capital Group</option>
-                                <option value="Carlyle Group">Carlyle Group</option>
-                                <option value="CVC Capital Partners">CVC Capital Partners</option>
-                                <option value="Dimensional Fund Advisors">Dimensional Fund Advisors</option>
-                                <option value="Equitable Holdings">Equitable Holdings</option>
-                                <option value="Eurazeo">Eurazeo</option>
-                                <option value="Federated Hermes">Federated Hermes</option>
-                                <option value="Fidelity International">Fidelity International</option>
-                                <option value="Fidelity Investments">Fidelity Investments</option>
-                                <option value="Franklin Templeton">Franklin Templeton</option>
-                                <option value="Goldman Sachs Group">Goldman Sachs Group</option>
-                                <option value="HDFC Asset Management">HDFC Asset Management</option>
-                                <option value="Invesco">Invesco</option>
-                                <option value="J.P. Morgan Chase">J.P. Morgan Chase</option>
-                                <option value="Julius Baer">Julius Baer</option>
-                                <option value="KKR">KKR</option>
-                                <option value="Legal & General Group">Legal & General Group</option>
-                                <option value="M&G plc">M&G plc</option>
-                                <option value="Morgan Stanley Inv. Mgmt.">Morgan Stanley Inv. Mgmt.</option>
-                                <option value="Natixis Investment Managers">Natixis Investment Managers</option>
-                                <option value="Northern Trust">Northern Trust</option>
-                                <option value="Nuveen">Nuveen</option>
-                                <option value="Partners Group">Partners Group</option>
-                                <option value="PIMCO">PIMCO</option>
-                                <option value="Robeco">Robeco</option>
-                                <option value="Schroders">Schroders</option>
-                                <option value="Sofina">Sofina</option>
-                                <option value="State Street">State Street</option>
-                                <option value="T. Rowe Price">T. Rowe Price</option>
-                                <option value="UBS Group">UBS Group</option>
-                                <option value="Vanguard Group">Vanguard Group</option>
-                                <option value="Wellington Mgmt.">Wellington Mgmt.</option>
                             </select>
                         </div>
                     </div>
@@ -800,50 +756,6 @@
                             <select id="mitComparisonSelect" onchange="loadCultureProfile('mit')">
                                 <option value="">None</option>
                                 <option value="Industry Average">Industry Average</option>
-                                <option value="AllianceBernstein">AllianceBernstein</option>
-                                <option value="Allianz Group">Allianz Group</option>
-                                <option value="Ameriprise Financial">Ameriprise Financial</option>
-                                <option value="Amundi">Amundi</option>
-                                <option value="Apollo Global Management">Apollo Global Management</option>
-                                <option value="Ares Management">Ares Management</option>
-                                <option value="AXA Group">AXA Group</option>
-                                <option value="BlackRock">BlackRock</option>
-                                <option value="Blackstone">Blackstone</option>
-                                <option value="BNP Paribas">BNP Paribas</option>
-                                <option value="BNY Investments">BNY Investments</option>
-                                <option value="Brookfield">Brookfield</option>
-                                <option value="Capital Group">Capital Group</option>
-                                <option value="Carlyle Group">Carlyle Group</option>
-                                <option value="CVC Capital Partners">CVC Capital Partners</option>
-                                <option value="Dimensional Fund Advisors">Dimensional Fund Advisors</option>
-                                <option value="Equitable Holdings">Equitable Holdings</option>
-                                <option value="Eurazeo">Eurazeo</option>
-                                <option value="Federated Hermes">Federated Hermes</option>
-                                <option value="Fidelity International">Fidelity International</option>
-                                <option value="Fidelity Investments">Fidelity Investments</option>
-                                <option value="Franklin Templeton">Franklin Templeton</option>
-                                <option value="Goldman Sachs Group">Goldman Sachs Group</option>
-                                <option value="HDFC Asset Management">HDFC Asset Management</option>
-                                <option value="Invesco">Invesco</option>
-                                <option value="J.P. Morgan Chase">J.P. Morgan Chase</option>
-                                <option value="Julius Baer">Julius Baer</option>
-                                <option value="KKR">KKR</option>
-                                <option value="Legal & General Group">Legal & General Group</option>
-                                <option value="M&G plc">M&G plc</option>
-                                <option value="Morgan Stanley Inv. Mgmt.">Morgan Stanley Inv. Mgmt.</option>
-                                <option value="Natixis Investment Managers">Natixis Investment Managers</option>
-                                <option value="Northern Trust">Northern Trust</option>
-                                <option value="Nuveen">Nuveen</option>
-                                <option value="Partners Group">Partners Group</option>
-                                <option value="PIMCO">PIMCO</option>
-                                <option value="Robeco">Robeco</option>
-                                <option value="Schroders">Schroders</option>
-                                <option value="Sofina">Sofina</option>
-                                <option value="State Street">State Street</option>
-                                <option value="T. Rowe Price">T. Rowe Price</option>
-                                <option value="UBS Group">UBS Group</option>
-                                <option value="Vanguard Group">Vanguard Group</option>
-                                <option value="Wellington Mgmt.">Wellington Mgmt.</option>
                             </select>
                         </div>
                     </div>
@@ -1338,10 +1250,16 @@
                 }
             }
             analysisCompaniesLoaded = false;
+            culturePerfData = null;
             await loadData();
+            loadCompaniesForTrends();
             if (document.getElementById('analysisTab') && document.getElementById('analysisTab').style.display !== 'none') {
                 await loadAnalysisCompanies();
             }
+            if (document.getElementById('culturePerfTab') && document.getElementById('culturePerfTab').style.display !== 'none') {
+                loadCulturePerfScatter();
+            }
+            loadCorrelationData();
         }
 
         // Helper function to get correlation-based color with intensity
@@ -2669,10 +2587,10 @@
         
         async function loadCulturePerfScatter() {
             if (culturePerfData) {
-                // Data already loaded, just update chart
                 updateCulturePerfScatter();
                 return;
             }
+            
             
             document.getElementById('culturePerfLoading').style.display = 'block';
             document.getElementById('culturePerfContent').style.display = 'none';
@@ -2705,22 +2623,25 @@
             
             const scoreType = document.getElementById('cultureScoreType').value;
             
-            // Define colors for each business model
             const businessModelColors = {
-                'Traditional': 'rgba(59, 130, 246, 0.8)',     // Blue
-                'Alternative': 'rgba(16, 185, 129, 0.8)',    // Green
-                'Insurance/Wealth': 'rgba(245, 158, 11, 0.8)' // Amber
+                'Traditional': 'rgba(59, 130, 246, 0.8)',
+                'Alternative': 'rgba(16, 185, 129, 0.8)',
+                'Insurance/Wealth': 'rgba(245, 158, 11, 0.8)',
+                'Listed': 'rgba(139, 92, 246, 0.8)',
+                'Unknown': 'rgba(107, 114, 128, 0.8)'
             };
             
             const businessModelBorderColors = {
                 'Traditional': 'rgba(59, 130, 246, 1)',
                 'Alternative': 'rgba(16, 185, 129, 1)',
-                'Insurance/Wealth': 'rgba(245, 158, 11, 1)'
+                'Insurance/Wealth': 'rgba(245, 158, 11, 1)',
+                'Listed': 'rgba(139, 92, 246, 1)',
+                'Unknown': 'rgba(107, 114, 128, 1)'
             };
             
-            // Prepare data by business model
             const datasets = [];
-            const businessModels = ['Traditional', 'Alternative', 'Insurance/Wealth'];
+            const allModels = new Set(culturePerfData.map(c => c.business_model));
+            const businessModels = [...allModels].sort();
             
             businessModels.forEach(model => {
                 const modelCompanies = culturePerfData.filter(c => c.business_model === model);
@@ -2743,8 +2664,8 @@
                         mit_conf_level: c.mit_confidence_level || 'Low',
                         combined_conf_level: c.combined_confidence_level || 'Low'
                     })),
-                    backgroundColor: businessModelColors[model],
-                    borderColor: businessModelBorderColors[model],
+                    backgroundColor: businessModelColors[model] || 'rgba(107, 114, 128, 0.8)',
+                    borderColor: businessModelBorderColors[model] || 'rgba(107, 114, 128, 1)',
                     borderWidth: 2,
                     pointRadius: 8,
                     pointHoverRadius: 12

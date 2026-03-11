@@ -2431,7 +2431,23 @@ def get_culture_performance_scatter():
             dim_data = mit_corr_data.get(dim, {}).get('composite_score', {})
             mit_correlations[dim] = dim_data.get('correlation', 0) if isinstance(dim_data, dict) else 0
         
-        # Calculate culture scores for each company
+        fmp_perf_map = {}
+        try:
+            fmp_conn = get_db_connection()
+            if fmp_conn:
+                fmp_cur = fmp_conn.cursor(cursor_factory=RealDictCursor)
+                fmp_cur.execute("""
+                    SELECT company_name, roe_5y_avg, operating_margin_5y_avg, 
+                           tsr_cagr_5y, revenue_growth_5y, market_cap, data_source
+                    FROM fmp_performance_metrics
+                """)
+                for row in fmp_cur.fetchall():
+                    fmp_perf_map[row['company_name']] = row
+                fmp_cur.close()
+                fmp_conn.close()
+        except Exception as e:
+            logger.warning(f"Could not load FMP performance data: {e}")
+
         mit_max_values = get_mit_max_values()
         companies_data = []
         
@@ -2440,17 +2456,33 @@ def get_culture_performance_scatter():
             if not metrics:
                 continue
             
-            # Get performance data
             perf_metrics = performance_analyzer.get_performance_metrics(name)
             if not perf_metrics or len(perf_metrics) <= 2:
-                continue
+                fmp_row = fmp_perf_map.get(name)
+                if fmp_row:
+                    perf_metrics = {
+                        'company': name,
+                        'matched_name': name,
+                        'roe_5y_avg': fmp_row.get('roe_5y_avg'),
+                        'op_margin_5y_avg': fmp_row.get('operating_margin_5y_avg'),
+                        'tsr_cagr_5y': fmp_row.get('tsr_cagr_5y'),
+                        'revenue_growth_5y': fmp_row.get('revenue_growth_5y'),
+                    }
+                    perf_metrics = {k: v for k, v in perf_metrics.items() if v is not None}
+                    if len(perf_metrics) <= 2:
+                        continue
+                else:
+                    continue
             
             composite_score = performance_analyzer.calculate_composite_score(perf_metrics, peer_stats)
             if composite_score is None:
                 continue
             
-            # Get business model category
             business_model = performance_analyzer.get_business_model(name)
+            if business_model == 'Unknown':
+                fmp_row = fmp_perf_map.get(name)
+                if fmp_row and fmp_row.get('data_source') == 'fmp':
+                    business_model = 'Listed'
             
             # Calculate Hofstede company values, score, and weighted confidence
             hofstede_score = 0.0
