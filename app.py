@@ -886,6 +886,7 @@ def score_unscored_reviews():
             try:
                 mgr._score_company_reviews(company_name)
                 invalidate_cache(company_name)
+                _mit_max_values_cache.clear()  # Force recalculation of normalization
                 results.append({'company': company_name, 'unscored_reviews': unscored_count, 'status': 'scored'})
             except Exception as e:
                 results.append({'company': company_name, 'unscored_reviews': unscored_count, 'status': f'error: {str(e)}'})
@@ -955,6 +956,7 @@ def score_single_company(company_name):
         mgr = ExtractionManager.get_instance()
         mgr._score_company_reviews(company_name)
         invalidate_cache(company_name)
+        _mit_max_values_cache.clear()  # Force recalculation of normalization
         conn = get_db_connection()
         scored_count = 0
         if conn:
