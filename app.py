@@ -1911,6 +1911,29 @@ def _fmp_row_to_perf_metrics(company, fmp_row):
     return {k: v for k, v in raw.items() if v is not None}
 
 
+_FINANCIAL_METRIC_KEYS = {'roe_5y_avg', 'aum_cagr_5y', 'tsr_cagr_5y', 'op_margin_5y_avg', 'revenue_growth_5y'}
+
+def _has_financial_metrics(metrics):
+    """Return True if the metrics dict contains at least one actual financial value."""
+    if not metrics:
+        return False
+    return any(metrics.get(k) is not None for k in _FINANCIAL_METRIC_KEYS)
+
+
+def _get_perf_metrics_with_fmp_fallback(company, fmp_perf_map):
+    """Get performance metrics for a company, falling back to FMP data if Excel has none."""
+    perf_metrics = performance_analyzer.get_performance_metrics(company)
+    if not _has_financial_metrics(perf_metrics):
+        fmp_row = fmp_perf_map.get(company)
+        if fmp_row:
+            fmp_metrics = _fmp_row_to_perf_metrics(company, fmp_row)
+            if perf_metrics:
+                perf_metrics = {**perf_metrics, **fmp_metrics}
+            else:
+                perf_metrics = fmp_metrics
+    return perf_metrics
+
+
 @app.route('/api/performance-correlation', methods=['GET'])
 def get_performance_correlation():
     """Get correlation analysis between culture metrics and business performance"""
@@ -1944,13 +1967,9 @@ def get_performance_correlation():
                     'mit': metrics.get('mit_big_9', {})
                 })
             
-            perf_metrics = performance_analyzer.get_performance_metrics(company)
-            if not perf_metrics or len(perf_metrics) <= 2:
-                fmp_row = fmp_perf_map.get(company)
-                if fmp_row:
-                    perf_metrics = _fmp_row_to_perf_metrics(company, fmp_row)
+            perf_metrics = _get_perf_metrics_with_fmp_fallback(company, fmp_perf_map)
             
-            if perf_metrics and len(perf_metrics) > 2:
+            if _has_financial_metrics(perf_metrics):
                 perf_metrics['composite_score'] = performance_analyzer.calculate_composite_score(
                     perf_metrics, peer_stats
                 )
@@ -1983,9 +2002,10 @@ def get_company_performance():
         if not performance_analyzer.loaded:
             performance_analyzer.load_data()
         
-        perf_metrics = performance_analyzer.get_performance_metrics(company_name)
+        fmp_perf_map_cp = _load_fmp_perf_map()
+        perf_metrics = _get_perf_metrics_with_fmp_fallback(company_name, fmp_perf_map_cp)
         
-        if not perf_metrics or len(perf_metrics) <= 2:
+        if not _has_financial_metrics(perf_metrics):
             return jsonify({'success': False, 'error': f'No performance data for {company_name}'}), 404
         
         # Calculate composite score
@@ -2021,13 +2041,9 @@ def get_performance_rankings():
         peer_stats = performance_analyzer.get_peer_statistics()
         
         for company in culture_companies:
-            perf_metrics = performance_analyzer.get_performance_metrics(company)
-            if not perf_metrics or len(perf_metrics) <= 2:
-                fmp_row = fmp_perf_map.get(company)
-                if fmp_row:
-                    perf_metrics = _fmp_row_to_perf_metrics(company, fmp_row)
+            perf_metrics = _get_perf_metrics_with_fmp_fallback(company, fmp_perf_map)
             
-            if perf_metrics and len(perf_metrics) > 2:
+            if _has_financial_metrics(perf_metrics):
                 composite = performance_analyzer.calculate_composite_score(perf_metrics, peer_stats)
                 if composite is not None:
                     culture_metrics = cached_map.get(company)
@@ -2122,6 +2138,7 @@ def get_company_analysis(company_name):
         if not performance_analyzer.loaded:
             performance_analyzer.load_data()
         
+        fmp_perf_map_ca = _load_fmp_perf_map()
         culture_data = []
         performance_data = []
         peer_stats = performance_analyzer.get_peer_statistics()
@@ -2136,8 +2153,8 @@ def get_company_analysis(company_name):
                     'hofstede': m.get('hofstede', {}),
                     'mit': m.get('mit_big_9', {})
                 })
-            perf_metrics = performance_analyzer.get_performance_metrics(name)
-            if perf_metrics and len(perf_metrics) > 2:
+            perf_metrics = _get_perf_metrics_with_fmp_fallback(name, fmp_perf_map_ca)
+            if _has_financial_metrics(perf_metrics):
                 perf_metrics['composite_score'] = performance_analyzer.calculate_composite_score(
                     perf_metrics, peer_stats
                 )
@@ -2510,6 +2527,9 @@ def get_culture_performance_scatter():
         industry_hofstede = {dim: mean(vals) if vals else 0 for dim, vals in hofstede_avg.items()}
         industry_mit = {dim: mean(vals) if vals else 0 for dim, vals in mit_avg.items()}
         
+        # Load FMP performance data once (used in both loops below)
+        fmp_perf_map = _load_fmp_perf_map()
+
         # Get correlations for scoring
         culture_data = []
         performance_data = []
@@ -2523,8 +2543,8 @@ def get_culture_performance_scatter():
                     'hofstede': m.get('hofstede', {}),
                     'mit': m.get('mit_big_9', {})
                 })
-            perf_metrics = performance_analyzer.get_performance_metrics(name)
-            if perf_metrics and len(perf_metrics) > 2:
+            perf_metrics = _get_perf_metrics_with_fmp_fallback(name, fmp_perf_map)
+            if _has_financial_metrics(perf_metrics):
                 perf_metrics['composite_score'] = performance_analyzer.calculate_composite_score(
                     perf_metrics, peer_stats
                 )
@@ -2545,23 +2565,6 @@ def get_culture_performance_scatter():
         for dim in MIT_DIMENSIONS:
             dim_data = mit_corr_data.get(dim, {}).get('composite_score', {})
             mit_correlations[dim] = dim_data.get('correlation', 0) if isinstance(dim_data, dict) else 0
-        
-        fmp_perf_map = {}
-        try:
-            fmp_conn = get_db_connection()
-            if fmp_conn:
-                fmp_cur = fmp_conn.cursor(cursor_factory=RealDictCursor)
-                fmp_cur.execute("""
-                    SELECT company_name, roe_5y_avg, op_margin_5y_avg,
-                           tsr_5y, revenue_growth_5y, market_cap, data_source
-                    FROM fmp_performance_metrics
-                """)
-                for row in fmp_cur.fetchall():
-                    fmp_perf_map[row['company_name']] = row
-                fmp_cur.close()
-                fmp_conn.close()
-        except Exception as e:
-            logger.warning(f"Could not load FMP performance data: {e}")
 
         mit_max_values = get_mit_max_values()
         companies_data = []
@@ -2571,15 +2574,9 @@ def get_culture_performance_scatter():
             if not metrics:
                 continue
             
-            perf_metrics = performance_analyzer.get_performance_metrics(name)
-            if not perf_metrics or len(perf_metrics) <= 2:
-                fmp_row = fmp_perf_map.get(name)
-                if fmp_row:
-                    perf_metrics = _fmp_row_to_perf_metrics(name, fmp_row)
-                    if len(perf_metrics) <= 2:
-                        continue
-                else:
-                    continue
+            perf_metrics = _get_perf_metrics_with_fmp_fallback(name, fmp_perf_map)
+            if not _has_financial_metrics(perf_metrics):
+                continue
             
             composite_score = performance_analyzer.calculate_composite_score(perf_metrics, peer_stats)
             if composite_score is None:
