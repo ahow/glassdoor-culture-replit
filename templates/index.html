@@ -885,6 +885,34 @@
                     Discover which culture dimensions are most strongly associated with business performance. This analysis correlates Hofstede and MIT culture scores with key financial metrics including ROE, AUM growth, and shareholder returns.
                 </p>
                 
+                <!-- FMP Data Fetch Panel -->
+                <div id="fmpFetchPanel" style="background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 10px; padding: 1.25rem; margin-bottom: 1.5rem; display: flex; align-items: flex-start; gap: 1rem; flex-wrap: wrap;">
+                    <div style="flex: 1; min-width: 260px;">
+                        <div style="font-weight: 600; color: #0369a1; margin-bottom: 0.35rem;">Financial Performance Data</div>
+                        <div id="fmpFetchStatus" style="font-size: 0.88rem; color: #475569;">
+                            Click to fetch financial metrics (ROE, TSR, margins) from FMP for companies that have reviews but no performance data yet.
+                        </div>
+                        <div id="fmpProgressBar" style="display:none; margin-top: 0.6rem; background: #e0f2fe; border-radius: 999px; height: 8px; overflow: hidden;">
+                            <div id="fmpProgressFill" style="height: 100%; background: #0284c7; width: 0%; transition: width 0.4s;"></div>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 0.75rem; align-items: center; flex-shrink: 0;">
+                        <label style="font-size: 0.85rem; color: #475569;">Batch size:</label>
+                        <select id="fmpBatchSize" style="padding: 0.3rem 0.5rem; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.85rem; background: white;">
+                            <option value="5">5</option>
+                            <option value="10" selected>10</option>
+                            <option value="20">20</option>
+                        </select>
+                        <button id="fmpFetchBtn" onclick="startFmpFetch(false)"
+                            style="padding: 0.45rem 1.1rem; background: #0284c7; color: white; border: none; border-radius: 7px; font-size: 0.88rem; font-weight: 600; cursor: pointer; white-space: nowrap;">
+                            Fetch FMP Data
+                        </button>
+                        <button id="fmpStopBtn" onclick="stopFmpFetch()" style="display:none; padding: 0.45rem 0.9rem; background: #ef4444; color: white; border: none; border-radius: 7px; font-size: 0.88rem; font-weight: 600; cursor: pointer;">
+                            Stop
+                        </button>
+                    </div>
+                </div>
+
                 <div id="insightsLoading" style="text-align: center; padding: 2rem; color: #64748b;">
                     Loading correlation analysis...
                 </div>
@@ -2498,6 +2526,80 @@
         window.perfHofstedeChart = null;
         window.perfMitChart = null;
         
+        // FMP Fetch state
+        let _fmpFetchRunning = false;
+        let _fmpFetchedTotal = 0;
+        let _fmpInitialRemaining = null;
+
+        async function startFmpFetch(continuous) {
+            if (_fmpFetchRunning) return;
+            _fmpFetchRunning = true;
+            _fmpFetchedTotal = 0;
+            _fmpInitialRemaining = null;
+
+            document.getElementById('fmpFetchBtn').style.display = 'none';
+            document.getElementById('fmpStopBtn').style.display = 'inline-block';
+            document.getElementById('fmpProgressBar').style.display = 'block';
+            document.getElementById('fmpProgressFill').style.width = '0%';
+            setFmpStatus('Starting fetch...', '#0369a1');
+
+            const batchSize = parseInt(document.getElementById('fmpBatchSize').value, 10);
+            await _fmpFetchLoop(batchSize);
+        }
+
+        async function _fmpFetchLoop(batchSize) {
+            if (!_fmpFetchRunning) return;
+            try {
+                const res = await fetch(`/api/fetch-fmp-performance?batch=${batchSize}`, { method: 'POST' });
+                const data = await res.json();
+
+                if (!data.success && data.error) {
+                    setFmpStatus('Error: ' + data.error, '#dc2626');
+                    stopFmpFetch();
+                    return;
+                }
+
+                const fetched = data.fetched || 0;
+                const remaining = data.remaining != null ? data.remaining : 0;
+                _fmpFetchedTotal += fetched;
+
+                if (_fmpInitialRemaining === null) {
+                    _fmpInitialRemaining = remaining + fetched;
+                }
+
+                const done = _fmpInitialRemaining - remaining;
+                const pct = _fmpInitialRemaining > 0 ? Math.min(100, Math.round(done / _fmpInitialRemaining * 100)) : 100;
+                document.getElementById('fmpProgressFill').style.width = pct + '%';
+
+                if (remaining === 0 || fetched === 0) {
+                    setFmpStatus(`Done — fetched ${_fmpFetchedTotal} companies. Refreshing analysis...`, '#16a34a');
+                    document.getElementById('fmpProgressFill').style.width = '100%';
+                    stopFmpFetch();
+                    // Reload insights
+                    insightsLoaded = false;
+                    loadPerformanceInsights();
+                    return;
+                }
+
+                setFmpStatus(`Fetched ${_fmpFetchedTotal} so far — ${remaining} remaining...`, '#0369a1');
+                setTimeout(() => _fmpFetchLoop(batchSize), 800);
+            } catch (e) {
+                setFmpStatus('Network error: ' + e.message, '#dc2626');
+                stopFmpFetch();
+            }
+        }
+
+        function stopFmpFetch() {
+            _fmpFetchRunning = false;
+            document.getElementById('fmpFetchBtn').style.display = 'inline-block';
+            document.getElementById('fmpStopBtn').style.display = 'none';
+        }
+
+        function setFmpStatus(msg, color) {
+            const el = document.getElementById('fmpFetchStatus');
+            if (el) { el.textContent = msg; el.style.color = color || '#475569'; }
+        }
+
         async function loadPerformanceInsights() {
             if (insightsLoaded) return;
             
