@@ -1881,7 +1881,7 @@ def _load_fmp_perf_map():
             cur = conn.cursor(cursor_factory=RealDictCursor)
             cur.execute("""
                 SELECT company_name, roe_5y_avg, op_margin_5y_avg,
-                       tsr_5y, revenue_growth_5y, data_source, gics_sector
+                       tsr_5y, revenue_growth_5y, data_source, gics_sector, gics_industry
                 FROM fmp_performance_metrics
             """)
             for row in cur.fetchall():
@@ -1893,12 +1893,21 @@ def _load_fmp_perf_map():
     return fmp_map
 
 
+_GICS_INDUSTRY_TO_BUSINESS_MODEL = {
+    'Banks': 'Traditional',
+    'Insurance': 'Insurance/Wealth',
+    'Diversified Financials': 'Traditional',
+    'Financial Services': 'Traditional',
+}
+
 def _fmp_row_to_perf_metrics(company, fmp_row):
     """Convert a fmp_performance_metrics row to the performance_analyzer metrics format."""
     data_source = fmp_row.get('data_source', 'fmp')
     business_model = performance_analyzer.get_business_model(company)
     if business_model == 'Unknown':
-        business_model = 'Listed' if data_source == 'fmp' else 'Traditional'
+        gics_industry = fmp_row.get('gics_industry') or ''
+        business_model = _GICS_INDUSTRY_TO_BUSINESS_MODEL.get(gics_industry,
+                         'Listed' if data_source == 'fmp' else 'Traditional')
     raw = {
         'company': company,
         'matched_name': company,
@@ -2582,11 +2591,10 @@ def get_culture_performance_scatter():
             if composite_score is None:
                 continue
             
-            business_model = performance_analyzer.get_business_model(name)
+            # Use business_model already resolved in perf_metrics (includes GICS-based mapping)
+            business_model = perf_metrics.get('business_model', 'Unknown')
             if business_model == 'Unknown':
-                fmp_row = fmp_perf_map.get(name)
-                if fmp_row and fmp_row.get('data_source') == 'fmp':
-                    business_model = 'Listed'
+                business_model = 'Traditional'
             
             # Calculate Hofstede company values, score, and weighted confidence
             hofstede_score = 0.0
