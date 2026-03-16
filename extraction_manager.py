@@ -600,15 +600,27 @@ class ExtractionManager:
         except Exception:
             existing_companies = {}
 
-        issuer_words = set(issuer_name.lower().replace(',', '').replace('.', '').split())
+        _existing_filler = {'inc', 'corp', 'corporation', 'company', 'the', 'ltd', 'plc', 'group',
+                            'holdings', 'holding', 'sa', 'se', 'ag', 'nv', 'limited', '&', 'of',
+                            'and', 'co', 'international', 'global', 'services', 'financial',
+                            'management', 'capital', 'partners', 'investments', 'investment',
+                            'asset', 'trust', 'fund', 'national', 'bank', 'insurance', 'de', 'ab'}
+        issuer_words = set(issuer_name.lower().replace(',', '').replace('.', '').replace('-', ' ').split())
+        issuer_meaningful = issuer_words - _existing_filler
         for comp_lower, (comp_name, rev_count) in existing_companies.items():
-            comp_words = set(comp_lower.replace(',', '').replace('.', '').split())
-            common = issuer_words & comp_words
-            filler_only = {'inc', 'corp', 'corporation', 'company', 'the', 'ltd', 'plc', 'group',
-                           'holdings', 'holding', 'sa', 'se', 'ag', 'nv', 'limited', '&', 'of', 'and'}
-            meaningful_common = common - filler_only
-            if meaningful_common and len(meaningful_common) >= min(len(issuer_words - filler_only), len(comp_words - filler_only)):
-                logger.info(f"Skipping {issuer_name} - already has {rev_count} reviews as '{comp_name}'")
+            comp_words = set(comp_lower.replace(',', '').replace('.', '').replace('-', ' ').split())
+            comp_meaningful = comp_words - _existing_filler
+            if not issuer_meaningful or not comp_meaningful:
+                continue
+            common = issuer_meaningful & comp_meaningful
+            if not common:
+                continue
+            # Require high bidirectional overlap (>=0.8 on BOTH sides) to avoid
+            # wrong-entity matches like "Southern Company" -> "Norfolk Southern"
+            issuer_overlap = len(common) / len(issuer_meaningful)
+            cand_overlap = len(common) / len(comp_meaningful)
+            if issuer_overlap >= 0.8 and cand_overlap >= 0.8:
+                logger.info(f"Skipping {issuer_name} - already has {rev_count} reviews as '{comp_name}' (overlap i={issuer_overlap:.2f} c={cand_overlap:.2f})")
                 self._update_queue_status(q_id, 'completed',
                                           glassdoor_name=comp_name,
                                           reviews_extracted=rev_count,
@@ -791,16 +803,32 @@ class ExtractionManager:
             logger.error(f"Error retrying company: {e}")
             return False
 
-    def retry_sector(self, sector):
+    def retry_sector(self, sector, include_wrong_matches=False):
+        """Reset failed/no_match records (and optionally loose existing-data matches) back to pending."""
         try:
             conn = get_db_connection()
             cur = conn.cursor()
+            # Always reset failed and no_match
             cur.execute("""
                 UPDATE extraction_queue 
-                SET status = 'pending', error_message = NULL 
+                SET status = 'pending', error_message = NULL,
+                    glassdoor_name = NULL, glassdoor_id = NULL, glassdoor_url = NULL
                 WHERE gics_sector = %s AND status IN ('failed', 'no_match')
             """, (sector,))
             updated = cur.rowcount
+            if include_wrong_matches:
+                # Also reset completions that were matched via the loose existing-company
+                # algorithm (match_confidence='existing') so they get a fresh search.
+                # These may have picked up wrong entities (e.g. Southern Co -> Norfolk Southern).
+                cur.execute("""
+                    UPDATE extraction_queue
+                    SET status = 'pending', error_message = NULL,
+                        glassdoor_name = NULL, glassdoor_id = NULL, glassdoor_url = NULL,
+                        match_confidence = NULL, reviews_extracted = NULL
+                    WHERE gics_sector = %s AND status = 'completed'
+                      AND match_confidence = 'existing'
+                """, (sector,))
+                updated += cur.rowcount
             conn.commit()
             cur.close()
             conn.close()

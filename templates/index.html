@@ -3876,10 +3876,19 @@
                 .catch(e => { console.error('Start sector error:', e); addExtractionLog('Error: ' + e.message); });
         }
 
-        function retrySector(sector) {
-            fetch('/api/extraction/retry-sector/' + encodeURIComponent(sector), { method: 'POST' })
+        function retrySector(sector, includeWrongMatches) {
+            const body = JSON.stringify({ include_wrong_matches: includeWrongMatches || false });
+            const label = includeWrongMatches ? 'Full reset (incl. wrong matches)' : 'Retry failed/no-match';
+            fetch('/api/extraction/retry-sector/' + encodeURIComponent(sector), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: body
+            })
                 .then(r => r.json())
-                .then(d => { console.log('Retry sector:', d); addExtractionLog('Retry sector ' + sector + ': ' + (d.updated || 0) + ' reset'); loadExtractionStatus(); })
+                .then(d => {
+                    addExtractionLog(label + ' — ' + sector + ': ' + (d.updated || 0) + ' companies reset to pending');
+                    loadExtractionStatus();
+                })
                 .catch(e => console.error('Retry sector error:', e));
         }
 
@@ -4081,7 +4090,8 @@
                     html += '</tbody></table></div>';
 
                     html += `<div style="margin-top: 1rem; display: flex; flex-wrap: wrap; gap: 0.5rem;">`;
-                    html += `<button onclick="retrySector('${sector.replace(/'/g, "\\'")}')" style="padding: 0.375rem 0.875rem; background: #f1f5f9; color: #3b82f6; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 0.8125rem; cursor: pointer;">Retry All Failed in ${sector}</button>`;
+                    html += `<button onclick="retrySector('${sector.replace(/'/g, "\\'")}', false)" style="padding: 0.375rem 0.875rem; background: #f1f5f9; color: #3b82f6; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 0.8125rem; cursor: pointer;" title="Resets failed and no-match companies back to pending for re-extraction">Retry Failed/No-Match</button>`;
+                    html += `<button onclick="if(confirm('This will also reset companies that were incorrectly matched to existing data (e.g. wrong entity). Continue?')) retrySector('${sector.replace(/'/g, "\\'")}', true)" style="padding: 0.375rem 0.875rem; background: #fff7ed; color: #ea580c; border: 1px solid #fed7aa; border-radius: 6px; font-size: 0.8125rem; cursor: pointer;" title="Also resets loose existing-data matches that may have picked up the wrong company">Full Reset (incl. Wrong Matches)</button>`;
                     html += `<button onclick="startSectorExtraction('${sector.replace(/'/g, "\\'")}')" style="padding: 0.375rem 0.875rem; background: #f1f5f9; color: #22c55e; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 0.8125rem; cursor: pointer;">Start from ${sector}</button>`;
                     html += `</div>`;
 

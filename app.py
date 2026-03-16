@@ -2975,8 +2975,10 @@ def extraction_skip(queue_id):
 @app.route('/api/extraction/retry-sector/<sector>', methods=['POST'])
 def extraction_retry_sector(sector):
     from extraction_manager import ExtractionManager
+    data = request.get_json() or {}
+    include_wrong_matches = data.get('include_wrong_matches', False)
     mgr = ExtractionManager.get_instance()
-    updated = mgr.retry_sector(sector)
+    updated = mgr.retry_sector(sector, include_wrong_matches=include_wrong_matches)
     return jsonify({'success': True, 'updated': updated})
 
 
