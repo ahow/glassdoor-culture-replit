@@ -401,21 +401,74 @@ class ExtractionManager:
         if cleaned and cleaned.lower() != company_name.lower() and len(cleaned) >= 3:
             search_names.append(cleaned)
 
+        def _parse_search_response(resp_json):
+            """Parse company list from either RapidAPI (flat) or OpenWeb Ninja (GraphQL nested) format.
+            Raises RuntimeError if the upstream API returned a 503/service-unavailable error."""
+            raw = resp_json.get('data', [])
+            companies = []
+            service_errors = []
+
+            for outer in raw:
+                if isinstance(outer, dict):
+                    # RapidAPI flat format: data is a list of company dicts
+                    companies.append(outer)
+                elif isinstance(outer, list):
+                    # OpenWeb Ninja GraphQL format: data is [[{data:{...}, errors:[...]}]]
+                    for item in outer:
+                        if not isinstance(item, dict):
+                            continue
+                        errors = item.get('errors', [])
+                        for err in errors:
+                            code = err.get('extensions', {}).get('http', {}).get('status')
+                            reason = err.get('extensions', {}).get('reason', '')
+                            if code in (503, 429) or '503' in str(reason) or '429' in str(reason):
+                                service_errors.append(f"HTTP {code}: {reason}")
+                        inner_data = item.get('data', {})
+                        # directHitCompany
+                        dc = inner_data.get('directHitCompany') or {}
+                        emp = dc.get('employer')
+                        if emp and isinstance(emp, dict) and emp.get('id'):
+                            companies.append({
+                                'company_id': str(emp['id']),
+                                'name': emp.get('name', ''),
+                                'overall_rating': emp.get('overallRating'),
+                                'review_count': emp.get('reviewCount'),
+                            })
+                        # employerNameCompaniesData
+                        ec = inner_data.get('employerNameCompaniesData') or {}
+                        for emp in (ec.get('employers') or []):
+                            if isinstance(emp, dict) and emp.get('id'):
+                                companies.append({
+                                    'company_id': str(emp['id']),
+                                    'name': emp.get('name', ''),
+                                    'overall_rating': emp.get('overallRating'),
+                                    'review_count': emp.get('reviewCount'),
+                                })
+
+            if not companies and service_errors:
+                raise RuntimeError(f"Glassdoor API service error: {'; '.join(service_errors[:2])}")
+            return companies
+
         all_results = []
         seen_ids = set()
+        api_errors = []
 
         for name in search_names:
             try:
                 response = requests.get(url, headers=headers, params={'query': name}, timeout=15)
                 response.raise_for_status()
-                results = response.json().get('data', [])
+                results = _parse_search_response(response.json())
                 for r in results:
                     rid = r.get('company_id') or r.get('id') or r.get('name')
                     if rid not in seen_ids:
                         seen_ids.add(rid)
                         all_results.append(r)
                 time.sleep(0.3)
+            except RuntimeError as e:
+                # Service-level error (503/429) — re-raise so the company is marked failed, not no_match
+                raise
             except Exception as e:
+                api_errors.append(str(e))
                 logger.error(f"Search error for '{name}': {e}")
 
         if not all_results and ticker:
@@ -423,12 +476,14 @@ class ExtractionManager:
                 time.sleep(0.3)
                 response = requests.get(url, headers=headers, params={'query': ticker}, timeout=15)
                 response.raise_for_status()
-                results = response.json().get('data', [])
+                results = _parse_search_response(response.json())
                 for r in results:
                     rid = r.get('company_id') or r.get('id') or r.get('name')
                     if rid not in seen_ids:
                         seen_ids.add(rid)
                         all_results.append(r)
+            except RuntimeError:
+                raise
             except Exception as e:
                 logger.error(f"Search error for ticker '{ticker}': {e}")
 
