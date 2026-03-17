@@ -369,21 +369,25 @@ class ExtractionManager:
         return None
 
     def _search_glassdoor(self, company_name, ticker=None, isin=None):
-        headers = None
-        url = None
+        # Build prioritised list of API configs to try: OpenWeb Ninja first, then each RapidAPI key
+        api_configs = []
+        openweb_key = os.environ.get('OPENWEB_NINJA_API')
+        if openweb_key:
+            api_configs.append({
+                'headers': {'x-api-key': openweb_key},
+                'url': f"{OPENWEB_BASE_URL}/company-search",
+                'label': 'OpenWebNinja',
+            })
+        for env_var in ('RAPIDAPI_KEY_1', 'RAPIDAPI_KEY_2', 'RAPIDAPI_KEY'):
+            k = os.environ.get(env_var)
+            if k:
+                api_configs.append({
+                    'headers': {'x-rapidapi-key': k, 'x-rapidapi-host': RAPIDAPI_HOST},
+                    'url': f"{RAPIDAPI_BASE_URL}/company-search",
+                    'label': env_var,
+                })
 
-        api_key = os.environ.get('OPENWEB_NINJA_API')
-        if api_key:
-            headers = {'x-api-key': api_key}
-            url = f"{OPENWEB_BASE_URL}/company-search"
-        else:
-            keys = [os.environ.get('RAPIDAPI_KEY_1'), os.environ.get('RAPIDAPI_KEY_2'), os.environ.get('RAPIDAPI_KEY')]
-            key = next((k for k in keys if k), None)
-            if key:
-                headers = {'x-rapidapi-key': key, 'x-rapidapi-host': RAPIDAPI_HOST}
-                url = f"{RAPIDAPI_BASE_URL}/company-search"
-
-        if not headers:
+        if not api_configs:
             raise Exception("No API keys configured")
 
         search_names = [company_name]
@@ -449,43 +453,48 @@ class ExtractionManager:
                 raise RuntimeError(f"Glassdoor API service error: {'; '.join(service_errors[:2])}")
             return companies
 
+        def _search_one(query):
+            """Try each API config in priority order for a single query string.
+            Returns list of company dicts. Raises RuntimeError only if ALL configs
+            return service errors and none returned usable results."""
+            last_service_error = None
+            for cfg in api_configs:
+                try:
+                    resp = requests.get(cfg['url'], headers=cfg['headers'],
+                                        params={'query': query}, timeout=15)
+                    resp.raise_for_status()
+                    results = _parse_search_response(resp.json())
+                    if results:
+                        logger.info(f"Search '{query}' via {cfg['label']}: {len(results)} results")
+                        return results
+                    # Empty results (not a service error) — try next config
+                    logger.info(f"Search '{query}' via {cfg['label']}: 0 results, trying next API")
+                except RuntimeError as e:
+                    last_service_error = e
+                    logger.warning(f"Search '{query}' via {cfg['label']} service error: {e} — trying fallback")
+                except Exception as e:
+                    logger.error(f"Search '{query}' via {cfg['label']} error: {e}")
+            if last_service_error:
+                raise last_service_error
+            return []
+
         all_results = []
         seen_ids = set()
-        api_errors = []
 
-        for name in search_names:
-            try:
-                response = requests.get(url, headers=headers, params={'query': name}, timeout=15)
-                response.raise_for_status()
-                results = _parse_search_response(response.json())
-                for r in results:
-                    rid = r.get('company_id') or r.get('id') or r.get('name')
-                    if rid not in seen_ids:
-                        seen_ids.add(rid)
-                        all_results.append(r)
-                time.sleep(0.3)
-            except RuntimeError as e:
-                # Service-level error (503/429) — re-raise so the company is marked failed, not no_match
-                raise
-            except Exception as e:
-                api_errors.append(str(e))
-                logger.error(f"Search error for '{name}': {e}")
-
+        queries = list(search_names)
         if not all_results and ticker:
-            try:
-                time.sleep(0.3)
-                response = requests.get(url, headers=headers, params={'query': ticker}, timeout=15)
-                response.raise_for_status()
-                results = _parse_search_response(response.json())
-                for r in results:
-                    rid = r.get('company_id') or r.get('id') or r.get('name')
-                    if rid not in seen_ids:
-                        seen_ids.add(rid)
-                        all_results.append(r)
-            except RuntimeError:
-                raise
-            except Exception as e:
-                logger.error(f"Search error for ticker '{ticker}': {e}")
+            queries.append(ticker)
+
+        for query in queries:
+            results = _search_one(query)
+            for r in results:
+                rid = r.get('company_id') or r.get('id') or r.get('name')
+                if rid not in seen_ids:
+                    seen_ids.add(rid)
+                    all_results.append(r)
+            if all_results:
+                break  # Got results — no need to try more query variants
+            time.sleep(0.3)
 
         return all_results, isin_name
 
