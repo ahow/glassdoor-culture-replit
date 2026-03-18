@@ -2982,6 +2982,32 @@ def extraction_retry_sector(sector):
     return jsonify({'success': True, 'updated': updated})
 
 
+@app.route('/api/extraction/retry-all-no-match', methods=['POST'])
+def extraction_retry_all_no_match():
+    """Reset all no_match (and optionally failed) companies across every sector back to pending."""
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("""
+            UPDATE extraction_queue
+            SET status = 'pending',
+                glassdoor_name = NULL,
+                glassdoor_id = NULL,
+                glassdoor_url = NULL,
+                match_confidence = 'none',
+                error_message = NULL,
+                updated_at = NOW()
+            WHERE status IN ('no_match', 'failed')
+        """)
+        updated = cur.rowcount
+        conn.commit()
+        cur.close()
+        conn.close()
+        return jsonify({'success': True, 'updated': updated})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 @app.route('/api/extraction/update-match/<int:queue_id>', methods=['POST'])
 def extraction_update_match(queue_id):
     from extraction_manager import ExtractionManager

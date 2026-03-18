@@ -1170,6 +1170,7 @@
                     <button id="btnPauseExtraction" onclick="pauseExtraction()" style="padding: 0.625rem 1.5rem; background: #f59e0b; color: white; border: none; border-radius: 8px; font-size: 0.875rem; font-weight: 600; cursor: pointer; display: none;">Pause</button>
                     <button id="btnResumeExtraction" onclick="resumeExtraction()" style="padding: 0.625rem 1.5rem; background: #22c55e; color: white; border: none; border-radius: 8px; font-size: 0.875rem; font-weight: 600; cursor: pointer; display: none;">Resume</button>
                     <button id="btnStopExtraction" onclick="stopExtraction()" style="padding: 0.625rem 1.5rem; background: #ef4444; color: white; border: none; border-radius: 8px; font-size: 0.875rem; font-weight: 600; cursor: pointer; display: none;">Stop</button>
+                    <button id="btnResetAllNoMatch" onclick="resetAllNoMatch()" style="padding: 0.625rem 1.25rem; background: #fff7ed; color: #ea580c; border: 1px solid #fed7aa; border-radius: 8px; font-size: 0.875rem; font-weight: 600; cursor: pointer;" title="Reset all no-match and failed companies across all sectors back to pending so they can be retried">Reset All No-Match</button>
                     <span id="extractionStatusText" style="color: #64748b; font-size: 0.875rem; margin-left: 0.5rem;">Status: Idle</span>
                 </div>
 
@@ -3829,6 +3830,26 @@
                     console.error('Start error:', e);
                     addExtractionLog('Error starting: ' + e.message);
                     btn.textContent = 'Start Extraction';
+                    btn.disabled = false;
+                });
+        }
+
+        function resetAllNoMatch() {
+            const btn = document.getElementById('btnResetAllNoMatch');
+            const original = btn.textContent;
+            btn.textContent = 'Resetting...';
+            btn.disabled = true;
+            fetch('/api/extraction/retry-all-no-match', { method: 'POST' })
+                .then(r => r.json())
+                .then(d => {
+                    addExtractionLog('Reset all no-match: ' + (d.updated || 0) + ' companies reset to pending');
+                    btn.textContent = original;
+                    btn.disabled = false;
+                    loadExtractionStatus();
+                })
+                .catch(e => {
+                    addExtractionLog('Error: ' + e.message);
+                    btn.textContent = original;
                     btn.disabled = false;
                 });
         }
