@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "SiwmnQxdS9XG10xLzGlZF"
+uri = "file://API_DOCUMENTATION.md"
+type = "text"
+title = "Glassdoor Culture Dashboard — API Documentation"
