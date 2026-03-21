@@ -775,8 +775,9 @@ class ExtractionManager:
                                       reviews_extracted=extractor.new_reviews_saved)
             logger.error(f"Failed extraction for {issuer_name}")
 
-    def _score_company_reviews(self, company_name):
-        """Score all unscored reviews for a company using culture dictionary."""
+    def _score_company_reviews(self, company_name, max_reviews=500):
+        """Score unscored reviews for a company using culture dictionary.
+        Processes at most max_reviews per call to stay within request timeouts."""
         try:
             conn = get_db_connection()
             if not conn:
@@ -789,7 +790,8 @@ class ExtractionManager:
                 FROM reviews r
                 LEFT JOIN review_culture_scores rcs ON r.id = rcs.review_id
                 WHERE r.company_name = %s AND rcs.review_id IS NULL
-            """, (company_name,))
+                LIMIT %s
+            """, (company_name, max_reviews))
             unscored = cur.fetchall()
 
             if not unscored:

@@ -3747,7 +3747,7 @@
                     return;
                 }
                 try {
-                    const r = await fetch('/api/score-reviews?batch=10', { method: 'POST' });
+                    const r = await fetch('/api/score-reviews', { method: 'POST' });
                     const d = await r.json();
                     if (!d.success) {
                         statusEl.textContent = 'Error: ' + (d.error || 'unknown');
@@ -3757,10 +3757,13 @@
                         return;
                     }
                     const remaining = d.remaining || 0;
+                    const remainingReviews = d.remaining_reviews || 0;
                     const scored = scoringTotalCompanies - remaining;
                     const pct = scoringTotalCompanies > 0 ? Math.round(scored / scoringTotalCompanies * 100) : 100;
                     progressFill.style.width = pct + '%';
-                    statusEl.textContent = `Processing... ${scored} of ${scoringTotalCompanies} companies scored (${remaining} remaining)`;
+                    const lastCompany = d.results && d.results[0] ? d.results[0].company : '';
+                    const reviewsInfo = remainingReviews > 0 ? ` (${remainingReviews.toLocaleString()} reviews left)` : '';
+                    statusEl.textContent = `Processing ${lastCompany}... ${scored} of ${scoringTotalCompanies} companies scored${reviewsInfo}`;
                     document.getElementById('scoringStats').textContent = statusEl.textContent;
                     if (remaining === 0 || d.scored_companies === 0) {
                         scoringActive = false;
@@ -3770,7 +3773,7 @@
                         loadScoringStatus();
                         return;
                     }
-                    setTimeout(runBatch, 500);
+                    setTimeout(runBatch, 300);
                 } catch(e) {
                     statusEl.textContent = 'Error: ' + e.message;
                     scoringActive = false;

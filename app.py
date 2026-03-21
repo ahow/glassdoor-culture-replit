@@ -847,69 +847,79 @@ def warm_cache():
 @app.route('/api/score-reviews', methods=['POST'])
 def score_unscored_reviews():
     """Score unscored reviews for companies that have reviews but no culture scores.
-    Processes a batch at a time to avoid timeouts."""
+    Processes one company per call, capped at 500 reviews, to stay within request timeouts.
+    The frontend loop calls this repeatedly until remaining == 0."""
     try:
-        batch_size = int(request.args.get('batch', 5))
-        batch_size = min(batch_size, 20)
-        
+        # Cap per-call review limit to avoid Gunicorn worker timeout
+        max_reviews_per_call = int(request.args.get('max_reviews', 500))
+        max_reviews_per_call = min(max_reviews_per_call, 500)
+
         conn = get_db_connection()
         if not conn:
             return jsonify({'success': False, 'error': 'Database connection failed'}), 500
-        
+
         cursor = conn.cursor()
+        # Pick the company with the fewest unscored reviews first (fastest to complete)
         cursor.execute("""
-            SELECT DISTINCT r.company_name, COUNT(r.id) as review_count
+            SELECT r.company_name, COUNT(r.id) as unscored_count
             FROM reviews r
             LEFT JOIN review_culture_scores rcs ON r.id = rcs.review_id
             WHERE rcs.review_id IS NULL
             GROUP BY r.company_name
             ORDER BY COUNT(r.id) ASC
-            LIMIT %s
-        """, (batch_size,))
-        companies_to_score = cursor.fetchall()
+            LIMIT 1
+        """)
+        row = cursor.fetchone()
         cursor.close()
         conn.close()
-        
-        if not companies_to_score:
+
+        if not row:
             return jsonify({
                 'success': True,
                 'message': 'All reviews are scored',
                 'scored_companies': 0,
-                'remaining': 0
+                'remaining': 0,
+                'remaining_reviews': 0
             })
-        
+
+        company_name, unscored_count = row
+
         from extraction_manager import ExtractionManager
         mgr = ExtractionManager.get_instance()
-        
-        results = []
-        for company_name, unscored_count in companies_to_score:
-            try:
-                mgr._score_company_reviews(company_name)
-                invalidate_cache(company_name)
-                _mit_max_values_cache.clear()  # Force recalculation of normalization
-                results.append({'company': company_name, 'unscored_reviews': unscored_count, 'status': 'scored'})
-            except Exception as e:
-                results.append({'company': company_name, 'unscored_reviews': unscored_count, 'status': f'error: {str(e)}'})
-        
+
+        try:
+            mgr._score_company_reviews(company_name, max_reviews=max_reviews_per_call)
+            invalidate_cache(company_name)
+            _mit_max_values_cache.clear()
+            status = 'scored'
+        except Exception as e:
+            logger.error(f"Error scoring {company_name}: {e}")
+            status = f'error: {str(e)}'
+
+        # Count remaining companies AND reviews after this batch
         conn = get_db_connection()
-        remaining = 0
+        remaining_companies = 0
+        remaining_reviews = 0
         if conn:
             cursor = conn.cursor()
             cursor.execute("""
-                SELECT COUNT(DISTINCT r.company_name)
+                SELECT COUNT(DISTINCT r.company_name), COUNT(r.id)
                 FROM reviews r
                 LEFT JOIN review_culture_scores rcs ON r.id = rcs.review_id
                 WHERE rcs.review_id IS NULL
             """)
-            remaining = cursor.fetchone()[0]
+            row2 = cursor.fetchone()
+            if row2:
+                remaining_companies, remaining_reviews = row2
             cursor.close()
             conn.close()
-        
+
         return jsonify({
             'success': True,
-            'scored_companies': len(results),
-            'remaining': remaining,
-            'results': results
+            'scored_companies': 1,
+            'remaining': remaining_companies,
+            'remaining_reviews': remaining_reviews,
+            'results': [{'company': company_name, 'unscored_reviews': unscored_count, 'status': status}]
         })
     except Exception as e:
         logger.error(f"Error scoring reviews: {e}")
