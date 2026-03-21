@@ -847,69 +847,79 @@ def warm_cache():
 @app.route('/api/score-reviews', methods=['POST'])
 def score_unscored_reviews():
     """Score unscored reviews for companies that have reviews but no culture scores.
-    Processes a batch at a time to avoid timeouts."""
+    Processes one company per call, capped at 500 reviews, to stay within request timeouts.
+    The frontend loop calls this repeatedly until remaining == 0."""
     try:
-        batch_size = int(request.args.get('batch', 5))
-        batch_size = min(batch_size, 20)
-        
+        # Cap per-call review limit to avoid Gunicorn worker timeout
+        max_reviews_per_call = int(request.args.get('max_reviews', 500))
+        max_reviews_per_call = min(max_reviews_per_call, 500)
+
         conn = get_db_connection()
         if not conn:
             return jsonify({'success': False, 'error': 'Database connection failed'}), 500
-        
+
         cursor = conn.cursor()
+        # Pick the company with the fewest unscored reviews first (fastest to complete)
         cursor.execute("""
-            SELECT DISTINCT r.company_name, COUNT(r.id) as review_count
+            SELECT r.company_name, COUNT(r.id) as unscored_count
             FROM reviews r
             LEFT JOIN review_culture_scores rcs ON r.id = rcs.review_id
             WHERE rcs.review_id IS NULL
             GROUP BY r.company_name
             ORDER BY COUNT(r.id) ASC
-            LIMIT %s
-        """, (batch_size,))
-        companies_to_score = cursor.fetchall()
+            LIMIT 1
+        """)
+        row = cursor.fetchone()
         cursor.close()
         conn.close()
-        
-        if not companies_to_score:
+
+        if not row:
             return jsonify({
                 'success': True,
                 'message': 'All reviews are scored',
                 'scored_companies': 0,
-                'remaining': 0
+                'remaining': 0,
+                'remaining_reviews': 0
             })
-        
+
+        company_name, unscored_count = row
+
         from extraction_manager import ExtractionManager
         mgr = ExtractionManager.get_instance()
-        
-        results = []
-        for company_name, unscored_count in companies_to_score:
-            try:
-                mgr._score_company_reviews(company_name)
-                invalidate_cache(company_name)
-                _mit_max_values_cache.clear()  # Force recalculation of normalization
-                results.append({'company': company_name, 'unscored_reviews': unscored_count, 'status': 'scored'})
-            except Exception as e:
-                results.append({'company': company_name, 'unscored_reviews': unscored_count, 'status': f'error: {str(e)}'})
-        
+
+        try:
+            mgr._score_company_reviews(company_name, max_reviews=max_reviews_per_call)
+            invalidate_cache(company_name)
+            _mit_max_values_cache.clear()
+            status = 'scored'
+        except Exception as e:
+            logger.error(f"Error scoring {company_name}: {e}")
+            status = f'error: {str(e)}'
+
+        # Count remaining companies AND reviews after this batch
         conn = get_db_connection()
-        remaining = 0
+        remaining_companies = 0
+        remaining_reviews = 0
         if conn:
             cursor = conn.cursor()
             cursor.execute("""
-                SELECT COUNT(DISTINCT r.company_name)
+                SELECT COUNT(DISTINCT r.company_name), COUNT(r.id)
                 FROM reviews r
                 LEFT JOIN review_culture_scores rcs ON r.id = rcs.review_id
                 WHERE rcs.review_id IS NULL
             """)
-            remaining = cursor.fetchone()[0]
+            row2 = cursor.fetchone()
+            if row2:
+                remaining_companies, remaining_reviews = row2
             cursor.close()
             conn.close()
-        
+
         return jsonify({
             'success': True,
-            'scored_companies': len(results),
-            'remaining': remaining,
-            'results': results
+            'scored_companies': 1,
+            'remaining': remaining_companies,
+            'remaining_reviews': remaining_reviews,
+            'results': [{'company': company_name, 'unscored_reviews': unscored_count, 'status': status}]
         })
     except Exception as e:
         logger.error(f"Error scoring reviews: {e}")
@@ -1368,6 +1378,212 @@ def get_culture_profile(company_name):
     
     except Exception as e:
         logger.error(f"Error in get_culture_profile: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/company/isin/<isin>', methods=['GET'])
+def get_company_by_isin(isin):
+    """
+    Look up a company by ISIN and return its Glassdoor ratings and culture scores.
+
+    Query params:
+      include_ratings  (default true)  - include Glassdoor category ratings
+      include_culture  (default true)  - include Hofstede / MIT Big 9 scores
+    """
+    try:
+        include_ratings = request.args.get('include_ratings', 'true').lower() != 'false'
+        include_culture = request.args.get('include_culture', 'true').lower() != 'false'
+
+        conn = get_db_connection()
+        if not conn:
+            return jsonify({'success': False, 'error': 'Database unavailable'}), 503
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+
+        # ── 1. Resolve ISIN → company details from extraction_queue ──────────
+        cur.execute("""
+            SELECT isin, issuer_name, ticker, glassdoor_name,
+                   gics_sector, gics_industry, gics_sub_industry,
+                   status, match_confidence, reviews_extracted
+            FROM extraction_queue
+            WHERE UPPER(isin) = UPPER(%s)
+            LIMIT 1
+        """, (isin.strip(),))
+        queue_row = cur.fetchone()
+
+        if not queue_row:
+            cur.close(); conn.close()
+            return jsonify({
+                'success': False,
+                'error': f'ISIN {isin} not found. Only MSCI-listed companies (2,442) are indexed.',
+                'isin': isin
+            }), 404
+
+        glassdoor_name = queue_row['glassdoor_name']
+
+        # ── 2. Glassdoor ratings ─────────────────────────────────────────────
+        ratings_data = None
+        if include_ratings and glassdoor_name:
+            cur.execute("""
+                SELECT
+                    COUNT(*)                                        AS review_count,
+                    ROUND(AVG(rating)::numeric, 2)                 AS overall,
+                    ROUND(AVG(work_life_balance_rating)::numeric, 2)      AS work_life_balance,
+                    ROUND(AVG(career_opportunities_rating)::numeric, 2)   AS career_opportunities,
+                    ROUND(AVG(culture_and_values_rating)::numeric, 2)     AS culture_and_values,
+                    ROUND(AVG(compensation_and_benefits_rating)::numeric, 2) AS compensation_and_benefits,
+                    ROUND(AVG(senior_management_rating)::numeric, 2)      AS senior_management,
+                    ROUND(AVG(diversity_and_inclusion_rating)::numeric, 2) AS diversity_and_inclusion,
+                    MIN(review_datetime)                            AS earliest_review,
+                    MAX(review_datetime)                            AS latest_review
+                FROM reviews
+                WHERE company_name = %s
+            """, (glassdoor_name,))
+            row = cur.fetchone()
+            if row and row['review_count'] > 0:
+                ratings_data = {
+                    'review_count': int(row['review_count']),
+                    'overall':                  float(row['overall']) if row['overall'] else None,
+                    'work_life_balance':         float(row['work_life_balance']) if row['work_life_balance'] else None,
+                    'career_opportunities':      float(row['career_opportunities']) if row['career_opportunities'] else None,
+                    'culture_and_values':        float(row['culture_and_values']) if row['culture_and_values'] else None,
+                    'compensation_and_benefits': float(row['compensation_and_benefits']) if row['compensation_and_benefits'] else None,
+                    'senior_management':         float(row['senior_management']) if row['senior_management'] else None,
+                    'diversity_and_inclusion':   float(row['diversity_and_inclusion']) if row['diversity_and_inclusion'] else None,
+                    'rating_period': {
+                        'earliest': row['earliest_review'].isoformat() if row['earliest_review'] else None,
+                        'latest':   row['latest_review'].isoformat()   if row['latest_review']   else None,
+                    }
+                }
+
+        cur.close(); conn.close()
+
+        # ── 3. Culture scores ────────────────────────────────────────────────
+        hofstede_data = None
+        mit_data = None
+        if include_culture and glassdoor_name:
+            metrics = get_cached_metrics(glassdoor_name)
+            if not metrics:
+                metrics = get_company_metrics(glassdoor_name)
+                if metrics:
+                    cache_metrics(glassdoor_name, metrics)
+
+            if metrics:
+                metrics = calculate_relative_confidence(metrics)
+                mit_max = get_mit_max_values()
+
+                hofstede_data = {}
+                for dim, d in metrics['hofstede'].items():
+                    hofstede_data[dim] = {
+                        'value':            d.get('value'),
+                        'confidence':       int(d.get('confidence_score', 0)),
+                        'confidence_level': d.get('confidence_level'),
+                    }
+
+                mit_data = {}
+                for dim, d in metrics['mit_big_9'].items():
+                    raw = d.get('value', 0) or 0
+                    max_val = mit_max.get(dim, 1)
+                    rescaled = round(10 * (raw / max_val), 2) if max_val > 0 else 0
+                    mit_data[dim] = {
+                        'value':            rescaled,
+                        'raw_value':        raw,
+                        'confidence':       int(d.get('confidence_score', 0)),
+                        'confidence_level': d.get('confidence_level'),
+                    }
+
+        # ── 4. Determine data availability ──────────────────────────────────
+        has_ratings = ratings_data is not None
+        has_culture = hofstede_data is not None
+        if has_ratings and has_culture:
+            availability = 'full'
+        elif has_ratings:
+            availability = 'ratings_only'
+        elif has_culture:
+            availability = 'culture_only'
+        elif glassdoor_name:
+            availability = 'matched_no_reviews'
+        else:
+            availability = 'not_matched'
+
+        response = {
+            'success': True,
+            'isin':           queue_row['isin'],
+            'issuer_name':    queue_row['issuer_name'],
+            'glassdoor_name': glassdoor_name,
+            'ticker':         queue_row['ticker'],
+            'gics': {
+                'sector':       queue_row['gics_sector'],
+                'industry':     queue_row['gics_industry'],
+                'sub_industry': queue_row['gics_sub_industry'],
+            },
+            'extraction_status': {
+                'status':           queue_row['status'],
+                'match_confidence': queue_row['match_confidence'],
+                'reviews_extracted': queue_row['reviews_extracted'],
+            },
+            'data_availability': availability,
+        }
+        if include_ratings:
+            response['glassdoor_ratings'] = ratings_data
+        if include_culture:
+            response['culture_scores'] = {
+                'hofstede': hofstede_data,
+                'mit_big_9': mit_data,
+            }
+
+        return jsonify(response)
+
+    except Exception as e:
+        logger.error(f"Error in get_company_by_isin: {e}", exc_info=True)
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/company/search', methods=['GET'])
+def search_company():
+    """
+    Search for companies by name, ticker, or ISIN prefix.
+    Query params:
+      q        - search term (required, min 2 chars)
+      limit    - max results to return (default 20, max 100)
+    """
+    try:
+        q = request.args.get('q', '').strip()
+        limit = min(int(request.args.get('limit', 20)), 100)
+
+        if len(q) < 2:
+            return jsonify({'success': False, 'error': 'Query must be at least 2 characters'}), 400
+
+        conn = get_db_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+
+        cur.execute("""
+            SELECT isin, issuer_name, ticker, glassdoor_name,
+                   gics_sector, gics_industry, status, reviews_extracted
+            FROM extraction_queue
+            WHERE issuer_name ILIKE %s
+               OR ticker ILIKE %s
+               OR isin ILIKE %s
+               OR glassdoor_name ILIKE %s
+            ORDER BY
+                CASE WHEN UPPER(isin) = UPPER(%s) THEN 0
+                     WHEN UPPER(ticker) = UPPER(%s) THEN 1
+                     ELSE 2 END,
+                reviews_extracted DESC NULLS LAST
+            LIMIT %s
+        """, (f'%{q}%', f'%{q}%', f'%{q}%', f'%{q}%', q, q, limit))
+
+        rows = cur.fetchall()
+        cur.close(); conn.close()
+
+        return jsonify({
+            'success': True,
+            'query': q,
+            'count': len(rows),
+            'results': [dict(r) for r in rows]
+        })
+
+    except Exception as e:
+        logger.error(f"Error in search_company: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
