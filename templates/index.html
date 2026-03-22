@@ -492,6 +492,7 @@
             <button class="main-tab-button" onclick="switchMainTab('insights', event)">Performance Insights</button>
             <button class="main-tab-button" onclick="switchMainTab('culturePerf', event)">Culture vs Performance</button>
             <button class="main-tab-button" onclick="switchMainTab('exportData', event)">Export Data</button>
+            <button class="main-tab-button" onclick="switchMainTab('dataStatus', event)">Data Status</button>
             <button class="main-tab-button" onclick="switchMainTab('extractionMgr', event)">Extraction Manager</button>
         </div>
         
@@ -1221,6 +1222,77 @@
                 </div>
             </div>
         </div>
+
+        <!-- Data Status Tab -->
+        <div id="dataStatusTab" class="tab-content hidden-tab" style="display: none;">
+            <div class="chart-container">
+                <h2 class="chart-title">Data Extraction Status</h2>
+                <p style="color: #64748b; margin-bottom: 1.5rem;">
+                    Real-time view of how much data has been collected across all three sources for the 2,442 companies in scope.
+                </p>
+
+                <!-- Summary cards -->
+                <div id="dataStatusCards" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.25rem; margin-bottom: 2rem;">
+                    <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 1.25rem; text-align: center;">
+                        <p style="color: #64748b; font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem;">Employee Reviews</p>
+                        <p id="ds-rev-pct" style="font-size: 2.4rem; font-weight: 700; color: #1e293b; margin: 0;">—</p>
+                        <p id="ds-rev-count" style="font-size: 0.85rem; color: #64748b; margin: 0.3rem 0 0.8rem;">loading…</p>
+                        <div style="background: #e2e8f0; border-radius: 99px; height: 6px; margin-bottom: 0.8rem;">
+                            <div id="ds-rev-bar" style="background: #0ea5e9; height: 6px; border-radius: 99px; width: 0%; transition: width 0.6s ease;"></div>
+                        </div>
+                        <div id="ds-rev-dates" style="font-size: 0.75rem; color: #94a3b8; line-height: 1.6;"></div>
+                    </div>
+                    <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 1.25rem; text-align: center;">
+                        <p style="color: #64748b; font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem;">Culture Analysis</p>
+                        <p id="ds-cult-pct" style="font-size: 2.4rem; font-weight: 700; color: #1e293b; margin: 0;">—</p>
+                        <p id="ds-cult-count" style="font-size: 0.85rem; color: #64748b; margin: 0.3rem 0 0.8rem;">loading…</p>
+                        <div style="background: #e2e8f0; border-radius: 99px; height: 6px; margin-bottom: 0.8rem;">
+                            <div id="ds-cult-bar" style="background: #8b5cf6; height: 6px; border-radius: 99px; width: 0%; transition: width 0.6s ease;"></div>
+                        </div>
+                        <div id="ds-cult-dates" style="font-size: 0.75rem; color: #94a3b8; line-height: 1.6;"></div>
+                    </div>
+                    <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 1.25rem; text-align: center;">
+                        <p style="color: #64748b; font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem;">Financial (FMP) Data</p>
+                        <p id="ds-fmp-pct" style="font-size: 2.4rem; font-weight: 700; color: #1e293b; margin: 0;">—</p>
+                        <p id="ds-fmp-count" style="font-size: 0.85rem; color: #64748b; margin: 0.3rem 0 0.8rem;">loading…</p>
+                        <div style="background: #e2e8f0; border-radius: 99px; height: 6px; margin-bottom: 0.8rem;">
+                            <div id="ds-fmp-bar" style="background: #16a34a; height: 6px; border-radius: 99px; width: 0%; transition: width 0.6s ease;"></div>
+                        </div>
+                        <div id="ds-fmp-dates" style="font-size: 0.75rem; color: #94a3b8; line-height: 1.6;"></div>
+                    </div>
+                </div>
+
+                <!-- Refresh button -->
+                <div style="margin-bottom: 1.5rem;">
+                    <button onclick="loadDataStatus()" style="background: #0f172a; color: #fff; border: none; padding: 0.5rem 1.25rem; border-radius: 6px; font-size: 0.85rem; cursor: pointer; font-weight: 500;">&#8635; Refresh</button>
+                    <span id="ds-last-refreshed" style="color: #94a3b8; font-size: 0.8rem; margin-left: 1rem;"></span>
+                </div>
+
+                <!-- Sector breakdown table -->
+                <h3 style="font-size: 1rem; font-weight: 600; color: #1e293b; margin-bottom: 0.75rem;">By GICS Sector</h3>
+                <div style="overflow-x: auto;">
+                    <table id="ds-sector-table" style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
+                        <thead>
+                            <tr style="border-bottom: 2px solid #e2e8f0; text-align: left;">
+                                <th style="padding: 0.6rem 0.75rem; color: #475569; font-weight: 600;">Sector</th>
+                                <th style="padding: 0.6rem 0.75rem; color: #475569; font-weight: 600; text-align: right;">In Scope</th>
+                                <th style="padding: 0.6rem 0.75rem; color: #0ea5e9; font-weight: 600; text-align: right;">Reviews</th>
+                                <th style="padding: 0.6rem 0.75rem; color: #0ea5e9; font-weight: 600; text-align: right;">%</th>
+                                <th style="padding: 0.6rem 0.75rem; color: #8b5cf6; font-weight: 600; text-align: right;">Scored</th>
+                                <th style="padding: 0.6rem 0.75rem; color: #8b5cf6; font-weight: 600; text-align: right;">%</th>
+                                <th style="padding: 0.6rem 0.75rem; color: #16a34a; font-weight: 600; text-align: right;">FMP Eligible</th>
+                                <th style="padding: 0.6rem 0.75rem; color: #16a34a; font-weight: 600; text-align: right;">FMP Fetched</th>
+                                <th style="padding: 0.6rem 0.75rem; color: #16a34a; font-weight: 600; text-align: right;">%</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ds-sector-tbody">
+                            <tr><td colspan="9" style="padding: 1rem; color: #94a3b8; text-align: center;">Loading…</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
     </div>
     
     <script>
@@ -1383,7 +1455,7 @@
             console.log('switchMainTab called with tab:', tab);
             
             // Hide all tabs using both inline styles AND CSS class
-            const tabs = ['overviewTab', 'companiesTab', 'analysisTab', 'trendsTab', 'hofstedeTab', 'mitTab', 'insightsTab', 'culturePerfTab', 'exportDataTab', 'extractionMgrTab'];
+            const tabs = ['overviewTab', 'companiesTab', 'analysisTab', 'trendsTab', 'hofstedeTab', 'mitTab', 'insightsTab', 'culturePerfTab', 'exportDataTab', 'dataStatusTab', 'extractionMgrTab'];
             tabs.forEach(tabId => {
                 const el = document.getElementById(tabId);
                 if (el) {
@@ -1408,6 +1480,7 @@
                 'insights': 'insightsTab',
                 'culturePerf': 'culturePerfTab',
                 'exportData': 'exportDataTab',
+                'dataStatus': 'dataStatusTab',
                 'extractionMgr': 'extractionMgrTab'
             };
             
@@ -1434,6 +1507,8 @@
                 loadCulturePerfScatter();
             } else if (tab === 'exportData') {
                 loadExportCompanyList();
+            } else if (tab === 'dataStatus') {
+                loadDataStatus();
             } else if (tab === 'extractionMgr') {
                 initExtractionManager();
             }
@@ -4180,6 +4255,85 @@
                 .catch(e => {
                     list.innerHTML = '<p style="color: #ef4444;">Error: ' + e.message + '</p>';
                 });
+        }
+
+        async function loadDataStatus() {
+            try {
+                document.getElementById('ds-rev-pct').textContent = '…';
+                document.getElementById('ds-cult-pct').textContent = '…';
+                document.getElementById('ds-fmp-pct').textContent = '…';
+                document.getElementById('ds-sector-tbody').innerHTML = '<tr><td colspan="9" style="padding:1rem;color:#94a3b8;text-align:center;">Loading…</td></tr>';
+
+                const res = await fetch('/api/data-status');
+                const d = await res.json();
+                if (!d.success) throw new Error(d.error || 'Failed');
+
+                const rev = d.reviews;
+                const cult = d.culture;
+                const fmp = d.fmp;
+
+                // Reviews card
+                document.getElementById('ds-rev-pct').textContent = rev.pct + '%';
+                document.getElementById('ds-rev-count').innerHTML =
+                    `<strong>${rev.companies_with_reviews.toLocaleString()}</strong> of ${d.total_in_queue.toLocaleString()} companies &nbsp;·&nbsp; ${rev.total_reviews.toLocaleString()} reviews`;
+                document.getElementById('ds-rev-bar').style.width = Math.min(100, rev.pct) + '%';
+                document.getElementById('ds-rev-dates').innerHTML =
+                    (rev.earliest_extracted ? `Extracted: ${rev.earliest_extracted} – ${rev.latest_extracted}<br>` : '') +
+                    (rev.earliest_review ? `Reviews from: ${rev.earliest_review} – ${rev.latest_review}` : '');
+
+                // Culture card
+                document.getElementById('ds-cult-pct').textContent = cult.pct + '%';
+                document.getElementById('ds-cult-count').innerHTML =
+                    `<strong>${cult.companies_scored.toLocaleString()}</strong> of ${rev.companies_with_reviews.toLocaleString()} companies with reviews`;
+                document.getElementById('ds-cult-bar').style.width = Math.min(100, cult.pct) + '%';
+                document.getElementById('ds-cult-dates').innerHTML =
+                    cult.earliest_scored ? `Scored: ${cult.earliest_scored} – ${cult.latest_scored}` : 'No scores yet';
+
+                // FMP card
+                document.getElementById('ds-fmp-pct').textContent = fmp.pct + '%';
+                document.getElementById('ds-fmp-count').innerHTML =
+                    `<strong>${fmp.with_data.toLocaleString()}</strong> of ${fmp.eligible.toLocaleString()} eligible companies` +
+                    (fmp.no_data > 0 ? ` &nbsp;·&nbsp; ${fmp.no_data} confirmed no data` : '');
+                document.getElementById('ds-fmp-bar').style.width = Math.min(100, fmp.pct) + '%';
+                document.getElementById('ds-fmp-dates').innerHTML =
+                    fmp.earliest_updated ? `Fetched: ${fmp.earliest_updated} – ${fmp.latest_updated}` : 'No data yet';
+
+                // Sector table
+                const tbody = document.getElementById('ds-sector-tbody');
+                if (!d.by_sector || d.by_sector.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="9" style="padding:1rem;color:#94a3b8;text-align:center;">No sector data</td></tr>';
+                } else {
+                    tbody.innerHTML = d.by_sector.map(s => {
+                        const revPct = s.total_in_sector > 0 ? (s.has_reviews / s.total_in_sector * 100).toFixed(0) : 0;
+                        const cultPct = s.has_reviews > 0 ? (s.has_culture_scores / s.has_reviews * 100).toFixed(0) : 0;
+                        const fmpPct = s.has_isin > 0 ? (s.has_fmp_data / s.has_isin * 100).toFixed(0) : '-';
+                        const fmpEligible = s.has_isin > 0 ? s.has_isin : '-';
+                        const fmpFetched = s.has_isin > 0 ? s.has_fmp_data : '-';
+                        const revColor = revPct >= 80 ? '#16a34a' : revPct >= 40 ? '#d97706' : '#dc2626';
+                        const cultColor = cultPct >= 80 ? '#16a34a' : cultPct >= 40 ? '#d97706' : '#dc2626';
+                        const fmpColor = fmpPct === '-' ? '#94a3b8' : (fmpPct >= 80 ? '#16a34a' : fmpPct >= 40 ? '#d97706' : '#dc2626');
+                        return `<tr style="border-bottom: 1px solid #f1f5f9;">
+                            <td style="padding: 0.55rem 0.75rem; color: #1e293b; font-weight: 500;">${s.sector || '(Unknown)'}</td>
+                            <td style="padding: 0.55rem 0.75rem; text-align: right; color: #475569;">${s.total_in_sector}</td>
+                            <td style="padding: 0.55rem 0.75rem; text-align: right; color: #0ea5e9;">${s.has_reviews}</td>
+                            <td style="padding: 0.55rem 0.75rem; text-align: right; color: ${revColor}; font-weight: 600;">${revPct}%</td>
+                            <td style="padding: 0.55rem 0.75rem; text-align: right; color: #8b5cf6;">${s.has_culture_scores}</td>
+                            <td style="padding: 0.55rem 0.75rem; text-align: right; color: ${cultColor}; font-weight: 600;">${cultPct}%</td>
+                            <td style="padding: 0.55rem 0.75rem; text-align: right; color: #64748b;">${fmpEligible}</td>
+                            <td style="padding: 0.55rem 0.75rem; text-align: right; color: #16a34a;">${fmpFetched}</td>
+                            <td style="padding: 0.55rem 0.75rem; text-align: right; color: ${fmpColor}; font-weight: 600;">${fmpPct === '-' ? '-' : fmpPct + '%'}</td>
+                        </tr>`;
+                    }).join('');
+                }
+
+                const now = new Date();
+                document.getElementById('ds-last-refreshed').textContent = 'Last refreshed: ' + now.toLocaleTimeString();
+            } catch (e) {
+                console.error('loadDataStatus error:', e);
+                document.getElementById('ds-rev-pct').textContent = '!';
+                document.getElementById('ds-cult-pct').textContent = '!';
+                document.getElementById('ds-fmp-pct').textContent = '!';
+            }
         }
 
         function initExtractionManager() {
