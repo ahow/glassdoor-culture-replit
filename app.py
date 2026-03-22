@@ -1410,9 +1410,18 @@ def fetch_fmp_performance():
             })
         
         results = []
-        import time
+        import time as _time
         no_data_companies = []
+        _batch_start = _time.time()
+        _time_budget = 24  # stop before Heroku's 30-second router hard limit
+        last_company = after  # cursor starts at where we left off
+
         for company in companies_to_fetch:
+            # Abort gracefully if we're approaching the time limit
+            if _time.time() - _batch_start > _time_budget:
+                logger.info(f"Time budget reached after {len(results)} companies, stopping batch early")
+                break
+
             company_name = company['glassdoor_name']
             isin = company['isin']
             ticker_hint = company.get('issuer_ticker')
@@ -1444,7 +1453,8 @@ def fetch_fmp_performance():
                     'status': f'error: {str(e)}'
                 })
             
-            time.sleep(0.5)
+            last_company = company_name
+            _time.sleep(0.2)
         
         # Mark companies with no available FMP data so they're not retried each run
         if no_data_companies:
@@ -1470,7 +1480,11 @@ def fetch_fmp_performance():
                 logger.warning(f"Could not mark no_data companies: {mark_err}")
 
         processed = len(results)
-        remaining_after = max(0, total_remaining - processed) if not force else max(0, total_remaining)
+        if force:
+            # total_remaining = count_after_cursor - batch_size; add back unprocessed items
+            remaining_after = max(0, total_remaining + (len(companies_to_fetch) - processed))
+        else:
+            remaining_after = max(0, total_remaining - processed)
         return jsonify({
             'success': True,
             'fetched': processed,
