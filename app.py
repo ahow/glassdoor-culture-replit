@@ -1227,7 +1227,7 @@ def fetch_fmp_performance():
                             VALUES (%s, 'no_data', NOW())
                             ON CONFLICT (company_name) DO UPDATE SET
                                 data_source = CASE
-                                    WHEN fmp_performance_metrics.data_source IN ('excel', 'fmp') THEN fmp_performance_metrics.data_source
+                                    WHEN fmp_performance_metrics.data_source = 'excel' THEN 'excel'
                                     ELSE 'no_data' END,
                                 last_updated = NOW()
                         """, (nd_name,))
