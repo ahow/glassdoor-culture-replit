@@ -1171,18 +1171,34 @@ def fetch_fmp_performance():
                           OR fpm.roe_latest IS NOT NULL OR fpm.op_margin_latest IS NOT NULL
                           OR fpm.data_source = 'no_data')"""
         
+        after = request.args.get('after', '')
+
         if force:
-            cursor.execute("""
-                SELECT eq.glassdoor_name, eq.issuer_name, eq.isin, eq.issuer_ticker,
-                       eq.gics_sector, eq.gics_industry, eq.gics_sub_industry
-                FROM extraction_queue eq
-                INNER JOIN reviews r ON r.company_name = eq.glassdoor_name
-                WHERE eq.isin IS NOT NULL AND eq.isin != ''
-                GROUP BY eq.id, eq.glassdoor_name, eq.issuer_name, eq.isin, eq.issuer_ticker,
-                         eq.gics_sector, eq.gics_industry, eq.gics_sub_industry
-                ORDER BY eq.glassdoor_name
-                LIMIT %s
-            """, (batch_size,))
+            if after:
+                cursor.execute("""
+                    SELECT eq.glassdoor_name, eq.issuer_name, eq.isin, eq.issuer_ticker,
+                           eq.gics_sector, eq.gics_industry, eq.gics_sub_industry
+                    FROM extraction_queue eq
+                    INNER JOIN reviews r ON r.company_name = eq.glassdoor_name
+                    WHERE eq.isin IS NOT NULL AND eq.isin != ''
+                      AND eq.glassdoor_name > %s
+                    GROUP BY eq.id, eq.glassdoor_name, eq.issuer_name, eq.isin, eq.issuer_ticker,
+                             eq.gics_sector, eq.gics_industry, eq.gics_sub_industry
+                    ORDER BY eq.glassdoor_name
+                    LIMIT %s
+                """, (after, batch_size))
+            else:
+                cursor.execute("""
+                    SELECT eq.glassdoor_name, eq.issuer_name, eq.isin, eq.issuer_ticker,
+                           eq.gics_sector, eq.gics_industry, eq.gics_sub_industry
+                    FROM extraction_queue eq
+                    INNER JOIN reviews r ON r.company_name = eq.glassdoor_name
+                    WHERE eq.isin IS NOT NULL AND eq.isin != ''
+                    GROUP BY eq.id, eq.glassdoor_name, eq.issuer_name, eq.isin, eq.issuer_ticker,
+                             eq.gics_sector, eq.gics_industry, eq.gics_sub_industry
+                    ORDER BY eq.glassdoor_name
+                    LIMIT %s
+                """, (batch_size,))
         else:
             cursor.execute(f"""
                 SELECT eq.glassdoor_name, eq.issuer_name, eq.isin, eq.issuer_ticker,
@@ -1200,17 +1216,30 @@ def fetch_fmp_performance():
             """, (batch_size,))
         
         companies_to_fetch = cursor.fetchall()
-        
-        cursor.execute(f"""
-            SELECT COUNT(DISTINCT eq.glassdoor_name) 
-            FROM extraction_queue eq
-            INNER JOIN reviews r ON r.company_name = eq.glassdoor_name
-            LEFT JOIN fmp_performance_metrics fpm
-              ON fpm.company_name = eq.glassdoor_name AND {has_data_cond}
-            WHERE eq.isin IS NOT NULL AND eq.isin != ''
-              AND fpm.company_name IS NULL
-        """)
-        total_remaining = cursor.fetchone()['count']
+        last_company = companies_to_fetch[-1]['glassdoor_name'] if companies_to_fetch else ''
+
+        if force:
+            after_clause = "AND eq.glassdoor_name > %s" if after else ""
+            params = (after,) if after else ()
+            cursor.execute(f"""
+                SELECT COUNT(DISTINCT eq.glassdoor_name)
+                FROM extraction_queue eq
+                INNER JOIN reviews r ON r.company_name = eq.glassdoor_name
+                WHERE eq.isin IS NOT NULL AND eq.isin != ''
+                  {after_clause}
+            """, params)
+            total_remaining = cursor.fetchone()['count'] - len(companies_to_fetch)
+        else:
+            cursor.execute(f"""
+                SELECT COUNT(DISTINCT eq.glassdoor_name) 
+                FROM extraction_queue eq
+                INNER JOIN reviews r ON r.company_name = eq.glassdoor_name
+                LEFT JOIN fmp_performance_metrics fpm
+                  ON fpm.company_name = eq.glassdoor_name AND {has_data_cond}
+                WHERE eq.isin IS NOT NULL AND eq.isin != ''
+                  AND fpm.company_name IS NULL
+            """)
+            total_remaining = cursor.fetchone()['count']
         
         cursor.close()
         conn.close()
@@ -1220,7 +1249,8 @@ def fetch_fmp_performance():
                 'success': True,
                 'message': 'All companies with ISINs have performance data',
                 'fetched': 0,
-                'remaining': 0
+                'remaining': 0,
+                'last_company': ''
             })
         
         results = []
@@ -1284,13 +1314,14 @@ def fetch_fmp_performance():
                 logger.warning(f"Could not mark no_data companies: {mark_err}")
 
         processed = len(results)
-        remaining_after = max(0, total_remaining - processed)
+        remaining_after = max(0, total_remaining - processed) if not force else max(0, total_remaining)
         return jsonify({
             'success': True,
             'fetched': processed,
             'successful': len([r for r in results if r['status'] == 'success']),
             'no_data': len(no_data_companies),
             'remaining': remaining_after,
+            'last_company': last_company,
             'results': results
         })
     except Exception as e:

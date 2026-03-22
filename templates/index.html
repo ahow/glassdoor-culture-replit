@@ -2541,8 +2541,8 @@
         let _fmpFetchRunning = false;
         let _fmpFetchedTotal = 0;
         let _fmpInitialRemaining = null;
-
         let _fmpForceMode = false;
+        let _fmpLastCompany = '';
 
         async function startFmpFetch(force) {
             if (_fmpFetchRunning) return;
@@ -2550,6 +2550,7 @@
             _fmpForceMode = force || false;
             _fmpFetchedTotal = 0;
             _fmpInitialRemaining = null;
+            _fmpLastCompany = '';
 
             document.getElementById('fmpFetchBtn').style.display = 'none';
             document.getElementById('fmpForceBtn').style.display = 'none';
@@ -2565,8 +2566,12 @@
         async function _fmpFetchLoop(batchSize) {
             if (!_fmpFetchRunning) return;
             try {
-                const forceParam = _fmpForceMode ? '&force=true' : '';
-                const res = await fetch(`/api/fetch-fmp-performance?batch=${batchSize}${forceParam}`, { method: 'POST' });
+                let url = `/api/fetch-fmp-performance?batch=${batchSize}`;
+                if (_fmpForceMode) {
+                    url += '&force=true';
+                    if (_fmpLastCompany) url += '&after=' + encodeURIComponent(_fmpLastCompany);
+                }
+                const res = await fetch(url, { method: 'POST' });
                 const data = await res.json();
 
                 if (!data.success && data.error) {
@@ -2581,6 +2586,8 @@
                 const remaining = data.remaining != null ? data.remaining : 0;
                 _fmpFetchedTotal += fetched;
 
+                if (data.last_company) _fmpLastCompany = data.last_company;
+
                 if (_fmpInitialRemaining === null) {
                     _fmpInitialRemaining = remaining + fetched;
                 }
@@ -2593,7 +2600,6 @@
                     setFmpStatus(`Done — processed ${_fmpFetchedTotal} companies. Refreshing analysis...`, '#16a34a');
                     document.getElementById('fmpProgressFill').style.width = '100%';
                     stopFmpFetch();
-                    // Reload insights
                     insightsLoaded = false;
                     loadPerformanceInsights();
                     return;
