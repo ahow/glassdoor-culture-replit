@@ -1106,6 +1106,27 @@ def score_single_company(company_name):
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+@app.route('/api/reset-fmp-nodata', methods=['POST'])
+def reset_fmp_nodata():
+    """Delete all no_data placeholder rows so those companies can be re-fetched with the correct API."""
+    try:
+        conn = get_db_connection()
+        if not conn:
+            return jsonify({'success': False, 'error': 'Database connection failed'}), 500
+        cur = conn.cursor()
+        cur.execute("DELETE FROM fmp_performance_metrics WHERE data_source = 'no_data'")
+        deleted = cur.rowcount
+        conn.commit()
+        cur.close()
+        conn.close()
+        logger.info(f"Reset FMP no_data: deleted {deleted} placeholder rows")
+        return jsonify({'success': True, 'deleted': deleted,
+                        'message': f'Cleared {deleted} no-data markers. Companies will be re-fetched on next batch.'})
+    except Exception as e:
+        logger.error(f"Error resetting FMP no_data rows: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 @app.route('/api/fetch-fmp-performance', methods=['POST'])
 def fetch_fmp_performance():
     """Batch fetch FMP financial data for companies that have ISINs but no performance data yet."""

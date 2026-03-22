@@ -259,7 +259,7 @@ class FMPPerformanceAnalyzer:
         cached = self._get_cached_financial(ticker, 'key_metrics')
         if cached:
             return cached
-        data = self._fmp_request('key-metrics', {'symbol': ticker, 'period': 'annual', 'limit': 6})
+        data = self._fmp_request(f'key-metrics/{ticker}', {'period': 'annual', 'limit': 6})
         if data and isinstance(data, list) and len(data) > 0:
             self._cache_financial(ticker, 'key_metrics', data)
             return data
@@ -269,7 +269,7 @@ class FMPPerformanceAnalyzer:
         cached = self._get_cached_financial(ticker, 'income_statement')
         if cached:
             return cached
-        data = self._fmp_request('income-statement', {'symbol': ticker, 'period': 'annual', 'limit': 6})
+        data = self._fmp_request(f'income-statement/{ticker}', {'period': 'annual', 'limit': 6})
         if data and isinstance(data, list) and len(data) > 0:
             self._cache_financial(ticker, 'income_statement', data)
             return data
@@ -279,7 +279,7 @@ class FMPPerformanceAnalyzer:
         cached = self._get_cached_financial(ticker, 'ratios')
         if cached:
             return cached
-        data = self._fmp_request('ratios', {'symbol': ticker, 'period': 'annual', 'limit': 6})
+        data = self._fmp_request(f'ratios/{ticker}', {'period': 'annual', 'limit': 6})
         if data and isinstance(data, list) and len(data) > 0:
             self._cache_financial(ticker, 'ratios', data)
             return data
