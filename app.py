@@ -955,7 +955,8 @@ def perf_diagnostic():
         queue_reviews_with_isin = cur.fetchone()[0]
 
         _has_data = """(fpm.roe_5y_avg IS NOT NULL OR fpm.op_margin_5y_avg IS NOT NULL
-                       OR fpm.tsr_5y IS NOT NULL OR fpm.revenue_growth_5y IS NOT NULL)"""
+                       OR fpm.tsr_5y IS NOT NULL OR fpm.revenue_growth_5y IS NOT NULL
+                       OR fpm.roe_latest IS NOT NULL OR fpm.op_margin_latest IS NOT NULL)"""
         cur.execute(f"""
             SELECT COUNT(DISTINCT eq.id) FROM extraction_queue eq
             INNER JOIN reviews r ON r.company_name = eq.glassdoor_name
@@ -995,6 +996,7 @@ def perf_diagnostic():
             SELECT COUNT(*) FROM fmp_performance_metrics
             WHERE roe_5y_avg IS NOT NULL OR op_margin_5y_avg IS NOT NULL
                OR tsr_5y IS NOT NULL OR revenue_growth_5y IS NOT NULL
+               OR roe_latest IS NOT NULL OR op_margin_latest IS NOT NULL
         """)
         fmp_with_real_data = cur.fetchone()[0]
 
@@ -1003,6 +1005,7 @@ def perf_diagnostic():
             SELECT gics_sector, COUNT(*) as total,
                    COUNT(CASE WHEN roe_5y_avg IS NOT NULL OR op_margin_5y_avg IS NOT NULL
                                OR tsr_5y IS NOT NULL OR revenue_growth_5y IS NOT NULL
+                               OR roe_latest IS NOT NULL OR op_margin_latest IS NOT NULL
                           THEN 1 END) as has_data
             FROM fmp_performance_metrics
             GROUP BY gics_sector ORDER BY has_data DESC
@@ -1011,9 +1014,13 @@ def perf_diagnostic():
 
         # Sample companies with actual financial data (non-NULL)
         cur.execute("""
-            SELECT company_name, gics_sector, roe_5y_avg, op_margin_5y_avg, tsr_5y
+            SELECT company_name, gics_sector,
+                   COALESCE(roe_5y_avg, roe_latest) as roe,
+                   COALESCE(op_margin_5y_avg, op_margin_latest) as margin,
+                   tsr_5y
             FROM fmp_performance_metrics
             WHERE roe_5y_avg IS NOT NULL OR tsr_5y IS NOT NULL
+               OR roe_latest IS NOT NULL OR op_margin_latest IS NOT NULL
             LIMIT 10
         """)
         sample_with_data = [{'name': r[0], 'sector': r[1], 'roe': r[2], 'margin': r[3], 'tsr': r[4]} for r in cur.fetchall()]
@@ -1113,7 +1120,8 @@ def fetch_fmp_performance():
         cursor = conn.cursor(cursor_factory=RealDictCursor)
         
         has_data_cond = """(fpm.roe_5y_avg IS NOT NULL OR fpm.op_margin_5y_avg IS NOT NULL
-                          OR fpm.tsr_5y IS NOT NULL OR fpm.revenue_growth_5y IS NOT NULL)"""
+                          OR fpm.tsr_5y IS NOT NULL OR fpm.revenue_growth_5y IS NOT NULL
+                          OR fpm.roe_latest IS NOT NULL OR fpm.op_margin_latest IS NOT NULL)"""
         
         if force:
             cursor.execute("""
@@ -2212,8 +2220,10 @@ def _load_fmp_perf_map():
         if conn:
             cur = conn.cursor(cursor_factory=RealDictCursor)
             cur.execute("""
-                SELECT company_name, roe_5y_avg, op_margin_5y_avg,
-                       tsr_5y, revenue_growth_5y, data_source, gics_sector, gics_industry
+                SELECT company_name, roe_latest, roe_5y_avg,
+                       op_margin_latest, op_margin_5y_avg,
+                       net_margin_latest, tsr_5y, revenue_growth_5y,
+                       market_cap, data_source, gics_sector, gics_industry
                 FROM fmp_performance_metrics
             """)
             for row in cur.fetchall():
@@ -2244,15 +2254,19 @@ def _fmp_row_to_perf_metrics(company, fmp_row):
         'company': company,
         'matched_name': company,
         'business_model': business_model,
-        'roe_5y_avg': fmp_row.get('roe_5y_avg'),
-        'op_margin_5y_avg': fmp_row.get('op_margin_5y_avg'),
+        'roe_5y_avg': fmp_row.get('roe_5y_avg') or fmp_row.get('roe_latest'),
+        'op_margin_5y_avg': fmp_row.get('op_margin_5y_avg') or fmp_row.get('op_margin_latest'),
         'tsr_cagr_5y': fmp_row.get('tsr_5y'),
         'revenue_growth_5y': fmp_row.get('revenue_growth_5y'),
+        'roe_latest': fmp_row.get('roe_latest'),
+        'op_margin_latest': fmp_row.get('op_margin_latest'),
+        'market_cap': fmp_row.get('market_cap'),
     }
     return {k: v for k, v in raw.items() if v is not None}
 
 
-_FINANCIAL_METRIC_KEYS = {'roe_5y_avg', 'aum_cagr_5y', 'tsr_cagr_5y', 'op_margin_5y_avg', 'revenue_growth_5y'}
+_FINANCIAL_METRIC_KEYS = {'roe_5y_avg', 'aum_cagr_5y', 'tsr_cagr_5y', 'op_margin_5y_avg',
+                          'revenue_growth_5y', 'roe_latest', 'op_margin_latest'}
 
 def _has_financial_metrics(metrics):
     """Return True if the metrics dict contains at least one actual financial value."""
