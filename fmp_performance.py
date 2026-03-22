@@ -417,8 +417,10 @@ class FMPPerformanceAnalyzer:
             if tsr is not None:
                 metrics['tsr_cagr_5y'] = tsr
 
-        self._cache_performance_metrics(company_name, isin, ticker, metrics)
-        return metrics if len(metrics) > 3 else None
+        if len(metrics) > 3:
+            self._cache_performance_metrics(company_name, isin, ticker, metrics)
+            return metrics
+        return None
 
     def _cache_performance_metrics(self, company_name: str, isin: str, ticker: str, metrics: Dict, data_source: str = 'fmp'):
         conn = get_db_connection()

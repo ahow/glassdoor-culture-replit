@@ -954,10 +954,13 @@ def perf_diagnostic():
         """)
         queue_reviews_with_isin = cur.fetchone()[0]
 
-        cur.execute("""
+        _has_data = """(fpm.roe_5y_avg IS NOT NULL OR fpm.op_margin_5y_avg IS NOT NULL
+                       OR fpm.tsr_5y IS NOT NULL OR fpm.revenue_growth_5y IS NOT NULL)"""
+        cur.execute(f"""
             SELECT COUNT(DISTINCT eq.id) FROM extraction_queue eq
             INNER JOIN reviews r ON r.company_name = eq.glassdoor_name
-            LEFT JOIN fmp_performance_metrics fpm ON fpm.company_name = eq.glassdoor_name
+            LEFT JOIN fmp_performance_metrics fpm
+              ON fpm.company_name = eq.glassdoor_name AND {_has_data}
             WHERE eq.isin IS NOT NULL AND eq.isin != ''
               AND fpm.company_name IS NULL
         """)
@@ -966,10 +969,11 @@ def perf_diagnostic():
         cur.execute("SELECT COUNT(*) FROM fmp_performance_metrics")
         fmp_total = cur.fetchone()[0]
 
-        cur.execute("""
+        cur.execute(f"""
             SELECT eq.glassdoor_name, eq.isin, eq.gics_sector FROM extraction_queue eq
             INNER JOIN reviews r ON r.company_name = eq.glassdoor_name
-            LEFT JOIN fmp_performance_metrics fpm ON fpm.company_name = eq.glassdoor_name
+            LEFT JOIN fmp_performance_metrics fpm
+              ON fpm.company_name = eq.glassdoor_name AND {_has_data}
             WHERE eq.isin IS NOT NULL AND eq.isin != ''
               AND fpm.company_name IS NULL
             GROUP BY eq.glassdoor_name, eq.isin, eq.gics_sector
@@ -986,6 +990,34 @@ def perf_diagnostic():
         """)
         by_sector = [{'sector': r[0], 'count': r[1]} for r in cur.fetchall()]
 
+        # How many rows actually have financial data vs empty placeholders
+        cur.execute("""
+            SELECT COUNT(*) FROM fmp_performance_metrics
+            WHERE roe_5y_avg IS NOT NULL OR op_margin_5y_avg IS NOT NULL
+               OR tsr_5y IS NOT NULL OR revenue_growth_5y IS NOT NULL
+        """)
+        fmp_with_real_data = cur.fetchone()[0]
+
+        # Breakdown by sector of rows with real financial data
+        cur.execute("""
+            SELECT gics_sector, COUNT(*) as total,
+                   COUNT(CASE WHEN roe_5y_avg IS NOT NULL OR op_margin_5y_avg IS NOT NULL
+                               OR tsr_5y IS NOT NULL OR revenue_growth_5y IS NOT NULL
+                          THEN 1 END) as has_data
+            FROM fmp_performance_metrics
+            GROUP BY gics_sector ORDER BY has_data DESC
+        """)
+        fmp_by_sector = [{'sector': r[0], 'total': r[1], 'has_data': r[2]} for r in cur.fetchall()]
+
+        # Sample companies with actual financial data (non-NULL)
+        cur.execute("""
+            SELECT company_name, gics_sector, roe_5y_avg, op_margin_5y_avg, tsr_5y
+            FROM fmp_performance_metrics
+            WHERE roe_5y_avg IS NOT NULL OR tsr_5y IS NOT NULL
+            LIMIT 10
+        """)
+        sample_with_data = [{'name': r[0], 'sector': r[1], 'roe': r[2], 'margin': r[3], 'tsr': r[4]} for r in cur.fetchall()]
+
         cur.close()
         conn.close()
         return jsonify({
@@ -995,6 +1027,9 @@ def perf_diagnostic():
             'queue_reviews_with_isin': queue_reviews_with_isin,
             'fmp_remaining': fmp_remaining,
             'fmp_total': fmp_total,
+            'fmp_with_real_data': fmp_with_real_data,
+            'fmp_by_sector': fmp_by_sector,
+            'sample_with_data': sample_with_data,
             'sample_missing_fmp': sample_missing,
             'by_sector': by_sector
         })
@@ -1077,6 +1112,9 @@ def fetch_fmp_performance():
         
         cursor = conn.cursor(cursor_factory=RealDictCursor)
         
+        has_data_cond = """(fpm.roe_5y_avg IS NOT NULL OR fpm.op_margin_5y_avg IS NOT NULL
+                          OR fpm.tsr_5y IS NOT NULL OR fpm.revenue_growth_5y IS NOT NULL)"""
+        
         if force:
             cursor.execute("""
                 SELECT eq.glassdoor_name, eq.issuer_name, eq.isin, eq.issuer_ticker,
@@ -1090,12 +1128,13 @@ def fetch_fmp_performance():
                 LIMIT %s
             """, (batch_size,))
         else:
-            cursor.execute("""
+            cursor.execute(f"""
                 SELECT eq.glassdoor_name, eq.issuer_name, eq.isin, eq.issuer_ticker,
                        eq.gics_sector, eq.gics_industry, eq.gics_sub_industry
                 FROM extraction_queue eq
                 INNER JOIN reviews r ON r.company_name = eq.glassdoor_name
-                LEFT JOIN fmp_performance_metrics fpm ON fpm.company_name = eq.glassdoor_name
+                LEFT JOIN fmp_performance_metrics fpm
+                  ON fpm.company_name = eq.glassdoor_name AND {has_data_cond}
                 WHERE eq.isin IS NOT NULL AND eq.isin != ''
                   AND fpm.company_name IS NULL
                 GROUP BY eq.id, eq.glassdoor_name, eq.issuer_name, eq.isin, eq.issuer_ticker,
@@ -1106,11 +1145,12 @@ def fetch_fmp_performance():
         
         companies_to_fetch = cursor.fetchall()
         
-        cursor.execute("""
+        cursor.execute(f"""
             SELECT COUNT(DISTINCT eq.glassdoor_name) 
             FROM extraction_queue eq
             INNER JOIN reviews r ON r.company_name = eq.glassdoor_name
-            LEFT JOIN fmp_performance_metrics fpm ON fpm.company_name = eq.glassdoor_name
+            LEFT JOIN fmp_performance_metrics fpm
+              ON fpm.company_name = eq.glassdoor_name AND {has_data_cond}
             WHERE eq.isin IS NOT NULL AND eq.isin != ''
               AND fpm.company_name IS NULL
         """)
