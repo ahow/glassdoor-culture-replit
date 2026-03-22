@@ -912,6 +912,11 @@
                             title="Re-fetches all companies, overwriting existing data with latest figures">
                             Full Update
                         </button>
+                        <button id="fmpResetBtn" onclick="resetFmpNoData()"
+                            style="padding: 0.45rem 1.1rem; background: #f59e0b; color: white; border: none; border-radius: 7px; font-size: 0.88rem; font-weight: 600; cursor: pointer; white-space: nowrap;"
+                            title="Clears 'no data' markers so all companies can be re-fetched">
+                            Reset &amp; Retry
+                        </button>
                         <button id="fmpStopBtn" onclick="stopFmpFetch()" style="display:none; padding: 0.45rem 0.9rem; background: #ef4444; color: white; border: none; border-radius: 7px; font-size: 0.88rem; font-weight: 600; cursor: pointer;">
                             Stop
                         </button>
@@ -2611,6 +2616,27 @@
             document.getElementById('fmpFetchBtn').style.display = 'inline-block';
             document.getElementById('fmpForceBtn').style.display = 'inline-block';
             document.getElementById('fmpStopBtn').style.display = 'none';
+        }
+
+        async function resetFmpNoData() {
+            if (!confirm('This will clear all "no data" markers so every company is re-fetched from FMP on the next batch. Continue?')) return;
+            const btn = document.getElementById('fmpResetBtn');
+            btn.disabled = true;
+            btn.textContent = 'Resetting…';
+            setFmpStatus('Clearing no-data markers…', '#f59e0b');
+            try {
+                const resp = await fetch('/api/reset-fmp-nodata', { method: 'POST' });
+                const data = await resp.json();
+                if (data.success) {
+                    setFmpStatus(`✓ Cleared ${data.deleted} markers — click "Fetch Missing Data" to start fresh.`, '#16a34a');
+                } else {
+                    setFmpStatus('Reset failed: ' + (data.error || 'Unknown error'), '#dc2626');
+                }
+            } catch(e) {
+                setFmpStatus('Reset request failed: ' + e, '#dc2626');
+            }
+            btn.disabled = false;
+            btn.textContent = 'Reset & Retry';
         }
 
         function setFmpStatus(msg, color) {
