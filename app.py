@@ -1108,22 +1108,31 @@ def score_single_company(company_name):
 
 @app.route('/api/reset-fmp-nodata', methods=['POST'])
 def reset_fmp_nodata():
-    """Delete all no_data placeholder rows so those companies can be re-fetched with the correct API."""
+    """Delete no_data markers AND partial FMP rows (TSR only, no ROE/margin) so companies are fully re-fetched."""
     try:
         conn = get_db_connection()
         if not conn:
             return jsonify({'success': False, 'error': 'Database connection failed'}), 500
         cur = conn.cursor()
         cur.execute("DELETE FROM fmp_performance_metrics WHERE data_source = 'no_data'")
-        deleted = cur.rowcount
+        deleted_nodata = cur.rowcount
+        cur.execute("""
+            DELETE FROM fmp_performance_metrics
+            WHERE data_source = 'fmp'
+              AND roe_5y_avg IS NULL AND roe_latest IS NULL
+              AND op_margin_5y_avg IS NULL AND op_margin_latest IS NULL
+        """)
+        deleted_partial = cur.rowcount
         conn.commit()
         cur.close()
         conn.close()
-        logger.info(f"Reset FMP no_data: deleted {deleted} placeholder rows")
-        return jsonify({'success': True, 'deleted': deleted,
-                        'message': f'Cleared {deleted} no-data markers. Companies will be re-fetched on next batch.'})
+        total = deleted_nodata + deleted_partial
+        logger.info(f"Reset FMP: deleted {deleted_nodata} no_data + {deleted_partial} partial rows")
+        return jsonify({'success': True, 'deleted': total,
+                        'deleted_nodata': deleted_nodata, 'deleted_partial': deleted_partial,
+                        'message': f'Cleared {deleted_nodata} no-data markers and {deleted_partial} partial entries. Companies will be fully re-fetched.'})
     except Exception as e:
-        logger.error(f"Error resetting FMP no_data rows: {e}")
+        logger.error(f"Error resetting FMP rows: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
