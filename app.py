@@ -926,6 +926,82 @@ def score_unscored_reviews():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+@app.route('/api/perf-diag', methods=['GET'])
+def perf_diagnostic():
+    """Diagnostic: check why FMP fetch reports 'all done' with so few companies."""
+    try:
+        conn = get_db_connection()
+        if not conn:
+            return jsonify({'error': 'No DB connection'}), 500
+        cur = conn.cursor()
+
+        cur.execute("SELECT COUNT(*) FROM extraction_queue WHERE isin IS NOT NULL AND isin != ''")
+        queue_with_isin = cur.fetchone()[0]
+
+        cur.execute("SELECT COUNT(*) FROM extraction_queue WHERE glassdoor_name IS NOT NULL")
+        queue_with_gd_name = cur.fetchone()[0]
+
+        cur.execute("""
+            SELECT COUNT(DISTINCT eq.id) FROM extraction_queue eq
+            INNER JOIN reviews r ON r.company_name = eq.glassdoor_name
+        """)
+        queue_reviews_join = cur.fetchone()[0]
+
+        cur.execute("""
+            SELECT COUNT(DISTINCT eq.id) FROM extraction_queue eq
+            INNER JOIN reviews r ON r.company_name = eq.glassdoor_name
+            WHERE eq.isin IS NOT NULL AND eq.isin != ''
+        """)
+        queue_reviews_with_isin = cur.fetchone()[0]
+
+        cur.execute("""
+            SELECT COUNT(DISTINCT eq.id) FROM extraction_queue eq
+            INNER JOIN reviews r ON r.company_name = eq.glassdoor_name
+            LEFT JOIN fmp_performance_metrics fpm ON fpm.company_name = eq.glassdoor_name
+            WHERE eq.isin IS NOT NULL AND eq.isin != ''
+              AND fpm.company_name IS NULL
+        """)
+        fmp_remaining = cur.fetchone()[0]
+
+        cur.execute("SELECT COUNT(*) FROM fmp_performance_metrics")
+        fmp_total = cur.fetchone()[0]
+
+        cur.execute("""
+            SELECT eq.glassdoor_name, eq.isin, eq.gics_sector FROM extraction_queue eq
+            INNER JOIN reviews r ON r.company_name = eq.glassdoor_name
+            LEFT JOIN fmp_performance_metrics fpm ON fpm.company_name = eq.glassdoor_name
+            WHERE eq.isin IS NOT NULL AND eq.isin != ''
+              AND fpm.company_name IS NULL
+            GROUP BY eq.glassdoor_name, eq.isin, eq.gics_sector
+            LIMIT 10
+        """)
+        sample_missing = [{'name': r[0], 'isin': r[1], 'sector': r[2]} for r in cur.fetchall()]
+
+        cur.execute("""
+            SELECT eq.gics_sector, COUNT(DISTINCT eq.id) as cnt
+            FROM extraction_queue eq
+            INNER JOIN reviews r ON r.company_name = eq.glassdoor_name
+            WHERE eq.isin IS NOT NULL AND eq.isin != ''
+            GROUP BY eq.gics_sector ORDER BY cnt DESC
+        """)
+        by_sector = [{'sector': r[0], 'count': r[1]} for r in cur.fetchall()]
+
+        cur.close()
+        conn.close()
+        return jsonify({
+            'queue_with_isin': queue_with_isin,
+            'queue_with_glassdoor_name': queue_with_gd_name,
+            'queue_reviews_exact_join': queue_reviews_join,
+            'queue_reviews_with_isin': queue_reviews_with_isin,
+            'fmp_remaining': fmp_remaining,
+            'fmp_total': fmp_total,
+            'sample_missing_fmp': sample_missing,
+            'by_sector': by_sector
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
 @app.route('/api/score-status', methods=['GET'])
 def get_score_status():
     """Get count of companies with unscored reviews vs total."""
