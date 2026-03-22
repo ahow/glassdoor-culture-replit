@@ -246,6 +246,20 @@ def _build_company_sector_map():
         except:
             pass
 
+AM_GICS_SUB_INDUSTRIES = {'Asset Management & Custody Banks'}
+
+def _is_asset_management_company(company):
+    """Return True if this company belongs to the Asset Management group.
+    
+    Covers both the 14 hardcoded unlisted firms AND listed companies whose
+    GICS sub-industry is 'Asset Management & Custody Banks'.
+    """
+    if _company_sector_map.get(company) == 'Asset Management':
+        return True
+    gics = _company_gics_map.get(company, {})
+    return gics.get('sub_industry') in AM_GICS_SUB_INDUSTRIES
+
+
 def get_companies_for_sector(sector=None, gics_level='sector', gics_value=None):
     """Get list of company names that have reviews, optionally filtered by GICS level.
     
@@ -271,7 +285,9 @@ def get_companies_for_sector(sector=None, gics_level='sector', gics_value=None):
         conn.close()
         
         if filter_value:
-            if gics_level == 'industry':
+            if filter_value == 'Asset Management':
+                return [c for c in all_companies if _is_asset_management_company(c)]
+            elif gics_level == 'industry':
                 return [c for c in all_companies if _company_gics_map.get(c, {}).get('industry') == filter_value]
             elif gics_level == 'sub_industry':
                 return [c for c in all_companies if _company_gics_map.get(c, {}).get('sub_industry') == filter_value]
