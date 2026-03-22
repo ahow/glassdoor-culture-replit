@@ -338,23 +338,29 @@ class FMPPerformanceAnalyzer:
                 cur.close()
                 conn.close()
                 if row:
-                    metrics = {
-                        'company': company_name,
-                        'ticker': row['ticker'],
-                        'gics_sector': row['gics_sector'],
-                        'roe_latest': row['roe_latest'],
-                        'roe_5y_avg': row['roe_5y_avg'],
-                        'op_margin_latest': row['op_margin_latest'],
-                        'op_margin_5y_avg': row['op_margin_5y_avg'],
-                        'net_margin_latest': row['net_margin_latest'],
-                        'revenue_growth_5y': row['revenue_growth_5y'],
-                        'tsr_cagr_5y': row['tsr_5y'],
-                        'market_cap': row['market_cap'],
-                    }
-                    if row['metrics_json']:
-                        extra = row['metrics_json'] if isinstance(row['metrics_json'], dict) else json.loads(row['metrics_json'])
-                        metrics.update(extra)
-                    return metrics
+                    has_any_data = any([
+                        row.get('roe_5y_avg'), row.get('roe_latest'),
+                        row.get('op_margin_5y_avg'), row.get('op_margin_latest'),
+                        row.get('tsr_5y'), row.get('revenue_growth_5y')
+                    ])
+                    if has_any_data:
+                        metrics = {
+                            'company': company_name,
+                            'ticker': row['ticker'],
+                            'gics_sector': row['gics_sector'],
+                            'roe_latest': row['roe_latest'],
+                            'roe_5y_avg': row['roe_5y_avg'],
+                            'op_margin_latest': row['op_margin_latest'],
+                            'op_margin_5y_avg': row['op_margin_5y_avg'],
+                            'net_margin_latest': row['net_margin_latest'],
+                            'revenue_growth_5y': row['revenue_growth_5y'],
+                            'tsr_cagr_5y': row['tsr_5y'],
+                            'market_cap': row['market_cap'],
+                        }
+                        if row['metrics_json']:
+                            extra = row['metrics_json'] if isinstance(row['metrics_json'], dict) else json.loads(row['metrics_json'])
+                            metrics.update(extra)
+                        return metrics
             except Exception:
                 try:
                     conn.close()
@@ -417,8 +423,10 @@ class FMPPerformanceAnalyzer:
             if tsr is not None:
                 metrics['tsr_cagr_5y'] = tsr
 
-        self._cache_performance_metrics(company_name, isin, ticker, metrics)
-        return metrics if len(metrics) > 3 else None
+        if len(metrics) > 3:
+            self._cache_performance_metrics(company_name, isin, ticker, metrics)
+            return metrics
+        return None
 
     def _cache_performance_metrics(self, company_name: str, isin: str, ticker: str, metrics: Dict, data_source: str = 'fmp'):
         conn = get_db_connection()

@@ -926,6 +926,125 @@ def score_unscored_reviews():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+@app.route('/api/perf-diag', methods=['GET'])
+def perf_diagnostic():
+    """Diagnostic: check why FMP fetch reports 'all done' with so few companies."""
+    try:
+        conn = get_db_connection()
+        if not conn:
+            return jsonify({'error': 'No DB connection'}), 500
+        cur = conn.cursor()
+
+        cur.execute("SELECT COUNT(*) FROM extraction_queue WHERE isin IS NOT NULL AND isin != ''")
+        queue_with_isin = cur.fetchone()[0]
+
+        cur.execute("SELECT COUNT(*) FROM extraction_queue WHERE glassdoor_name IS NOT NULL")
+        queue_with_gd_name = cur.fetchone()[0]
+
+        cur.execute("""
+            SELECT COUNT(DISTINCT eq.id) FROM extraction_queue eq
+            INNER JOIN reviews r ON r.company_name = eq.glassdoor_name
+        """)
+        queue_reviews_join = cur.fetchone()[0]
+
+        cur.execute("""
+            SELECT COUNT(DISTINCT eq.id) FROM extraction_queue eq
+            INNER JOIN reviews r ON r.company_name = eq.glassdoor_name
+            WHERE eq.isin IS NOT NULL AND eq.isin != ''
+        """)
+        queue_reviews_with_isin = cur.fetchone()[0]
+
+        _has_data = """(fpm.roe_5y_avg IS NOT NULL OR fpm.op_margin_5y_avg IS NOT NULL
+                       OR fpm.tsr_5y IS NOT NULL OR fpm.revenue_growth_5y IS NOT NULL
+                       OR fpm.roe_latest IS NOT NULL OR fpm.op_margin_latest IS NOT NULL
+                       OR fpm.data_source = 'no_data')"""
+        cur.execute(f"""
+            SELECT COUNT(DISTINCT eq.id) FROM extraction_queue eq
+            INNER JOIN reviews r ON r.company_name = eq.glassdoor_name
+            LEFT JOIN fmp_performance_metrics fpm
+              ON fpm.company_name = eq.glassdoor_name AND {_has_data}
+            WHERE eq.isin IS NOT NULL AND eq.isin != ''
+              AND fpm.company_name IS NULL
+        """)
+        fmp_remaining = cur.fetchone()[0]
+
+        cur.execute("SELECT COUNT(*) FROM fmp_performance_metrics")
+        fmp_total = cur.fetchone()[0]
+
+        cur.execute(f"""
+            SELECT eq.glassdoor_name, eq.isin, eq.gics_sector FROM extraction_queue eq
+            INNER JOIN reviews r ON r.company_name = eq.glassdoor_name
+            LEFT JOIN fmp_performance_metrics fpm
+              ON fpm.company_name = eq.glassdoor_name AND {_has_data}
+            WHERE eq.isin IS NOT NULL AND eq.isin != ''
+              AND fpm.company_name IS NULL
+            GROUP BY eq.glassdoor_name, eq.isin, eq.gics_sector
+            LIMIT 10
+        """)
+        sample_missing = [{'name': r[0], 'isin': r[1], 'sector': r[2]} for r in cur.fetchall()]
+
+        cur.execute("""
+            SELECT eq.gics_sector, COUNT(DISTINCT eq.id) as cnt
+            FROM extraction_queue eq
+            INNER JOIN reviews r ON r.company_name = eq.glassdoor_name
+            WHERE eq.isin IS NOT NULL AND eq.isin != ''
+            GROUP BY eq.gics_sector ORDER BY cnt DESC
+        """)
+        by_sector = [{'sector': r[0], 'count': r[1]} for r in cur.fetchall()]
+
+        # How many rows actually have financial data vs empty placeholders
+        cur.execute("""
+            SELECT COUNT(*) FROM fmp_performance_metrics
+            WHERE roe_5y_avg IS NOT NULL OR op_margin_5y_avg IS NOT NULL
+               OR tsr_5y IS NOT NULL OR revenue_growth_5y IS NOT NULL
+               OR roe_latest IS NOT NULL OR op_margin_latest IS NOT NULL
+        """)
+        fmp_with_real_data = cur.fetchone()[0]
+
+        # Breakdown by sector of rows with real financial data
+        cur.execute("""
+            SELECT gics_sector, COUNT(*) as total,
+                   COUNT(CASE WHEN roe_5y_avg IS NOT NULL OR op_margin_5y_avg IS NOT NULL
+                               OR tsr_5y IS NOT NULL OR revenue_growth_5y IS NOT NULL
+                               OR roe_latest IS NOT NULL OR op_margin_latest IS NOT NULL
+                          THEN 1 END) as has_data
+            FROM fmp_performance_metrics
+            GROUP BY gics_sector ORDER BY has_data DESC
+        """)
+        fmp_by_sector = [{'sector': r[0], 'total': r[1], 'has_data': r[2]} for r in cur.fetchall()]
+
+        # Sample companies with actual financial data (non-NULL)
+        cur.execute("""
+            SELECT company_name, gics_sector,
+                   COALESCE(roe_5y_avg, roe_latest) as roe,
+                   COALESCE(op_margin_5y_avg, op_margin_latest) as margin,
+                   tsr_5y
+            FROM fmp_performance_metrics
+            WHERE roe_5y_avg IS NOT NULL OR tsr_5y IS NOT NULL
+               OR roe_latest IS NOT NULL OR op_margin_latest IS NOT NULL
+            LIMIT 10
+        """)
+        sample_with_data = [{'name': r[0], 'sector': r[1], 'roe': r[2], 'margin': r[3], 'tsr': r[4]} for r in cur.fetchall()]
+
+        cur.close()
+        conn.close()
+        return jsonify({
+            'queue_with_isin': queue_with_isin,
+            'queue_with_glassdoor_name': queue_with_gd_name,
+            'queue_reviews_exact_join': queue_reviews_join,
+            'queue_reviews_with_isin': queue_reviews_with_isin,
+            'fmp_remaining': fmp_remaining,
+            'fmp_total': fmp_total,
+            'fmp_with_real_data': fmp_with_real_data,
+            'fmp_by_sector': fmp_by_sector,
+            'sample_with_data': sample_with_data,
+            'sample_missing_fmp': sample_missing,
+            'by_sector': by_sector
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
 @app.route('/api/score-status', methods=['GET'])
 def get_score_status():
     """Get count of companies with unscored reviews vs total."""
@@ -1001,6 +1120,11 @@ def fetch_fmp_performance():
         
         cursor = conn.cursor(cursor_factory=RealDictCursor)
         
+        has_data_cond = """(fpm.roe_5y_avg IS NOT NULL OR fpm.op_margin_5y_avg IS NOT NULL
+                          OR fpm.tsr_5y IS NOT NULL OR fpm.revenue_growth_5y IS NOT NULL
+                          OR fpm.roe_latest IS NOT NULL OR fpm.op_margin_latest IS NOT NULL
+                          OR fpm.data_source = 'no_data')"""
+        
         if force:
             cursor.execute("""
                 SELECT eq.glassdoor_name, eq.issuer_name, eq.isin, eq.issuer_ticker,
@@ -1014,12 +1138,13 @@ def fetch_fmp_performance():
                 LIMIT %s
             """, (batch_size,))
         else:
-            cursor.execute("""
+            cursor.execute(f"""
                 SELECT eq.glassdoor_name, eq.issuer_name, eq.isin, eq.issuer_ticker,
                        eq.gics_sector, eq.gics_industry, eq.gics_sub_industry
                 FROM extraction_queue eq
                 INNER JOIN reviews r ON r.company_name = eq.glassdoor_name
-                LEFT JOIN fmp_performance_metrics fpm ON fpm.company_name = eq.glassdoor_name
+                LEFT JOIN fmp_performance_metrics fpm
+                  ON fpm.company_name = eq.glassdoor_name AND {has_data_cond}
                 WHERE eq.isin IS NOT NULL AND eq.isin != ''
                   AND fpm.company_name IS NULL
                 GROUP BY eq.id, eq.glassdoor_name, eq.issuer_name, eq.isin, eq.issuer_ticker,
@@ -1030,11 +1155,12 @@ def fetch_fmp_performance():
         
         companies_to_fetch = cursor.fetchall()
         
-        cursor.execute("""
+        cursor.execute(f"""
             SELECT COUNT(DISTINCT eq.glassdoor_name) 
             FROM extraction_queue eq
             INNER JOIN reviews r ON r.company_name = eq.glassdoor_name
-            LEFT JOIN fmp_performance_metrics fpm ON fpm.company_name = eq.glassdoor_name
+            LEFT JOIN fmp_performance_metrics fpm
+              ON fpm.company_name = eq.glassdoor_name AND {has_data_cond}
             WHERE eq.isin IS NOT NULL AND eq.isin != ''
               AND fpm.company_name IS NULL
         """)
@@ -1053,6 +1179,7 @@ def fetch_fmp_performance():
         
         results = []
         import time
+        no_data_companies = []
         for company in companies_to_fetch:
             company_name = company['glassdoor_name']
             isin = company['isin']
@@ -1072,6 +1199,7 @@ def fetch_fmp_performance():
                         'tsr_5y': metrics.get('tsr_cagr_5y')
                     })
                 else:
+                    no_data_companies.append(company_name)
                     results.append({
                         'company': company_name,
                         'isin': isin,
@@ -1086,10 +1214,37 @@ def fetch_fmp_performance():
             
             time.sleep(0.5)
         
+        # Mark companies with no available FMP data so they're not retried each run
+        if no_data_companies:
+            try:
+                mark_conn = get_db_connection()
+                if mark_conn:
+                    mark_cur = mark_conn.cursor()
+                    for nd_name in no_data_companies:
+                        mark_cur.execute("""
+                            INSERT INTO fmp_performance_metrics
+                            (company_name, data_source, last_updated)
+                            VALUES (%s, 'no_data', NOW())
+                            ON CONFLICT (company_name) DO UPDATE SET
+                                data_source = CASE
+                                    WHEN fmp_performance_metrics.data_source = 'excel' THEN 'excel'
+                                    ELSE 'no_data' END,
+                                last_updated = NOW()
+                        """, (nd_name,))
+                    mark_conn.commit()
+                    mark_cur.close()
+                    mark_conn.close()
+            except Exception as mark_err:
+                logger.warning(f"Could not mark no_data companies: {mark_err}")
+
+        processed = len(results)
+        remaining_after = max(0, total_remaining - processed)
         return jsonify({
             'success': True,
-            'fetched': len(results),
-            'remaining': total_remaining - len([r for r in results if r['status'] == 'success']),
+            'fetched': processed,
+            'successful': len([r for r in results if r['status'] == 'success']),
+            'no_data': len(no_data_companies),
+            'remaining': remaining_after,
             'results': results
         })
     except Exception as e:
@@ -2096,8 +2251,10 @@ def _load_fmp_perf_map():
         if conn:
             cur = conn.cursor(cursor_factory=RealDictCursor)
             cur.execute("""
-                SELECT company_name, roe_5y_avg, op_margin_5y_avg,
-                       tsr_5y, revenue_growth_5y, data_source, gics_sector, gics_industry
+                SELECT company_name, roe_latest, roe_5y_avg,
+                       op_margin_latest, op_margin_5y_avg,
+                       net_margin_latest, tsr_5y, revenue_growth_5y,
+                       market_cap, data_source, gics_sector, gics_industry
                 FROM fmp_performance_metrics
             """)
             for row in cur.fetchall():
@@ -2128,15 +2285,19 @@ def _fmp_row_to_perf_metrics(company, fmp_row):
         'company': company,
         'matched_name': company,
         'business_model': business_model,
-        'roe_5y_avg': fmp_row.get('roe_5y_avg'),
-        'op_margin_5y_avg': fmp_row.get('op_margin_5y_avg'),
+        'roe_5y_avg': fmp_row.get('roe_5y_avg') or fmp_row.get('roe_latest'),
+        'op_margin_5y_avg': fmp_row.get('op_margin_5y_avg') or fmp_row.get('op_margin_latest'),
         'tsr_cagr_5y': fmp_row.get('tsr_5y'),
         'revenue_growth_5y': fmp_row.get('revenue_growth_5y'),
+        'roe_latest': fmp_row.get('roe_latest'),
+        'op_margin_latest': fmp_row.get('op_margin_latest'),
+        'market_cap': fmp_row.get('market_cap'),
     }
     return {k: v for k, v in raw.items() if v is not None}
 
 
-_FINANCIAL_METRIC_KEYS = {'roe_5y_avg', 'aum_cagr_5y', 'tsr_cagr_5y', 'op_margin_5y_avg', 'revenue_growth_5y'}
+_FINANCIAL_METRIC_KEYS = {'roe_5y_avg', 'aum_cagr_5y', 'tsr_cagr_5y', 'op_margin_5y_avg',
+                          'revenue_growth_5y', 'roe_latest', 'op_margin_latest'}
 
 def _has_financial_metrics(metrics):
     """Return True if the metrics dict contains at least one actual financial value."""
