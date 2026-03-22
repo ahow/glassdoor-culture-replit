@@ -2571,6 +2571,8 @@
                 }
 
                 const fetched = data.fetched || 0;
+                const successful = data.successful || 0;
+                const noDataCount = data.no_data || 0;
                 const remaining = data.remaining != null ? data.remaining : 0;
                 _fmpFetchedTotal += fetched;
 
@@ -2583,7 +2585,7 @@
                 document.getElementById('fmpProgressFill').style.width = pct + '%';
 
                 if (remaining === 0 || fetched === 0) {
-                    setFmpStatus(`Done — fetched ${_fmpFetchedTotal} companies. Refreshing analysis...`, '#16a34a');
+                    setFmpStatus(`Done — processed ${_fmpFetchedTotal} companies. Refreshing analysis...`, '#16a34a');
                     document.getElementById('fmpProgressFill').style.width = '100%';
                     stopFmpFetch();
                     // Reload insights
@@ -2592,7 +2594,11 @@
                     return;
                 }
 
-                setFmpStatus(`Fetched ${_fmpFetchedTotal} so far — ${remaining} remaining...`, '#0369a1');
+                const statusParts = [`Processed ${_fmpFetchedTotal} so far`];
+                if (successful > 0) statusParts.push(`${successful} with data`);
+                if (noDataCount > 0) statusParts.push(`${noDataCount} no data`);
+                statusParts.push(`${remaining} remaining`);
+                setFmpStatus(statusParts.join(' · ') + '...', '#0369a1');
                 setTimeout(() => _fmpFetchLoop(batchSize), 800);
             } catch (e) {
                 setFmpStatus('Network error: ' + e.message, '#dc2626');
@@ -2629,7 +2635,25 @@
                     return;
                 }
                 
-                document.getElementById('insightsCompanyCount').textContent = corrData.companies_with_both || 0;
+                const companiesWithBoth = corrData.companies_with_both || 0;
+                document.getElementById('insightsCompanyCount').textContent = companiesWithBoth;
+                
+                if (companiesWithBoth === 0) {
+                    document.getElementById('insightsLoading').innerHTML =
+                        '<div style="text-align:center; padding: 3rem 2rem; color: #64748b;">' +
+                        '<div style="font-size: 2.5rem; margin-bottom: 1rem;">📊</div>' +
+                        '<div style="font-size: 1.1rem; font-weight: 600; color: #374151; margin-bottom: 0.75rem;">No financial performance data for this filter</div>' +
+                        '<div style="font-size: 0.9rem; max-width: 480px; margin: 0 auto; line-height: 1.6;">' +
+                        'Performance correlation analysis requires both culture scores and financial metrics (ROE, operating margin, TSR).<br><br>' +
+                        'Financial data is currently available for <strong>Asset Management</strong> companies. ' +
+                        'Use the "Fetch Missing Data" button above to import financial data for other sectors via the FMP API, ' +
+                        'or try switching the filter to <strong>Asset Management</strong>.' +
+                        '</div></div>';
+                    document.getElementById('insightsLoading').style.display = 'block';
+                    document.getElementById('insightsContent').style.display = 'none';
+                    insightsLoaded = true;
+                    return;
+                }
                 
                 const formatDimension = (dim) => {
                     const names = {

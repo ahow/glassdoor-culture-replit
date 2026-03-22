@@ -956,7 +956,8 @@ def perf_diagnostic():
 
         _has_data = """(fpm.roe_5y_avg IS NOT NULL OR fpm.op_margin_5y_avg IS NOT NULL
                        OR fpm.tsr_5y IS NOT NULL OR fpm.revenue_growth_5y IS NOT NULL
-                       OR fpm.roe_latest IS NOT NULL OR fpm.op_margin_latest IS NOT NULL)"""
+                       OR fpm.roe_latest IS NOT NULL OR fpm.op_margin_latest IS NOT NULL
+                       OR fpm.data_source = 'no_data')"""
         cur.execute(f"""
             SELECT COUNT(DISTINCT eq.id) FROM extraction_queue eq
             INNER JOIN reviews r ON r.company_name = eq.glassdoor_name
@@ -1121,7 +1122,8 @@ def fetch_fmp_performance():
         
         has_data_cond = """(fpm.roe_5y_avg IS NOT NULL OR fpm.op_margin_5y_avg IS NOT NULL
                           OR fpm.tsr_5y IS NOT NULL OR fpm.revenue_growth_5y IS NOT NULL
-                          OR fpm.roe_latest IS NOT NULL OR fpm.op_margin_latest IS NOT NULL)"""
+                          OR fpm.roe_latest IS NOT NULL OR fpm.op_margin_latest IS NOT NULL
+                          OR fpm.data_source = 'no_data')"""
         
         if force:
             cursor.execute("""
@@ -1177,6 +1179,7 @@ def fetch_fmp_performance():
         
         results = []
         import time
+        no_data_companies = []
         for company in companies_to_fetch:
             company_name = company['glassdoor_name']
             isin = company['isin']
@@ -1196,6 +1199,7 @@ def fetch_fmp_performance():
                         'tsr_5y': metrics.get('tsr_cagr_5y')
                     })
                 else:
+                    no_data_companies.append(company_name)
                     results.append({
                         'company': company_name,
                         'isin': isin,
@@ -1210,10 +1214,37 @@ def fetch_fmp_performance():
             
             time.sleep(0.5)
         
+        # Mark companies with no available FMP data so they're not retried each run
+        if no_data_companies:
+            try:
+                mark_conn = get_db_connection()
+                if mark_conn:
+                    mark_cur = mark_conn.cursor()
+                    for nd_name in no_data_companies:
+                        mark_cur.execute("""
+                            INSERT INTO fmp_performance_metrics
+                            (company_name, data_source, last_updated)
+                            VALUES (%s, 'no_data', NOW())
+                            ON CONFLICT (company_name) DO UPDATE SET
+                                data_source = CASE
+                                    WHEN fmp_performance_metrics.data_source IN ('excel', 'fmp') THEN fmp_performance_metrics.data_source
+                                    ELSE 'no_data' END,
+                                last_updated = NOW()
+                        """, (nd_name,))
+                    mark_conn.commit()
+                    mark_cur.close()
+                    mark_conn.close()
+            except Exception as mark_err:
+                logger.warning(f"Could not mark no_data companies: {mark_err}")
+
+        processed = len(results)
+        remaining_after = max(0, total_remaining - processed)
         return jsonify({
             'success': True,
-            'fetched': len(results),
-            'remaining': total_remaining - len([r for r in results if r['status'] == 'success']),
+            'fetched': processed,
+            'successful': len([r for r in results if r['status'] == 'success']),
+            'no_data': len(no_data_companies),
+            'remaining': remaining_after,
             'results': results
         })
     except Exception as e:
