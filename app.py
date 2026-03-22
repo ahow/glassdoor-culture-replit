@@ -942,6 +942,162 @@ def score_unscored_reviews():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+@app.route('/api/data-status', methods=['GET'])
+def data_status():
+    """Return extraction progress for reviews, culture scoring, and FMP data."""
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        cur.execute("SET statement_timeout = 20000")  # 20-second cap per query
+
+        def fmt(dt):
+            return dt.strftime('%d %b %Y') if dt else None
+
+        # 1. All companies in queue with sector + ISIN info (fast: 2442 rows)
+        cur.execute("SELECT glassdoor_name, gics_sector, isin FROM extraction_queue")
+        queue_rows = cur.fetchall()
+        total_in_queue = len(queue_rows)
+        queue_map = {r['glassdoor_name']: r for r in queue_rows}
+        queue_names = set(queue_map.keys())
+
+        # 2. Companies that have reviews — aggregate per company (uses idx on company_name)
+        cur.execute("""
+            SELECT company_name,
+                   COUNT(*) AS review_count,
+                   MIN(created_at) AS earliest_extracted,
+                   MAX(created_at) AS latest_extracted,
+                   MIN(review_datetime) AS earliest_review,
+                   MAX(review_datetime) AS latest_review
+            FROM reviews
+            GROUP BY company_name
+        """)
+        rev_rows = {r['company_name']: r for r in cur.fetchall()}
+        # Filter to only companies in extraction_queue
+        rev_in_queue = {k: v for k, v in rev_rows.items() if k in queue_names}
+
+        # 3. Companies that have culture scores (fast: only company_name column)
+        cur.execute("""
+            SELECT company_name,
+                   MIN(created_at) AS earliest_scored,
+                   MAX(created_at) AS latest_scored
+            FROM review_culture_scores
+            GROUP BY company_name
+        """)
+        cult_rows = {r['company_name']: r for r in cur.fetchall() if r['company_name'] in queue_names}
+
+        # 4. FMP table — small, fast
+        cur.execute("""
+            SELECT company_name, data_source, roe_5y_avg, roe_latest,
+                   op_margin_5y_avg, tsr_5y, last_updated
+            FROM fmp_performance_metrics
+        """)
+        fmp_rows = {r['company_name']: r for r in cur.fetchall()}
+
+        cur.close()
+        conn.close()
+
+        # --- Aggregate reviews overall ---
+        companies_with_reviews = len(rev_in_queue)
+        total_reviews = sum(r['review_count'] for r in rev_in_queue.values())
+        rev_earliest_ext = min((r['earliest_extracted'] for r in rev_in_queue.values() if r['earliest_extracted']), default=None)
+        rev_latest_ext = max((r['latest_extracted'] for r in rev_in_queue.values() if r['latest_extracted']), default=None)
+        rev_earliest_rev = min((r['earliest_review'] for r in rev_in_queue.values() if r['earliest_review']), default=None)
+        rev_latest_rev = max((r['latest_review'] for r in rev_in_queue.values() if r['latest_review']), default=None)
+
+        # --- Aggregate culture overall ---
+        companies_scored = len(cult_rows)
+        cult_earliest = min((r['earliest_scored'] for r in cult_rows.values() if r['earliest_scored']), default=None)
+        cult_latest = max((r['latest_scored'] for r in cult_rows.values() if r['latest_scored']), default=None)
+
+        # --- Aggregate FMP overall (only companies with reviews AND ISIN) ---
+        def _has_real_fmp(fpm):
+            if fpm is None: return False
+            if fpm['data_source'] == 'no_data': return False
+            return (fpm['roe_5y_avg'] is not None or fpm['roe_latest'] is not None
+                    or fpm['op_margin_5y_avg'] is not None or fpm['tsr_5y'] is not None
+                    or fpm['data_source'] == 'excel')
+
+        fmp_eligible = set()
+        fmp_with_data = set()
+        fmp_no_data = set()
+        fmp_dates = []
+        for name, qrow in queue_map.items():
+            if not qrow['isin'] or not qrow['isin'].strip():
+                continue
+            if name not in rev_in_queue:
+                continue
+            fmp_eligible.add(name)
+            fpm = fmp_rows.get(name)
+            if fpm:
+                if fpm['data_source'] == 'no_data':
+                    fmp_no_data.add(name)
+                elif _has_real_fmp(fpm):
+                    fmp_with_data.add(name)
+                    if fpm['last_updated']:
+                        fmp_dates.append(fpm['last_updated'])
+
+        eligible = len(fmp_eligible)
+        with_data = len(fmp_with_data)
+        fmp_earliest = min(fmp_dates, default=None)
+        fmp_latest = max(fmp_dates, default=None)
+
+        # --- Per-sector breakdown (pure Python aggregation) ---
+        sector_agg = {}
+        for name, qrow in queue_map.items():
+            sector = qrow['gics_sector'] or '(Unknown)'
+            isin = qrow['isin'] or ''
+            if sector not in sector_agg:
+                sector_agg[sector] = {'sector': sector, 'total_in_sector': 0,
+                                       'has_reviews': 0, 'has_culture_scores': 0,
+                                       'has_isin': 0, 'has_fmp_data': 0}
+            s = sector_agg[sector]
+            s['total_in_sector'] += 1
+            if name in rev_in_queue:
+                s['has_reviews'] += 1
+            if name in cult_rows:
+                s['has_culture_scores'] += 1
+            if isin.strip():
+                s['has_isin'] += 1
+            fpm = fmp_rows.get(name)
+            if isin.strip() and _has_real_fmp(fpm):
+                s['has_fmp_data'] += 1
+
+        sector_rows_out = sorted(sector_agg.values(),
+                                  key=lambda x: (-x['has_reviews'], -x['total_in_sector']))
+
+        return jsonify({
+            'success': True,
+            'total_in_queue': total_in_queue,
+            'reviews': {
+                'companies_with_reviews': companies_with_reviews,
+                'pct': round(companies_with_reviews / total_in_queue * 100, 1) if total_in_queue else 0,
+                'total_reviews': total_reviews,
+                'earliest_extracted': fmt(rev_earliest_ext),
+                'latest_extracted': fmt(rev_latest_ext),
+                'earliest_review': fmt(rev_earliest_rev),
+                'latest_review': fmt(rev_latest_rev),
+            },
+            'culture': {
+                'companies_scored': companies_scored,
+                'pct': round(companies_scored / companies_with_reviews * 100, 1) if companies_with_reviews else 0,
+                'earliest_scored': fmt(cult_earliest),
+                'latest_scored': fmt(cult_latest),
+            },
+            'fmp': {
+                'eligible': eligible,
+                'with_data': with_data,
+                'no_data': len(fmp_no_data),
+                'pct': round(with_data / eligible * 100, 1) if eligible else 0,
+                'earliest_updated': fmt(fmp_earliest),
+                'latest_updated': fmt(fmp_latest),
+            },
+            'by_sector': sector_rows_out,
+        })
+    except Exception as e:
+        logger.error(f"Error in data_status: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 @app.route('/api/perf-diag', methods=['GET'])
 def perf_diagnostic():
     """Diagnostic: check why FMP fetch reports 'all done' with so few companies."""
