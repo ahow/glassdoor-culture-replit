@@ -119,7 +119,7 @@ class FMPPerformanceAnalyzer:
         params['apikey'] = self.api_key
         url = f"{FMP_BASE_URL}/{endpoint}"
         try:
-            resp = requests.get(url, params=params, timeout=15)
+            resp = requests.get(url, params=params, timeout=8)
             if resp.status_code == 200:
                 data = resp.json()
                 if isinstance(data, list):
