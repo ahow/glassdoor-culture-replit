@@ -1145,6 +1145,27 @@
                     Groups in the top-right have a strong, positive culture-performance relationship.
                 </p>
 
+                <!-- Summary Matrix -->
+                <div id="corrMatrixWrap" style="margin-bottom: 2rem;">
+                    <div id="corrMatrixLoading" style="color: #94a3b8; font-size: 0.9rem; margin-bottom: 1rem;">Loading summary matrix…</div>
+                    <div id="corrMatrixTable" style="display: none; overflow-x: auto;">
+                        <p style="font-size: 0.82rem; color: #64748b; margin-bottom: 0.5rem;">
+                            Weighted-average R² (goodness of fit) and slope across all groups at each level / score type. Weights = number of companies per group.
+                        </p>
+                        <table style="width: 100%; border-collapse: collapse; font-size: 0.88rem;">
+                            <thead>
+                                <tr>
+                                    <th style="padding: 0.5rem 0.75rem; text-align: left; border-bottom: 2px solid #e2e8f0; background: #f8fafc; color: #475569; font-weight: 600;">Grouping Level</th>
+                                    <th style="padding: 0.5rem 0.75rem; text-align: center; border-bottom: 2px solid #e2e8f0; background: #f8fafc; color: #475569; font-weight: 600;">Combined</th>
+                                    <th style="padding: 0.5rem 0.75rem; text-align: center; border-bottom: 2px solid #e2e8f0; background: #f8fafc; color: #475569; font-weight: 600;">Hofstede</th>
+                                    <th style="padding: 0.5rem 0.75rem; text-align: center; border-bottom: 2px solid #e2e8f0; background: #f8fafc; color: #475569; font-weight: 600;">MIT Big 9</th>
+                                </tr>
+                            </thead>
+                            <tbody id="corrMatrixBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
                 <div style="display: flex; gap: 1.5rem; flex-wrap: wrap; margin-bottom: 2rem;">
                     <div class="control-group" style="flex: 1; min-width: 180px;">
                         <label for="corrGicsLevel" style="font-weight: 600; color: #1e293b;">Grouping Level:</label>
@@ -1586,6 +1607,7 @@
             } else if (tab === 'culturePerf') {
                 loadCulturePerfScatter();
             } else if (tab === 'corrAnalysis') {
+                loadCorrMatrix();
                 loadCorrAnalysis();
             } else if (tab === 'exportData') {
                 loadExportCompanyList();
@@ -3191,6 +3213,80 @@
         let corrAnalysisFetchedKey = null;   // "<gics_level>|<score_type>"
         let corrAnalysisFetchGen = 0;
         window.corrAnalysisChart = null;
+
+        // ── Summary Matrix ─────────────────────────────────────────────────────
+        let corrMatrixData = null;
+
+        async function loadCorrMatrix() {
+            if (corrMatrixData) { renderCorrMatrix(); return; }
+            try {
+                const resp = await fetch('/api/correlation-matrix');
+                const data = await resp.json();
+                if (!data.success) throw new Error(data.error || 'Unknown');
+                corrMatrixData = data.matrix;
+                renderCorrMatrix();
+            } catch (err) {
+                document.getElementById('corrMatrixLoading').textContent =
+                    'Matrix unavailable: ' + err.message;
+            }
+        }
+
+        function renderCorrMatrix() {
+            if (!corrMatrixData) return;
+            const LEVELS = [
+                { key: 'sector',       label: 'Sector' },
+                { key: 'industry',     label: 'Industry' },
+                { key: 'sub_industry', label: 'Sub-Industry' }
+            ];
+            const SCORES = ['combined', 'hofstede', 'mit'];
+
+            // Find max R² across all cells to colour-code
+            let maxR2 = 0;
+            for (const lv of LEVELS)
+                for (const sc of SCORES) {
+                    const cell = corrMatrixData[lv.key]?.[sc];
+                    if (cell && cell.r_squared > maxR2) maxR2 = cell.r_squared;
+                }
+
+            const tbody = document.getElementById('corrMatrixBody');
+            tbody.innerHTML = '';
+            for (let ri = 0; ri < LEVELS.length; ri++) {
+                const lv = LEVELS[ri];
+                const tr = document.createElement('tr');
+                const rowBg = ri % 2 === 0 ? '#ffffff' : '#f8fafc';
+
+                const th = document.createElement('td');
+                th.style.cssText = `padding:0.55rem 0.75rem;border-bottom:1px solid #e2e8f0;background:${rowBg};font-weight:600;color:#334155;white-space:nowrap;`;
+                th.textContent = lv.label;
+                tr.appendChild(th);
+
+                for (const sc of SCORES) {
+                    const cell = corrMatrixData[lv.key]?.[sc];
+                    const td = document.createElement('td');
+                    td.style.cssText = `padding:0.55rem 0.75rem;border-bottom:1px solid #e2e8f0;text-align:center;background:${rowBg};`;
+                    if (cell && cell.r_squared != null) {
+                        // Intensity colour based on R² (white → blue-green)
+                        const intensity = maxR2 > 0 ? cell.r_squared / maxR2 : 0;
+                        const r = Math.round(255 - intensity * (255 - 220));
+                        const g = Math.round(255 - intensity * (255 - 242));
+                        const b = Math.round(255 - intensity * (255 - 254));
+                        // Slope badge colour: green if positive, red if negative
+                        const slopeColor = cell.slope >= 0 ? '#16a34a' : '#dc2626';
+                        td.style.background = `rgb(${r},${g},${b})`;
+                        td.innerHTML = `
+                            <div style="font-weight:700;font-size:1rem;color:#1e293b;">R²&nbsp;${cell.r_squared.toFixed(3)}</div>
+                            <div style="font-size:0.78rem;color:${slopeColor};margin-top:2px;">slope&nbsp;${cell.slope >= 0 ? '+' : ''}${cell.slope.toFixed(2)}</div>`;
+                    } else {
+                        td.innerHTML = '<span style="color:#cbd5e1;">—</span>';
+                    }
+                    tr.appendChild(td);
+                }
+                tbody.appendChild(tr);
+            }
+            document.getElementById('corrMatrixLoading').style.display = 'none';
+            document.getElementById('corrMatrixTable').style.display = 'block';
+        }
+        // ── End Summary Matrix ────────────────────────────────────────────────
 
         function getCorrKey() {
             const level = document.getElementById('corrGicsLevel')?.value || 'sector';
