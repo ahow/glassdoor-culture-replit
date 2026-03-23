@@ -3744,6 +3744,10 @@ def get_correlation_analysis():
             )
             r_squared = r_value ** 2
 
+            import math as _math
+            if any(_math.isnan(v) for v in [slope, intercept, r_value, p_value]):
+                continue
+
             results.append({
                 'group':       group_name,
                 'slope':       round(float(slope),     4),
