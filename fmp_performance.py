@@ -135,6 +135,29 @@ class FMPPerformanceAnalyzer:
             logger.error(f"FMP request error for {endpoint}: {e}")
             return None
 
+    def _search_by_name(self, company_name: str) -> Optional[str]:
+        """Fallback: search FMP by company name and return best matching symbol."""
+        # Simplify name for search (remove Inc, Ltd, plc etc.)
+        import re
+        clean = re.sub(r'\b(Inc\.?|Ltd\.?|Limited|plc|PLC|Corp\.?|Corporation|Group|Holdings?|S\.A\.|AG|SE|NV|BV)\b', '', company_name).strip()
+        clean = re.sub(r'\s+', ' ', clean).strip()
+        if not clean or len(clean) < 3:
+            return None
+        data = self._fmp_request('search', {'query': clean, 'limit': 5})
+        if not data or not isinstance(data, list):
+            return None
+        # Prefer stock (not ETF/fund) with highest relevance (first match)
+        for item in data:
+            sym = item.get('symbol', '')
+            exchange = item.get('exchangeShortName', '')
+            # Skip OTC pink sheets, ETFs
+            if exchange in ('PNK', 'OTC', 'OTCBB'):
+                continue
+            if sym and exchange:
+                logger.info(f"Name search fallback: '{company_name}' → {sym} ({exchange})")
+                return sym
+        return None
+
     def resolve_isin_to_ticker(self, isin: str) -> Optional[str]:
         if not isin:
             return None
@@ -159,15 +182,54 @@ class FMPPerformanceAnalyzer:
         if not data or not isinstance(data, list) or len(data) == 0:
             return None
 
+        # search-isin returns no 'exchange' field — pick symbol using ISIN country prefix
+        # to select the home-market primary listing (best fundamental data coverage)
+        country_code = isin[:2].upper() if isin and len(isin) >= 2 else ''
+        country_suffix_map = {
+            'US': ['', '.NYSE', '.NASDAQ'],       # bare symbol = US listing
+            'GB': ['.L'],                          # London Stock Exchange
+            'FR': ['.PA'],                         # Euronext Paris
+            'DE': ['.DE', '.XETRA', '.F'],         # XETRA / Frankfurt
+            'CH': ['.SW'],                         # SIX Swiss Exchange
+            'JP': ['.T'],                          # Tokyo Stock Exchange
+            'KR': ['.KS', '.KQ'],                  # Korea Exchange
+            'HK': ['.HK'],                         # Hong Kong Exchange
+            'AU': ['.AX'],                         # ASX
+            'CA': ['.TO', '.TSX', '.V'],           # Toronto
+            'NL': ['.AS'],                         # Euronext Amsterdam
+            'IT': ['.MI'],                         # Borsa Italiana
+            'ES': ['.MC'],                         # Bolsa Madrid
+            'SE': ['.ST'],                         # Stockholm
+            'DK': ['.CO'],                         # Copenhagen
+            'NO': ['.OL'],                         # Oslo
+            'FI': ['.HE'],                         # Helsinki
+            'SG': ['.SI'],                         # Singapore Exchange
+            'IN': ['.NS', '.BO'],                  # NSE / BSE India
+            'CN': ['.SS', '.SZ'],                  # Shanghai / Shenzhen
+            'TW': ['.TW'],                         # Taiwan Stock Exchange
+            'BR': ['.SA'],                         # B3 Brazil
+            'ZA': ['.JO'],                         # Johannesburg
+        }
+        preferred_suffixes = country_suffix_map.get(country_code, [])
+
         preferred = None
-        for item in data:
-            exchange = item.get('exchange', '') or ''
-            symbol = item.get('symbol', '')
-            name = item.get('name', '')
-            if exchange in ('NYSE', 'NASDAQ', 'LSE', 'XETRA', 'Euronext', 'TSX'):
-                preferred = item
-                break
+        if preferred_suffixes:
+            for suffix in preferred_suffixes:
+                for item in data:
+                    sym = item.get('symbol', '')
+                    if suffix == '':
+                        # US bare symbol: no dot at all
+                        if '.' not in sym:
+                            preferred = item
+                            break
+                    elif sym.endswith(suffix):
+                        preferred = item
+                        break
+                if preferred:
+                    break
+
         if not preferred:
+            # Fallback: pick highest market cap (first result, as FMP returns them sorted)
             preferred = data[0]
 
         ticker = preferred.get('symbol', '')
@@ -372,6 +434,8 @@ class FMPPerformanceAnalyzer:
             ticker = self.resolve_isin_to_ticker(isin)
         if not ticker and ticker_hint:
             ticker = ticker_hint
+        if not ticker:
+            ticker = self._search_by_name(company_name)
         if not ticker:
             return None
 
