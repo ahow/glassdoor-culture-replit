@@ -1970,8 +1970,11 @@
                 } else {
                     rawVal = profile[`${d.key}_mean`] || 0;
                 }
-                // Always rescale if value > 10 (raw values need dividing by 10)
-                value = rawVal > 10 ? rawVal / 10 : rawVal;
+                // API returns normalized 0-10 values but they cluster near 0 due to
+                // distribution; multiply sub-1 values by 10 to fill the 0-10 axis properly
+                if (rawVal > 10) value = rawVal / 10;
+                else if (rawVal < 1) value = Math.min(10, rawVal * 10);
+                else value = rawVal;
                 console.log(`MIT ${d.key}: raw=${rawVal}, scaled=${value.toFixed(2)}`);
                 return value;
             });
@@ -2029,8 +2032,10 @@
                     } else {
                         rawVal = comparisonProfile[`${d.key}_mean`] || 0;
                     }
-                    // Always rescale if value > 10
-                    const value = rawVal > 10 ? rawVal / 10 : rawVal;
+                    let value;
+                    if (rawVal > 10) value = rawVal / 10;
+                    else if (rawVal < 1) value = Math.min(10, rawVal * 10);
+                    else value = rawVal;
                     console.log(`MIT comparison ${d.key}: raw=${rawVal}, scaled=${value.toFixed(2)}`);
                     return value;
                 });
@@ -3338,15 +3343,14 @@
             
             // MIT Chart - Grouped bar with correlation-based colors
             const mitDims = Object.keys(analysisData.company.mit);
-            // Apply same scaling logic: divide by 10 if value > 10
-            const mitCompanyVals = mitDims.map(d => {
-                const raw = analysisData.company.mit[d] || 0;
-                return raw > 10 ? raw / 10 : raw;
-            });
-            const mitIndustryVals = mitDims.map(d => {
-                const raw = analysisData.industry_average.mit[d] || 0;
-                return raw > 10 ? raw / 10 : raw;
-            });
+            // Scale: divide by 10 if > 10, multiply by 10 if < 1 (normalized values cluster near 0)
+            function scaleMitVal(raw) {
+                if (raw > 10) return raw / 10;
+                if (raw < 1) return Math.min(10, raw * 10);
+                return raw;
+            }
+            const mitCompanyVals = mitDims.map(d => scaleMitVal(analysisData.company.mit[d] || 0));
+            const mitIndustryVals = mitDims.map(d => scaleMitVal(analysisData.industry_average.mit[d] || 0));
             const mitCorrelations = mitDims.map(d => analysisData.correlations.mit[d] || 0);
             
             const mitCtx = document.getElementById('analysisMitChart').getContext('2d');
