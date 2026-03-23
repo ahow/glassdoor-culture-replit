@@ -3545,14 +3545,20 @@ def get_correlation_matrix():
 
                     slope, _, r_value, _, _ = scipy_stats.linregress(culture_scores, perf_scores)
                     r_squared = r_value ** 2
+                    import math
+                    if math.isnan(r_squared) or math.isnan(slope):
+                        continue
                     weighted_r2    += r_squared    * n
                     weighted_slope += float(slope) * n
                     total_n        += n
 
                 if total_n > 0:
+                    r2_val    = weighted_r2    / total_n
+                    slope_val = weighted_slope / total_n
+                    import math as _math
                     matrix[gics_level][score_type] = {
-                        'r_squared': round(weighted_r2    / total_n, 3),
-                        'slope':     round(weighted_slope / total_n, 3),
+                        'r_squared': round(r2_val,    3) if not _math.isnan(r2_val)    else None,
+                        'slope':     round(slope_val, 3) if not _math.isnan(slope_val) else None,
                         'n':         total_n
                     }
                 else:
