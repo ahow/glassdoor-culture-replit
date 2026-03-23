@@ -1970,11 +1970,9 @@
                 } else {
                     rawVal = profile[`${d.key}_mean`] || 0;
                 }
-                // API returns normalized 0-10 values but they cluster near 0 due to
-                // distribution; multiply sub-1 values by 10 to fill the 0-10 axis properly
-                if (rawVal > 10) value = rawVal / 10;
-                else if (rawVal < 1) value = Math.min(10, rawVal * 10);
-                else value = rawVal;
+                // API returns sector-relative normalized values (best in sector = 10)
+                // Just guard against accidental values > 10
+                value = rawVal > 10 ? rawVal / 10 : rawVal;
                 console.log(`MIT ${d.key}: raw=${rawVal}, scaled=${value.toFixed(2)}`);
                 return value;
             });
@@ -2032,10 +2030,7 @@
                     } else {
                         rawVal = comparisonProfile[`${d.key}_mean`] || 0;
                     }
-                    let value;
-                    if (rawVal > 10) value = rawVal / 10;
-                    else if (rawVal < 1) value = Math.min(10, rawVal * 10);
-                    else value = rawVal;
+                    const value = rawVal > 10 ? rawVal / 10 : rawVal;
                     console.log(`MIT comparison ${d.key}: raw=${rawVal}, scaled=${value.toFixed(2)}`);
                     return value;
                 });
@@ -3343,11 +3338,9 @@
             
             // MIT Chart - Grouped bar with correlation-based colors
             const mitDims = Object.keys(analysisData.company.mit);
-            // Scale: divide by 10 if > 10, multiply by 10 if < 1 (normalized values cluster near 0)
+            // Sector-relative normalized values (best in sector = 10); just guard > 10
             function scaleMitVal(raw) {
-                if (raw > 10) return raw / 10;
-                if (raw < 1) return Math.min(10, raw * 10);
-                return raw;
+                return raw > 10 ? raw / 10 : raw;
             }
             const mitCompanyVals = mitDims.map(d => scaleMitVal(analysisData.company.mit[d] || 0));
             const mitIndustryVals = mitDims.map(d => scaleMitVal(analysisData.industry_average.mit[d] || 0));
