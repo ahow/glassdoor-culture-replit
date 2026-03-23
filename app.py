@@ -3386,6 +3386,185 @@ def get_culture_performance_scatter():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+@app.route('/api/correlation-matrix', methods=['GET'])
+def get_correlation_matrix():
+    """Returns a 3×3 summary matrix: rows=gics_level, cols=score_type.
+    Each cell is the company-count-weighted average R² and slope across all
+    qualifying groups at that level, using correlation-weighted culture scores.
+    """
+    from scipy import stats as scipy_stats
+
+    try:
+        if not performance_analyzer.loaded:
+            performance_analyzer.load_data()
+
+        # ── Bulk-load culture metrics once ──
+        all_companies = get_companies_for_sector()
+        cached_map = {}
+        conn = get_db_connection()
+        if conn and all_companies:
+            try:
+                cur = conn.cursor(cursor_factory=RealDictCursor)
+                placeholders = ','.join(['%s'] * len(all_companies))
+                cur.execute(
+                    f"SELECT company_name, metrics_json FROM company_metrics_cache "
+                    f"WHERE company_name IN ({placeholders})",
+                    all_companies
+                )
+                for row in cur.fetchall():
+                    m = row['metrics_json'] if isinstance(row['metrics_json'], dict) \
+                        else json.loads(row['metrics_json'])
+                    cached_map[row['company_name']] = m
+                cur.close()
+                conn.close()
+            except Exception:
+                try: conn.close()
+                except: pass
+
+        all_metrics = {n: cached_map[n] for n in all_companies if n in cached_map}
+
+        # ── Bulk-load performance scores once ──
+        fmp_perf_map = _load_fmp_perf_map()
+        peer_stats   = performance_analyzer.get_peer_statistics()
+        all_perf = {}
+        for name in all_companies:
+            pm = _get_perf_metrics_with_fmp_fallback(name, fmp_perf_map)
+            if _has_financial_metrics(pm):
+                cs = performance_analyzer.calculate_composite_score(pm, peer_stats)
+                if cs is not None:
+                    all_perf[name] = cs
+
+        LEVELS      = ['sector', 'industry', 'sub_industry']
+        SCORE_TYPES = ['combined', 'hofstede', 'mit']
+        matrix = {}
+
+        for gics_level in LEVELS:
+            # Build group → companies from in-memory GICS map (zero DB queries)
+            gics_key = {'sector': 'sector', 'industry': 'industry',
+                        'sub_industry': 'sub_industry'}.get(gics_level, 'sector')
+            group_to_companies: dict = {}
+            for c in all_companies:
+                gics = _company_gics_map.get(c, {})
+                if gics_level == 'sector':
+                    grp = gics.get('sector') or (
+                        'Asset Management' if _is_asset_management_company(c) else '')
+                else:
+                    grp = gics.get(gics_key, '')
+                if grp:
+                    group_to_companies.setdefault(grp, []).append(c)
+
+            # Pre-compute per-group correlation weights (reused across all score_types)
+            group_cache = {}
+            for group_name, group_companies in group_to_companies.items():
+                valid = []
+                for c in group_companies:
+                    m = all_metrics.get(c)
+                    if not m:
+                        continue
+                    hv = [m.get('hofstede',  {}).get(d, {}).get('value', 0) for d in HOFSTEDE_DIMENSIONS]
+                    mv = [m.get('mit_big_9', {}).get(d, {}).get('value', 0) for d in MIT_DIMENSIONS]
+                    if all(v == 0 for v in hv + mv):
+                        continue
+                    valid.append(c)
+                if len(valid) < 5:
+                    continue
+
+                h_sums = {d: [] for d in HOFSTEDE_DIMENSIONS}
+                m_sums = {d: [] for d in MIT_DIMENSIONS}
+                for c in valid:
+                    met = all_metrics[c]
+                    for d in HOFSTEDE_DIMENSIONS:
+                        h_sums[d].append(met.get('hofstede',  {}).get(d, {}).get('value', 0))
+                    for d in MIT_DIMENSIONS:
+                        m_sums[d].append(met.get('mit_big_9', {}).get(d, {}).get('value', 0))
+                grp_h_avg = {d: mean(v) if v else 0 for d, v in h_sums.items()}
+                grp_m_avg = {d: mean(v) if v else 0 for d, v in m_sums.items()}
+
+                culture_data_g = [
+                    {'company': c,
+                     'hofstede': all_metrics[c].get('hofstede',  {}),
+                     'mit':      all_metrics[c].get('mit_big_9', {})}
+                    for c in valid
+                ]
+                performance_data_g = [
+                    {'company': c, 'composite_score': all_perf[c]}
+                    for c in valid if c in all_perf
+                ]
+                correlations = performance_analyzer.calculate_correlation(
+                    culture_data_g, performance_data_g
+                )
+                hcd = correlations.get('hofstede', {})
+                mcd = correlations.get('mit',      {})
+                h_corrs = {
+                    d: (hcd.get(d, {}).get('composite_score', {}) or {}).get('correlation', 0)
+                    for d in HOFSTEDE_DIMENSIONS
+                }
+                m_corrs = {
+                    d: (mcd.get(d, {}).get('composite_score', {}) or {}).get('correlation', 0)
+                    for d in MIT_DIMENSIONS
+                }
+                group_cache[group_name] = {
+                    'valid': valid, 'h_corrs': h_corrs, 'm_corrs': m_corrs,
+                    'grp_h_avg': grp_h_avg, 'grp_m_avg': grp_m_avg
+                }
+
+            matrix[gics_level] = {}
+            for score_type in SCORE_TYPES:
+                total_n        = 0
+                weighted_r2    = 0.0
+                weighted_slope = 0.0
+
+                for group_name, gd in group_cache.items():
+                    valid      = gd['valid']
+                    h_corrs    = gd['h_corrs']
+                    m_corrs    = gd['m_corrs']
+                    grp_h_avg  = gd['grp_h_avg']
+                    grp_m_avg  = gd['grp_m_avg']
+
+                    culture_scores, perf_scores = [], []
+                    for c in valid:
+                        if c not in all_perf:
+                            continue
+                        met = all_metrics[c]
+                        h_score = sum(
+                            h_corrs[d] * (met.get('hofstede',  {}).get(d, {}).get('value', 0) - grp_h_avg[d])
+                            for d in HOFSTEDE_DIMENSIONS
+                        )
+                        m_score = sum(
+                            m_corrs[d] * (met.get('mit_big_9', {}).get(d, {}).get('value', 0) - grp_m_avg[d])
+                            for d in MIT_DIMENSIONS
+                        )
+                        cs = h_score if score_type == 'hofstede' else (
+                             m_score if score_type == 'mit' else h_score + m_score)
+                        culture_scores.append(cs)
+                        perf_scores.append(all_perf[c])
+
+                    n = len(culture_scores)
+                    if n < 5:
+                        continue
+
+                    slope, _, r_value, _, _ = scipy_stats.linregress(culture_scores, perf_scores)
+                    r_squared = r_value ** 2
+                    weighted_r2    += r_squared    * n
+                    weighted_slope += float(slope) * n
+                    total_n        += n
+
+                if total_n > 0:
+                    matrix[gics_level][score_type] = {
+                        'r_squared': round(weighted_r2    / total_n, 3),
+                        'slope':     round(weighted_slope / total_n, 3),
+                        'n':         total_n
+                    }
+                else:
+                    matrix[gics_level][score_type] = None
+
+        return jsonify({'success': True, 'matrix': matrix})
+
+    except Exception as e:
+        logger.error('Error in correlation matrix: %s', e, exc_info=True)
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 @app.route('/api/correlation-analysis', methods=['GET'])
 def get_correlation_analysis():
     """For each GICS group at the selected level, run a linear regression of
