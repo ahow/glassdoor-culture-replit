@@ -2615,6 +2615,8 @@
         // FMP Fetch state
         let _fmpFetchRunning = false;
         let _fmpFetchedTotal = 0;
+        let _fmpSuccessfulTotal = 0;
+        let _fmpNoDataTotal = 0;
         let _fmpInitialRemaining = null;
         let _fmpForceMode = false;
         let _fmpLastCompany = '';
@@ -2624,6 +2626,8 @@
             _fmpFetchRunning = true;
             _fmpForceMode = force || false;
             _fmpFetchedTotal = 0;
+            _fmpSuccessfulTotal = 0;
+            _fmpNoDataTotal = 0;
             _fmpInitialRemaining = null;
             _fmpLastCompany = '';
 
@@ -2660,6 +2664,8 @@
                 const noDataCount = data.no_data || 0;
                 const remaining = data.remaining != null ? data.remaining : 0;
                 _fmpFetchedTotal += fetched;
+                _fmpSuccessfulTotal += successful;
+                _fmpNoDataTotal += noDataCount;
 
                 if (data.last_company) _fmpLastCompany = data.last_company;
 
@@ -2680,9 +2686,9 @@
                     return;
                 }
 
-                const statusParts = [`Processed ${_fmpFetchedTotal} so far`];
-                if (successful > 0) statusParts.push(`${successful} with data`);
-                if (noDataCount > 0) statusParts.push(`${noDataCount} no data`);
+                const statusParts = [`Checked ${_fmpFetchedTotal}`];
+                statusParts.push(`✓ ${_fmpSuccessfulTotal} with data`);
+                if (_fmpNoDataTotal > 0) statusParts.push(`${_fmpNoDataTotal} no data found`);
                 statusParts.push(`${remaining} remaining`);
                 setFmpStatus(statusParts.join(' · ') + '...', '#0369a1');
                 setTimeout(() => _fmpFetchLoop(batchSize), 800);
