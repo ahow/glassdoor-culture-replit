@@ -900,9 +900,9 @@
                     <div style="display: flex; gap: 0.75rem; align-items: center; flex-shrink: 0;">
                         <label style="font-size: 0.85rem; color: #475569;">Batch size:</label>
                         <select id="fmpBatchSize" style="padding: 0.3rem 0.5rem; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.85rem; background: white;">
-                            <option value="5">5</option>
-                            <option value="10" selected>10</option>
-                            <option value="20">20</option>
+                            <option value="3">3</option>
+                            <option value="5" selected>5</option>
+                            <option value="10">10</option>
                         </select>
                         <button id="fmpFetchBtn" onclick="startFmpFetch(false)"
                             style="padding: 0.45rem 1.1rem; background: #0284c7; color: white; border: none; border-radius: 7px; font-size: 0.88rem; font-weight: 600; cursor: pointer; white-space: nowrap;">
@@ -2620,6 +2620,9 @@
         let _fmpInitialRemaining = null;
         let _fmpForceMode = false;
         let _fmpLastCompany = '';
+        let _fmpConsecutiveErrors = 0;
+        let _fmpCurrentBatchSize = 5;
+        const _FMP_MAX_RETRIES = 5;
 
         async function startFmpFetch(force) {
             if (_fmpFetchRunning) return;
@@ -2630,6 +2633,8 @@
             _fmpNoDataTotal = 0;
             _fmpInitialRemaining = null;
             _fmpLastCompany = '';
+            _fmpConsecutiveErrors = 0;
+            _fmpCurrentBatchSize = parseInt(document.getElementById('fmpBatchSize').value, 10) || 5;
 
             document.getElementById('fmpFetchBtn').style.display = 'none';
             document.getElementById('fmpForceBtn').style.display = 'none';
@@ -2638,25 +2643,36 @@
             document.getElementById('fmpProgressFill').style.width = '0%';
             setFmpStatus(_fmpForceMode ? 'Starting full update (all companies)...' : 'Starting fetch...', '#0369a1');
 
-            const batchSize = parseInt(document.getElementById('fmpBatchSize').value, 10);
-            await _fmpFetchLoop(batchSize);
+            await _fmpFetchLoop();
         }
 
-        async function _fmpFetchLoop(batchSize) {
+        async function _fmpFetchLoop() {
             if (!_fmpFetchRunning) return;
             try {
-                let url = `/api/fetch-fmp-performance?batch=${batchSize}`;
+                let url = `/api/fetch-fmp-performance?batch=${_fmpCurrentBatchSize}`;
                 if (_fmpForceMode) {
                     url += '&force=true';
                     if (_fmpLastCompany) url += '&after=' + encodeURIComponent(_fmpLastCompany);
                 }
                 const res = await fetch(url, { method: 'POST' });
-                const data = await res.json();
+                const text = await res.text();
+
+                // Detect HTML error page (Heroku timeout / 5xx) and treat as retryable
+                if (!text.trim().startsWith('{') && !text.trim().startsWith('[')) {
+                    throw new Error('Server returned non-JSON (likely a timeout) — will retry');
+                }
+
+                const data = JSON.parse(text);
 
                 if (!data.success && data.error) {
-                    setFmpStatus('Error: ' + data.error, '#dc2626');
-                    stopFmpFetch();
-                    return;
+                    throw new Error(data.error);
+                }
+
+                // Success — reset error counter and restore batch size if it was reduced
+                _fmpConsecutiveErrors = 0;
+                const originalBatch = parseInt(document.getElementById('fmpBatchSize').value, 10) || 5;
+                if (_fmpCurrentBatchSize < originalBatch) {
+                    _fmpCurrentBatchSize = Math.min(originalBatch, _fmpCurrentBatchSize + 1);
                 }
 
                 const fetched = data.fetched || 0;
@@ -2678,7 +2694,7 @@
                 document.getElementById('fmpProgressFill').style.width = pct + '%';
 
                 if (remaining === 0 || fetched === 0) {
-                    setFmpStatus(`Done — processed ${_fmpFetchedTotal} companies. Refreshing analysis...`, '#16a34a');
+                    setFmpStatus(`✓ Complete — ${_fmpFetchedTotal} checked, ${_fmpSuccessfulTotal} with data. Refreshing analysis...`, '#16a34a');
                     document.getElementById('fmpProgressFill').style.width = '100%';
                     stopFmpFetch();
                     insightsLoaded = false;
@@ -2691,10 +2707,25 @@
                 if (_fmpNoDataTotal > 0) statusParts.push(`${_fmpNoDataTotal} no data found`);
                 statusParts.push(`${remaining} remaining`);
                 setFmpStatus(statusParts.join(' · ') + '...', '#0369a1');
-                setTimeout(() => _fmpFetchLoop(batchSize), 800);
+                setTimeout(() => _fmpFetchLoop(), 600);
+
             } catch (e) {
-                setFmpStatus('Network error: ' + e.message, '#dc2626');
-                stopFmpFetch();
+                _fmpConsecutiveErrors++;
+                if (_fmpConsecutiveErrors >= _FMP_MAX_RETRIES) {
+                    setFmpStatus(`Stopped after ${_FMP_MAX_RETRIES} consecutive errors: ${e.message}`, '#dc2626');
+                    stopFmpFetch();
+                    return;
+                }
+
+                // Reduce batch size on error to reduce timeout risk
+                _fmpCurrentBatchSize = Math.max(1, Math.floor(_fmpCurrentBatchSize / 2));
+
+                const waitSec = Math.min(30, Math.pow(2, _fmpConsecutiveErrors) * 2);
+                setFmpStatus(
+                    `Retry ${_fmpConsecutiveErrors}/${_FMP_MAX_RETRIES} (batch size → ${_fmpCurrentBatchSize}, waiting ${waitSec}s)... ${e.message}`,
+                    '#f59e0b'
+                );
+                setTimeout(() => _fmpFetchLoop(), waitSec * 1000);
             }
         }
 
