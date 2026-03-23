@@ -1773,12 +1773,20 @@ def get_culture_profile(company_name):
                 'confidence_level': data.get('confidence_level')
             }
         
-        # Get max values for MIT rescaling — sector-relative so that the best
-        # company in the same sector/industry equals 10
-        _cg = get_company_gics(company_name)
-        _sector_companies = get_companies_for_sector(
-            gics_level='sector', gics_value=_cg.get('sector')
-        ) if _cg.get('sector') else None
+        # Get max values for MIT rescaling — use the active GICS filter when
+        # the frontend passes one (e.g. "industry=Banks"), otherwise fall back
+        # to the company's own GICS sector so the reference group is always
+        # meaningful (best company in the selected group = 10).
+        _gics_level, _gics_value = get_gics_filter_params()
+        if _gics_value:
+            _sector_companies = get_companies_for_sector(
+                gics_level=_gics_level, gics_value=_gics_value
+            )
+        else:
+            _cg = get_company_gics(company_name)
+            _sector_companies = get_companies_for_sector(
+                gics_level='sector', gics_value=_cg.get('sector')
+            ) if _cg.get('sector') else None
         mit_max_values = get_mit_max_values(_sector_companies)
 
         mit_response = {}
