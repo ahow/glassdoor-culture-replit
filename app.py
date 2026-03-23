@@ -3207,6 +3207,13 @@ def get_culture_performance_scatter():
             if not metrics:
                 continue
             
+            # Skip companies with no real culture scores — they'd all cluster at the
+            # same combined_score (constant deviation from industry average)
+            hofstede_vals = [metrics.get('hofstede', {}).get(d, {}).get('value') or 0 for d in HOFSTEDE_DIMENSIONS]
+            mit_vals = [metrics.get('mit_big_9', {}).get(d, {}).get('value') or 0 for d in MIT_DIMENSIONS]
+            if all(v == 0 for v in hofstede_vals + mit_vals):
+                continue
+
             perf_metrics = _get_perf_metrics_with_fmp_fallback(name, fmp_perf_map)
             if not _has_financial_metrics(perf_metrics):
                 continue
