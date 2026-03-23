@@ -1077,8 +1077,8 @@
         <div id="culturePerfTab" class="tab-content hidden-tab" style="display: none;">
             <div class="chart-container">
                 <h2 class="chart-title">Culture Score vs Business Performance</h2>
-                <p style="color: #64748b; margin-bottom: 1.5rem;">
-                    Explore the relationship between culture scores and composite business performance across all companies. Each dot represents a company, colored by business model category.
+                <p id="culturePerfDesc" style="color: #64748b; margin-bottom: 1.5rem;">
+                    Explore the relationship between culture scores and composite business performance. Each dot represents a company in the selected filter, colored by business model category.
                 </p>
                 
                 <div class="control-group" style="margin-bottom: 2rem;">
@@ -2926,14 +2926,23 @@
         // ============================================================================
         
         let culturePerfData = null;
+        let culturePerfFetchedGics = { level: null, value: null };
+        let culturePerfFetchGen = 0;
         window.culturePerfScatterChart = null;
         
         async function loadCulturePerfScatter() {
-            if (culturePerfData) {
+            // Re-use cache only if the GICS filter hasn't changed
+            const sameGics = (culturePerfFetchedGics.level === currentGicsLevel &&
+                              culturePerfFetchedGics.value === currentGicsValue);
+            if (culturePerfData && sameGics) {
                 updateCulturePerfScatter();
                 return;
             }
             
+            // Bump generation so any in-flight fetch from a previous filter
+            // selection knows it is now stale and should not write to culturePerfData.
+            const myGen = ++culturePerfFetchGen;
+            culturePerfData = null;
             
             document.getElementById('culturePerfLoading').style.display = 'block';
             document.getElementById('culturePerfContent').style.display = 'none';
@@ -2942,13 +2951,18 @@
                 const response = await fetch(buildUrl('/api/culture-performance-scatter'));
                 const data = await response.json();
                 
+                // Discard result if a newer fetch has already been started
+                if (myGen !== culturePerfFetchGen) return;
+                
                 if (!data.success) {
                     document.getElementById('culturePerfLoading').textContent = 'Error loading data: ' + (data.error || 'Unknown error');
                     return;
                 }
                 
                 culturePerfData = data.companies;
-                console.log('Loaded culture-performance data:', culturePerfData.length, 'companies');
+                culturePerfFetchedGics = { level: currentGicsLevel, value: currentGicsValue };
+                console.log('Loaded culture-performance data:', culturePerfData.length, 'companies',
+                            '(filter:', currentGicsLevel, '/', currentGicsValue || 'All', ')');
                 
                 document.getElementById('culturePerfLoading').style.display = 'none';
                 document.getElementById('culturePerfContent').style.display = 'block';
