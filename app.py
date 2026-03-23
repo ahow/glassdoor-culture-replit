@@ -318,24 +318,42 @@ def get_company_gics(company_name):
         _build_company_sector_map()
     return _company_gics_map.get(company_name, {})
 
-def get_mit_max_values():
-    """Get maximum MIT values across all companies for rescaling"""
-    global _mit_max_values_cache
-    
-    # Return cached values if available and recent
-    if _mit_max_values_cache:
-        return _mit_max_values_cache
-    
+def get_mit_max_values(company_names=None):
+    """Get maximum MIT values for rescaling.
+
+    When company_names is provided the max is computed only within those
+    companies (sector / industry / sub-industry relative normalisation).
+    When omitted the global maximum across every company is used.
+    """
+    global _mit_max_values_cache, _mit_max_values_by_sector
+
+    # Choose the right cache bucket
+    if company_names:
+        cache_key = frozenset(company_names)
+        if cache_key in _mit_max_values_by_sector:
+            return _mit_max_values_by_sector[cache_key]
+    else:
+        if _mit_max_values_cache:
+            return _mit_max_values_cache
+
     try:
         conn = get_db_connection()
         if not conn:
             return {dim: 1 for dim in MIT_DIMENSIONS}  # Fallback
-        
+
         cursor = conn.cursor(cursor_factory=RealDictCursor)
-        
+
         # Get max company-level average values for each MIT dimension
         # This calculates AVG per company first, then takes MAX of those averages
-        cursor.execute("""
+        if company_names:
+            placeholders = ','.join(['%s'] * len(company_names))
+            where_clause = f"WHERE company_name IN ({placeholders})"
+            params = list(company_names)
+        else:
+            where_clause = ''
+            params = []
+
+        cursor.execute(f"""
             SELECT 
                 MAX(company_avg.agility) as agility,
                 MAX(company_avg.collaboration) as collaboration,
@@ -359,16 +377,17 @@ def get_mit_max_values():
                     AVG(performance_score) as performance,
                     AVG(respect_score) as respect
                 FROM review_culture_scores
+                {where_clause}
                 GROUP BY company_name
             ) company_avg
-        """)
-        
+        """, params)
+
         result = cursor.fetchone()
         cursor.close()
         conn.close()
-        
+
         if result:
-            _mit_max_values_cache = {
+            values = {
                 'agility': max(float(result['agility'] or 0), 0.01),
                 'collaboration': max(float(result['collaboration'] or 0), 0.01),
                 'customer_orientation': max(float(result['customer_orientation'] or 0), 0.01),
@@ -380,10 +399,16 @@ def get_mit_max_values():
                 'respect': max(float(result['respect'] or 0), 0.01)
             }
         else:
-            _mit_max_values_cache = {dim: 1 for dim in MIT_DIMENSIONS}
-        
-        return _mit_max_values_cache
-        
+            values = {dim: 1 for dim in MIT_DIMENSIONS}
+
+        # Store in the appropriate cache bucket and return
+        if company_names:
+            _mit_max_values_by_sector[frozenset(company_names)] = values
+        else:
+            _mit_max_values_cache = values
+
+        return values
+
     except Exception as e:
         logger.error(f"Error getting MIT max values: {e}")
         return {dim: 1 for dim in MIT_DIMENSIONS}
@@ -1748,14 +1773,27 @@ def get_culture_profile(company_name):
                 'confidence_level': data.get('confidence_level')
             }
         
-        # Get max values for MIT rescaling
-        mit_max_values = get_mit_max_values()
-        
+        # Get max values for MIT rescaling — use the active GICS filter when
+        # the frontend passes one (e.g. "industry=Banks"), otherwise fall back
+        # to the company's own GICS sector so the reference group is always
+        # meaningful (best company in the selected group = 10).
+        _gics_level, _gics_value = get_gics_filter_params()
+        if _gics_value:
+            _sector_companies = get_companies_for_sector(
+                gics_level=_gics_level, gics_value=_gics_value
+            )
+        else:
+            _cg = get_company_gics(company_name)
+            _sector_companies = get_companies_for_sector(
+                gics_level='sector', gics_value=_cg.get('sector')
+            ) if _cg.get('sector') else None
+        mit_max_values = get_mit_max_values(_sector_companies)
+
         mit_response = {}
         for dim, data in metrics['mit_big_9'].items():
             raw_value = data.get('value', 0) or 0
             max_val = mit_max_values.get(dim, 1)
-            # Rescale: 10 * (company_value / max_company_value)
+            # Rescale: 10 * (company_value / max_company_value_in_sector)
             rescaled_value = round(10 * (raw_value / max_val), 2) if max_val > 0 else 0
             mit_response[dim] = {
                 'value': rescaled_value,  # Use rescaled value as primary
@@ -1871,7 +1909,11 @@ def get_company_by_isin(isin):
 
             if metrics:
                 metrics = calculate_relative_confidence(metrics)
-                mit_max = get_mit_max_values()
+                _isin_sector = queue_row.get('gics_sector') or ''
+                _isin_sector_cos = get_companies_for_sector(
+                    gics_level='sector', gics_value=_isin_sector
+                ) if _isin_sector else None
+                mit_max = get_mit_max_values(_isin_sector_cos)
 
                 hofstede_data = {}
                 for dim, d in metrics['hofstede'].items():
@@ -2060,9 +2102,9 @@ def get_industry_average():
                 avg_confidence = mean([m.get('hofstede', {}).get(dim, {}).get('confidence_score', 0) or 0 for m in all_company_metrics if m.get('hofstede', {}).get(dim)])
                 hofstede_result[dim] = {'value': round(avg_val, 3), 'confidence': round(avg_confidence, 1), 'confidence_level': 'High' if avg_confidence >= 50 else 'Medium' if avg_confidence >= 25 else 'Low'}
         
-        # Get max values for MIT rescaling
-        mit_max_values = get_mit_max_values()
-        
+        # Get max values for MIT rescaling — use companies in the current GICS filter
+        mit_max_values = get_mit_max_values(company_names)
+
         for dim in MIT_DIMENSIONS:
             if mit_avg[dim]:
                 raw_value = mean(mit_avg[dim])
@@ -2761,7 +2803,7 @@ def get_company_analysis(company_name):
             if hofstede_avg[dim]:
                 industry_hofstede[dim] = round(mean(hofstede_avg[dim]), 3)
         
-        mit_max_values = get_mit_max_values()
+        mit_max_values = get_mit_max_values(company_names)
         for dim in MIT_DIMENSIONS:
             if mit_avg[dim]:
                 raw_avg = mean(mit_avg[dim])
@@ -3199,7 +3241,7 @@ def get_culture_performance_scatter():
             dim_data = mit_corr_data.get(dim, {}).get('composite_score', {})
             mit_correlations[dim] = dim_data.get('correlation', 0) if isinstance(dim_data, dict) else 0
 
-        mit_max_values = get_mit_max_values()
+        mit_max_values = get_mit_max_values(company_names)
         companies_data = []
         
         for name in company_names:
