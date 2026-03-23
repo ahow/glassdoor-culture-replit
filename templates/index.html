@@ -491,6 +491,7 @@
             <button class="main-tab-button" onclick="switchMainTab('mit', event)">MIT Framework</button>
             <button class="main-tab-button" onclick="switchMainTab('insights', event)">Performance Insights</button>
             <button class="main-tab-button" onclick="switchMainTab('culturePerf', event)">Culture vs Performance</button>
+            <button class="main-tab-button" onclick="switchMainTab('corrAnalysis', event)">Correlation Analysis</button>
             <button class="main-tab-button" onclick="switchMainTab('exportData', event)">Export Data</button>
             <button class="main-tab-button" onclick="switchMainTab('dataStatus', event)">Data Status</button>
             <button class="main-tab-button" onclick="switchMainTab('extractionMgr', event)">Extraction Manager</button>
@@ -1133,6 +1134,83 @@
             </div>
         </div>
 
+        <!-- Correlation Analysis Tab -->
+        <div id="corrAnalysisTab" class="tab-content hidden-tab" style="display: none;">
+            <div class="chart-container">
+                <h2 class="chart-title">Correlation Analysis: Culture vs Performance Fit by Group</h2>
+                <p style="color: #64748b; margin-bottom: 1.5rem;">
+                    For each group, a linear regression is run between the culture score and composite business
+                    performance of the companies in that group. The plot shows how <strong>tight the fit is</strong>
+                    (R² on the Y-axis) and <strong>how positive the relationship is</strong> (slope on the X-axis).
+                    Groups in the top-right have a strong, positive culture-performance relationship.
+                </p>
+
+                <div style="display: flex; gap: 1.5rem; flex-wrap: wrap; margin-bottom: 2rem;">
+                    <div class="control-group" style="flex: 1; min-width: 180px;">
+                        <label for="corrGicsLevel" style="font-weight: 600; color: #1e293b;">Grouping Level:</label>
+                        <select id="corrGicsLevel" onchange="onCorrFilterChange()" style="width: 100%; padding: 0.75rem; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 1rem;">
+                            <option value="sector">Sector</option>
+                            <option value="industry">Industry</option>
+                            <option value="sub_industry">Sub-Industry</option>
+                        </select>
+                    </div>
+                    <div class="control-group" style="flex: 1; min-width: 180px;">
+                        <label for="corrScoreType" style="font-weight: 600; color: #1e293b;">Culture Score:</label>
+                        <select id="corrScoreType" onchange="onCorrFilterChange()" style="width: 100%; padding: 0.75rem; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 1rem;">
+                            <option value="combined">Combined</option>
+                            <option value="hofstede">Hofstede</option>
+                            <option value="mit">MIT Big 9</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div id="corrAnalysisLoading" style="text-align: center; padding: 2rem; color: #64748b;">
+                    Loading data...
+                </div>
+
+                <div id="corrAnalysisContent" style="display: none;">
+                    <div style="position: relative; margin-bottom: 1rem;">
+                        <canvas id="corrAnalysisChart" style="max-height: 520px;"></canvas>
+                    </div>
+
+                    <!-- Legend -->
+                    <div style="display: flex; justify-content: center; gap: 2rem; flex-wrap: wrap; margin-bottom: 1.5rem;">
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <span style="width: 16px; height: 16px; background: rgba(34,197,94,0.85); border-radius: 50%; border: 2px solid rgb(34,197,94);"></span>
+                            <span style="color: #64748b; font-size: 0.9rem;">Positive slope (p &lt; 0.05)</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <span style="width: 16px; height: 16px; background: rgba(239,68,68,0.85); border-radius: 50%; border: 2px solid rgb(239,68,68);"></span>
+                            <span style="color: #64748b; font-size: 0.9rem;">Negative slope (p &lt; 0.05)</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <span style="width: 16px; height: 16px; background: rgba(148,163,184,0.5); border-radius: 50%; border: 2px solid rgba(148,163,184,0.8);"></span>
+                            <span style="color: #64748b; font-size: 0.9rem;">Not statistically significant (p ≥ 0.05)</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <span style="font-size: 0.9rem; color: #64748b;">○ Size = number of companies</span>
+                        </div>
+                    </div>
+
+                    <!-- Summary table shown beneath the chart -->
+                    <div id="corrAnalysisTable" style="margin-top: 1rem; overflow-x: auto;"></div>
+                </div>
+
+                <div style="background: #f8fafc; border-radius: 10px; padding: 1.25rem; border: 1px solid #e2e8f0; margin-top: 1rem;">
+                    <h3 style="color: #1e293b; margin-bottom: 0.75rem; font-size: 1rem; font-weight: 600;">Reading This Chart</h3>
+                    <ul style="color: #64748b; font-size: 0.9rem; margin: 0; padding-left: 1.5rem; line-height: 1.7;">
+                        <li><strong>X-axis (Slope):</strong> How much composite performance changes per unit of culture score. Positive = higher culture → better performance; Negative = inverse relationship.</li>
+                        <li><strong>Y-axis (R²):</strong> How much of the variation in business performance is explained by the culture score for that group (0 = no fit, 1 = perfect fit).</li>
+                        <li><strong>Top-right</strong> groups: strong, positive culture-performance link — culture investment likely pays off.</li>
+                        <li><strong>Top-left</strong> groups: strong negative link — higher culture scores correlate with lower performance in that group (worth investigating why).</li>
+                        <li><strong>Bottom</strong> groups: weak/no relationship — performance is driven by factors other than culture score in these groups.</li>
+                        <li>Dot <strong>size</strong> reflects the number of companies with both culture and performance data. Larger dots = more reliable estimates.</li>
+                        <li><strong>Faded grey</strong> dots are statistically not significant (p ≥ 0.05); treat them as suggestive only.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
         <!-- Export Data Tab -->
         <div id="exportDataTab" class="tab-content hidden-tab" style="display: none;">
             <div class="chart-container">
@@ -1455,7 +1533,7 @@
             console.log('switchMainTab called with tab:', tab);
             
             // Hide all tabs using both inline styles AND CSS class
-            const tabs = ['overviewTab', 'companiesTab', 'analysisTab', 'trendsTab', 'hofstedeTab', 'mitTab', 'insightsTab', 'culturePerfTab', 'exportDataTab', 'dataStatusTab', 'extractionMgrTab'];
+            const tabs = ['overviewTab', 'companiesTab', 'analysisTab', 'trendsTab', 'hofstedeTab', 'mitTab', 'insightsTab', 'culturePerfTab', 'corrAnalysisTab', 'exportDataTab', 'dataStatusTab', 'extractionMgrTab'];
             tabs.forEach(tabId => {
                 const el = document.getElementById(tabId);
                 if (el) {
@@ -1479,6 +1557,7 @@
                 'mit': 'mitTab',
                 'insights': 'insightsTab',
                 'culturePerf': 'culturePerfTab',
+                'corrAnalysis': 'corrAnalysisTab',
                 'exportData': 'exportDataTab',
                 'dataStatus': 'dataStatusTab',
                 'extractionMgr': 'extractionMgrTab'
@@ -1505,6 +1584,8 @@
                 loadPerformanceInsights();
             } else if (tab === 'culturePerf') {
                 loadCulturePerfScatter();
+            } else if (tab === 'corrAnalysis') {
+                loadCorrAnalysis();
             } else if (tab === 'exportData') {
                 loadExportCompanyList();
             } else if (tab === 'dataStatus') {
@@ -3101,6 +3182,269 @@
             });
         }
         
+        // ============================================================================
+        // CORRELATION ANALYSIS TAB
+        // ============================================================================
+
+        let corrAnalysisData = null;
+        let corrAnalysisFetchedKey = null;   // "<gics_level>|<score_type>"
+        let corrAnalysisFetchGen = 0;
+        window.corrAnalysisChart = null;
+
+        function getCorrKey() {
+            const level = document.getElementById('corrGicsLevel')?.value || 'sector';
+            const score = document.getElementById('corrScoreType')?.value || 'combined';
+            return level + '|' + score;
+        }
+
+        function onCorrFilterChange() {
+            corrAnalysisData = null;
+            loadCorrAnalysis();
+        }
+
+        async function loadCorrAnalysis() {
+            const key = getCorrKey();
+            if (corrAnalysisData && corrAnalysisFetchedKey === key) {
+                renderCorrAnalysis();
+                return;
+            }
+
+            const myGen = ++corrAnalysisFetchGen;
+            corrAnalysisData = null;
+
+            document.getElementById('corrAnalysisLoading').style.display = 'block';
+            document.getElementById('corrAnalysisLoading').textContent = 'Loading data…';
+            document.getElementById('corrAnalysisContent').style.display = 'none';
+
+            const [gicsLevel, scoreType] = key.split('|');
+            const url = `/api/correlation-analysis?gics_level=${encodeURIComponent(gicsLevel)}&score_type=${encodeURIComponent(scoreType)}`;
+
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+
+                if (myGen !== corrAnalysisFetchGen) return;  // Stale fetch
+
+                if (!data.success) {
+                    document.getElementById('corrAnalysisLoading').textContent = 'Error: ' + (data.error || 'Unknown error');
+                    return;
+                }
+
+                corrAnalysisData = data.results;
+                corrAnalysisFetchedKey = key;
+
+                document.getElementById('corrAnalysisLoading').style.display = 'none';
+                document.getElementById('corrAnalysisContent').style.display = 'block';
+
+                renderCorrAnalysis();
+
+            } catch (err) {
+                console.error('Error loading correlation analysis:', err);
+                document.getElementById('corrAnalysisLoading').textContent = 'Error: ' + err.message;
+            }
+        }
+
+        function renderCorrAnalysis() {
+            if (!corrAnalysisData || corrAnalysisData.length === 0) {
+                document.getElementById('corrAnalysisLoading').style.display = 'block';
+                document.getElementById('corrAnalysisLoading').textContent = 'No data available for this selection.';
+                document.getElementById('corrAnalysisContent').style.display = 'none';
+                return;
+            }
+
+            const gicsLevel = (corrAnalysisFetchedKey || 'sector|combined').split('|')[0];
+            const showLabels = (gicsLevel === 'sector');
+
+            // Compute dot radius proportional to n_companies (min 6, max 24)
+            const maxN = Math.max(...corrAnalysisData.map(d => d.n_companies));
+            const minN = Math.min(...corrAnalysisData.map(d => d.n_companies));
+            function dotRadius(n) {
+                if (maxN === minN) return 10;
+                return 6 + ((n - minN) / (maxN - minN)) * 18;
+            }
+
+            // Build four datasets: sig-positive, sig-negative, insig-positive, insig-negative
+            const sigPos   = corrAnalysisData.filter(d =>  d.significant && d.slope >= 0);
+            const sigNeg   = corrAnalysisData.filter(d =>  d.significant && d.slope <  0);
+            const insigPos = corrAnalysisData.filter(d => !d.significant && d.slope >= 0);
+            const insigNeg = corrAnalysisData.filter(d => !d.significant && d.slope <  0);
+
+            function makeDataset(rows, label, bgColor, borderColor) {
+                return {
+                    label: label,
+                    data: rows.map(d => ({
+                        x: d.slope,
+                        y: d.r_squared,
+                        group: d.group,
+                        n: d.n_companies,
+                        r: d.r_value,
+                        pValue: d.p_value,
+                        significant: d.significant,
+                        slope: d.slope,
+                    })),
+                    backgroundColor: bgColor,
+                    borderColor: borderColor,
+                    borderWidth: 2,
+                    pointRadius: rows.map(d => dotRadius(d.n_companies)),
+                    pointHoverRadius: rows.map(d => dotRadius(d.n_companies) + 4),
+                };
+            }
+
+            const datasets = [
+                makeDataset(sigPos,   'Positive & significant',  'rgba(34,197,94,0.85)',   'rgb(34,197,94)'),
+                makeDataset(sigNeg,   'Negative & significant',  'rgba(239,68,68,0.85)',   'rgb(239,68,68)'),
+                makeDataset(insigPos, 'Positive, not significant','rgba(148,163,184,0.45)', 'rgba(148,163,184,0.8)'),
+                makeDataset(insigNeg, 'Negative, not significant','rgba(148,163,184,0.45)', 'rgba(148,163,184,0.8)'),
+            ];
+
+            const ctx = document.getElementById('corrAnalysisChart').getContext('2d');
+            if (window.corrAnalysisChart) window.corrAnalysisChart.destroy();
+
+            // Reference lines plugin (vertical x=0, horizontal guideline)
+            const refLinesPlugin = {
+                id: 'refLines',
+                afterDraw(chart) {
+                    const { ctx: c, chartArea: { left, right, top, bottom }, scales: { x, y } } = chart;
+                    c.save();
+                    // Vertical line at slope = 0
+                    const x0 = x.getPixelForValue(0);
+                    if (x0 >= left && x0 <= right) {
+                        c.beginPath();
+                        c.setLineDash([6, 4]);
+                        c.strokeStyle = 'rgba(100,116,139,0.5)';
+                        c.lineWidth = 1.5;
+                        c.moveTo(x0, top);
+                        c.lineTo(x0, bottom);
+                        c.stroke();
+                        c.setLineDash([]);
+                    }
+                    c.restore();
+                }
+            };
+
+            // Label plugin for sector-level dots
+            const labelPlugin = showLabels ? {
+                id: 'dotLabels',
+                afterDatasetsDraw(chart) {
+                    const { ctx: c, scales: { x, y } } = chart;
+                    c.save();
+                    c.font = '11px system-ui, sans-serif';
+                    c.fillStyle = '#374151';
+                    c.textBaseline = 'middle';
+                    chart.data.datasets.forEach((dataset, dsIdx) => {
+                        const meta = chart.getDatasetMeta(dsIdx);
+                        dataset.data.forEach((point, i) => {
+                            const el = meta.data[i];
+                            if (!el) return;
+                            const px = el.x;
+                            const py = el.y;
+                            const r  = dataset.pointRadius[i] || 10;
+                            c.fillText(point.group, px + r + 4, py);
+                        });
+                    });
+                    c.restore();
+                }
+            } : null;
+
+            const plugins = [refLinesPlugin];
+            if (labelPlugin) plugins.push(labelPlugin);
+
+            const scoreLabels = { combined: 'Combined Culture Score', hofstede: 'Hofstede Culture Score', mit: 'MIT Big 9 Culture Score' };
+            const scoreType   = (corrAnalysisFetchedKey || '|combined').split('|')[1];
+
+            window.corrAnalysisChart = new Chart(ctx, {
+                type: 'scatter',
+                data: { datasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                title: ctx => ctx[0]?.raw?.group || '',
+                                label: ctx => {
+                                    const d = ctx.raw;
+                                    return [
+                                        `Slope: ${d.slope.toFixed(3)}`,
+                                        `R²: ${d.y.toFixed(3)}`,
+                                        `R: ${d.r.toFixed(3)}`,
+                                        `p-value: ${d.pValue < 0.001 ? '<0.001' : d.pValue.toFixed(3)}`,
+                                        `Companies: ${d.n}`,
+                                        d.significant ? '✓ Statistically significant' : '✗ Not significant (p ≥ 0.05)',
+                                    ];
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: `Slope (performance change per unit of ${scoreLabels[scoreType] || 'culture score'})`,
+                                font: { size: 12, weight: '600' },
+                                color: '#374151'
+                            },
+                            grid: { color: '#e2e8f0' }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'R² (goodness of fit)',
+                                font: { size: 12, weight: '600' },
+                                color: '#374151'
+                            },
+                            min: 0,
+                            max: 1,
+                            grid: { color: '#e2e8f0' }
+                        }
+                    }
+                },
+                plugins: plugins,
+            });
+
+            // Render summary table
+            renderCorrTable();
+        }
+
+        function renderCorrTable() {
+            const container = document.getElementById('corrAnalysisTable');
+            if (!container || !corrAnalysisData) return;
+
+            const sorted = [...corrAnalysisData].sort((a, b) => b.r_squared - a.r_squared);
+
+            const rows = sorted.map(d => {
+                const sigBadge = d.significant
+                    ? `<span style="color:#16a34a; font-weight:600;">✓ p=${d.p_value < 0.001 ? '<0.001' : d.p_value.toFixed(3)}</span>`
+                    : `<span style="color:#94a3b8;">✗ p=${d.p_value.toFixed(3)}</span>`;
+                const slopeColor = d.slope >= 0 ? '#16a34a' : '#dc2626';
+                return `<tr>
+                    <td style="padding:0.5rem 0.75rem; border-bottom:1px solid #f1f5f9; font-weight:500;">${d.group}</td>
+                    <td style="padding:0.5rem 0.75rem; border-bottom:1px solid #f1f5f9; text-align:right; color:${slopeColor}; font-weight:600;">${d.slope >= 0 ? '+' : ''}${d.slope.toFixed(3)}</td>
+                    <td style="padding:0.5rem 0.75rem; border-bottom:1px solid #f1f5f9; text-align:right; font-weight:600;">${d.r_squared.toFixed(3)}</td>
+                    <td style="padding:0.5rem 0.75rem; border-bottom:1px solid #f1f5f9; text-align:right;">${d.r_value >= 0 ? '+' : ''}${d.r_value.toFixed(3)}</td>
+                    <td style="padding:0.5rem 0.75rem; border-bottom:1px solid #f1f5f9; text-align:right;">${d.n_companies}</td>
+                    <td style="padding:0.5rem 0.75rem; border-bottom:1px solid #f1f5f9;">${sigBadge}</td>
+                </tr>`;
+            }).join('');
+
+            container.innerHTML = `
+                <h3 style="color:#1e293b; font-size:1rem; font-weight:600; margin-bottom:0.75rem;">All Groups (sorted by R²)</h3>
+                <table style="width:100%; border-collapse:collapse; font-size:0.875rem; background:#fff; border-radius:8px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,0.06);">
+                    <thead>
+                        <tr style="background:#f8fafc; border-bottom:2px solid #e2e8f0;">
+                            <th style="padding:0.625rem 0.75rem; text-align:left; color:#475569; font-weight:600;">Group</th>
+                            <th style="padding:0.625rem 0.75rem; text-align:right; color:#475569; font-weight:600;">Slope</th>
+                            <th style="padding:0.625rem 0.75rem; text-align:right; color:#475569; font-weight:600;">R²</th>
+                            <th style="padding:0.625rem 0.75rem; text-align:right; color:#475569; font-weight:600;">R</th>
+                            <th style="padding:0.625rem 0.75rem; text-align:right; color:#475569; font-weight:600;">Companies</th>
+                            <th style="padding:0.625rem 0.75rem; text-align:left; color:#475569; font-weight:600;">Significance</th>
+                        </tr>
+                    </thead>
+                    <tbody>${rows}</tbody>
+                </table>`;
+        }
+
         // ============================================================================
         // COMPANY ANALYSIS TAB
         // ============================================================================
