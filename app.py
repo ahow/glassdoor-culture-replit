@@ -3449,12 +3449,25 @@ def get_correlation_analysis():
                 if cs is not None:
                     all_perf[name] = cs
 
-        # ── Step 3: Per-group regression using correlation-weighted scores ──
-        groups  = get_all_gics_values(gics_level)
+        # ── Step 3: Pre-build group → companies mapping from in-memory GICS map ──
+        # Avoids N separate DB queries (one per group) inside the loop below.
+        gics_key_map = {'sector': 'sector', 'industry': 'industry', 'sub_industry': 'sub_industry'}
+        gics_key = gics_key_map.get(gics_level, 'sector')
+        group_to_companies: dict = {}
+        for c in all_companies:
+            gics = _company_gics_map.get(c, {})
+            if gics_level == 'sector':
+                grp = gics.get('sector') or (
+                    'Asset Management' if _is_asset_management_company(c) else ''
+                )
+            else:
+                grp = gics.get(gics_key, '')
+            if grp:
+                group_to_companies.setdefault(grp, []).append(c)
+
         results = []
 
-        for group_name in groups:
-            group_companies = get_companies_for_sector(gics_level=gics_level, gics_value=group_name)
+        for group_name, group_companies in group_to_companies.items():
 
             # Companies with real culture data AND performance data
             valid = []
