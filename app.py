@@ -3389,98 +3389,183 @@ def get_culture_performance_scatter():
 @app.route('/api/correlation-analysis', methods=['GET'])
 def get_correlation_analysis():
     """For each GICS group at the selected level, run a linear regression of
-    (culture score → composite performance) and return slope + R² per group.
-    This powers the Correlation Analysis tab scatter plot.
+    (correlation-weighted culture score → composite performance) and return
+    slope + R² per group. Uses the same scoring as the Culture vs Performance tab.
     """
     from scipy import stats as scipy_stats
 
     try:
-        gics_level = request.args.get('gics_level', 'sector')  # sector | industry | sub_industry
-        score_type = request.args.get('score_type', 'combined')  # combined | hofstede | mit
+        gics_level = request.args.get('gics_level', 'sector')
+        score_type  = request.args.get('score_type', 'combined')  # combined | hofstede | mit
 
         if not performance_analyzer.loaded:
             performance_analyzer.load_data()
 
-        groups = get_all_gics_values(gics_level)
-        fmp_perf_map = _load_fmp_perf_map()
-        peer_stats = performance_analyzer.get_peer_statistics()
+        # ── Step 1: Bulk-load culture metrics for ALL companies in one DB hit ──
+        all_companies = get_companies_for_sector()  # no filter → every company with reviews
+        cached_map = {}
+        conn = get_db_connection()
+        if conn and all_companies:
+            try:
+                cur = conn.cursor(cursor_factory=RealDictCursor)
+                placeholders = ','.join(['%s'] * len(all_companies))
+                cur.execute(
+                    f"SELECT company_name, metrics_json FROM company_metrics_cache "
+                    f"WHERE company_name IN ({placeholders})",
+                    all_companies
+                )
+                for row in cur.fetchall():
+                    m = row['metrics_json'] if isinstance(row['metrics_json'], dict) \
+                        else json.loads(row['metrics_json'])
+                    cached_map[row['company_name']] = m
+                cur.close()
+                conn.close()
+            except Exception:
+                try: conn.close()
+                except: pass
 
+        # Fill in uncached metrics (cap at 50 to avoid timeout)
+        all_metrics = {}
+        uncached = 0
+        for name in all_companies:
+            m = cached_map.get(name)
+            if not m:
+                uncached += 1
+                if uncached <= 50:
+                    m = get_company_metrics(name)
+                    if m:
+                        cache_metrics(name, m)
+            if m:
+                all_metrics[name] = m
+
+        # ── Step 2: Bulk-load performance scores for ALL companies ──
+        fmp_perf_map = _load_fmp_perf_map()
+        peer_stats   = performance_analyzer.get_peer_statistics()
+        all_perf = {}
+        for name in all_companies:
+            pm = _get_perf_metrics_with_fmp_fallback(name, fmp_perf_map)
+            if _has_financial_metrics(pm):
+                cs = performance_analyzer.calculate_composite_score(pm, peer_stats)
+                if cs is not None:
+                    all_perf[name] = cs
+
+        # ── Step 3: Per-group regression using correlation-weighted scores ──
+        groups  = get_all_gics_values(gics_level)
         results = []
 
         for group_name in groups:
-            companies = get_companies_for_sector(gics_level=gics_level, gics_value=group_name)
+            group_companies = get_companies_for_sector(gics_level=gics_level, gics_value=group_name)
 
-            culture_scores = []
-            perf_scores = []
-
-            for company in companies:
-                m = get_company_metrics(company)
+            # Companies with real culture data AND performance data
+            valid = []
+            for c in group_companies:
+                m = all_metrics.get(c)
                 if not m:
                     continue
-
-                hofstede_vals = [m.get('hofstede', {}).get(d, {}).get('value', 0)
-                                 for d in HOFSTEDE_DIMENSIONS]
-                mit_vals = [m.get('mit_big_9', {}).get(d, {}).get('value', 0)
-                            for d in MIT_DIMENSIONS]
-
-                # Skip companies with no culture data yet
-                if all(v == 0 for v in hofstede_vals + mit_vals):
+                hv = [m.get('hofstede',  {}).get(d, {}).get('value', 0) for d in HOFSTEDE_DIMENSIONS]
+                mv = [m.get('mit_big_9', {}).get(d, {}).get('value', 0) for d in MIT_DIMENSIONS]
+                if all(v == 0 for v in hv + mv):
                     continue
+                valid.append(c)
 
-                # Compute a simple, non-circular culture score for each company
+            if len(valid) < 5:
+                continue
+
+            # Group-average Hofstede and MIT values
+            h_sums = {d: [] for d in HOFSTEDE_DIMENSIONS}
+            m_sums = {d: [] for d in MIT_DIMENSIONS}
+            for c in valid:
+                met = all_metrics[c]
+                for d in HOFSTEDE_DIMENSIONS:
+                    h_sums[d].append(met.get('hofstede',  {}).get(d, {}).get('value', 0))
+                for d in MIT_DIMENSIONS:
+                    m_sums[d].append(met.get('mit_big_9', {}).get(d, {}).get('value', 0))
+
+            grp_h_avg = {d: mean(v) if v else 0 for d, v in h_sums.items()}
+            grp_m_avg = {d: mean(v) if v else 0 for d, v in m_sums.items()}
+
+            # Build culture_data / performance_data for calculate_correlation
+            culture_data_g = [
+                {'company': c,
+                 'hofstede': all_metrics[c].get('hofstede',  {}),
+                 'mit':      all_metrics[c].get('mit_big_9', {})}
+                for c in valid
+            ]
+            performance_data_g = [
+                {'company': c, 'composite_score': all_perf[c]}
+                for c in valid if c in all_perf
+            ]
+
+            correlations = performance_analyzer.calculate_correlation(
+                culture_data_g, performance_data_g
+            )
+
+            # Extract per-dimension correlations vs composite_score
+            hcd = correlations.get('hofstede', {})
+            mcd = correlations.get('mit',      {})
+            h_corrs = {}
+            m_corrs = {}
+            for d in HOFSTEDE_DIMENSIONS:
+                dd = hcd.get(d, {}).get('composite_score', {})
+                h_corrs[d] = dd.get('correlation', 0) if isinstance(dd, dict) else 0
+            for d in MIT_DIMENSIONS:
+                dd = mcd.get(d, {}).get('composite_score', {})
+                m_corrs[d] = dd.get('correlation', 0) if isinstance(dd, dict) else 0
+
+            # Compute correlation-weighted scores for each company (same as scatter tab)
+            culture_scores = []
+            perf_scores    = []
+            for c in valid:
+                if c not in all_perf:
+                    continue
+                met = all_metrics[c]
+                h_score = sum(
+                    h_corrs[d] * (met.get('hofstede',  {}).get(d, {}).get('value', 0) - grp_h_avg[d])
+                    for d in HOFSTEDE_DIMENSIONS
+                )
+                m_score = sum(
+                    m_corrs[d] * (met.get('mit_big_9', {}).get(d, {}).get('value', 0) - grp_m_avg[d])
+                    for d in MIT_DIMENSIONS
+                )
                 if score_type == 'hofstede':
-                    # Mean of 6 Hofstede dimensions, range -1 to +1
-                    culture_score = mean(hofstede_vals)
+                    culture_score = h_score
                 elif score_type == 'mit':
-                    # Mean of 9 MIT dimensions, native range 0-10
-                    culture_score = mean(mit_vals)
+                    culture_score = m_score
                 else:  # combined
-                    # Normalise both to 0-1 then average
-                    h_norm = (mean(hofstede_vals) + 1) / 2.0    # -1..+1 → 0..1
-                    m_norm = mean(mit_vals) / 10.0               # 0..10  → 0..1
-                    culture_score = (h_norm + m_norm) / 2.0
-
-                # Get composite performance score
-                perf_metrics = _get_perf_metrics_with_fmp_fallback(company, fmp_perf_map)
-                if not _has_financial_metrics(perf_metrics):
-                    continue
-
-                comp_score = performance_analyzer.calculate_composite_score(perf_metrics, peer_stats)
-                if comp_score is None:
-                    continue
+                    culture_score = h_score + m_score
 
                 culture_scores.append(culture_score)
-                perf_scores.append(comp_score)
+                perf_scores.append(all_perf[c])
 
             n = len(culture_scores)
             if n < 5:
-                continue  # Too few data points for a meaningful regression
+                continue
 
-            slope, intercept, r_value, p_value, std_err = scipy_stats.linregress(
+            slope, intercept, r_value, p_value, _ = scipy_stats.linregress(
                 culture_scores, perf_scores
             )
             r_squared = r_value ** 2
 
             results.append({
-                'group': group_name,
-                'slope': round(float(slope), 4),
-                'r_squared': round(float(r_squared), 4),
-                'r_value': round(float(r_value), 4),
-                'p_value': round(float(p_value), 4),
+                'group':       group_name,
+                'slope':       round(float(slope),     4),
+                'r_squared':   round(float(r_squared), 4),
+                'r_value':     round(float(r_value),   4),
+                'p_value':     round(float(p_value),   4),
                 'n_companies': n,
-                'intercept': round(float(intercept), 4),
+                'intercept':   round(float(intercept), 4),
                 'significant': bool(p_value < 0.05),
             })
 
         return jsonify({
-            'success': True,
-            'results': results,
+            'success':    True,
+            'results':    results,
             'gics_level': gics_level,
             'score_type': score_type,
         })
 
     except Exception as e:
-        logger.error(f"Error in correlation analysis: {e}")
+        logger.error(f"Error in correlation analysis: {e}", exc_info=True)
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
