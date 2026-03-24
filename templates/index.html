@@ -1473,6 +1473,24 @@
                     </div>
                 </div>
 
+                <!-- Incremental Update Section -->
+                <div style="margin-bottom: 2rem; padding: 1.25rem; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px;">
+                    <h3 style="color: #15803d; margin-bottom: 0.5rem; font-size: 1rem; font-weight: 600;">Update All Companies — Fetch New Reviews Only</h3>
+                    <p style="color: #166534; font-size: 0.85rem; margin-bottom: 1rem;">
+                        Fetches only reviews posted since the last extraction for every company that already has a Glassdoor company ID.
+                        Pages are requested in most-recent-first order; the job stops for each company as soon as two consecutive pages contain entirely known review IDs, so it only downloads what is genuinely new.
+                    </p>
+                    <div style="display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; margin-bottom: 1rem;">
+                        <button id="btnStartIncremental" onclick="startIncrementalUpdate()" style="padding: 0.625rem 1.5rem; background: #22c55e; color: white; border: none; border-radius: 8px; font-size: 0.875rem; font-weight: 600; cursor: pointer;">Update All Companies</button>
+                        <button id="btnStopIncremental" onclick="stopIncrementalUpdate()" style="padding: 0.625rem 1.5rem; background: #ef4444; color: white; border: none; border-radius: 8px; font-size: 0.875rem; font-weight: 600; cursor: pointer; display: none;">Stop</button>
+                        <span id="incrementalStatusText" style="color: #15803d; font-size: 0.875rem;"></span>
+                    </div>
+                    <div id="incrementalProgressBar" style="display: none; background: #dcfce7; border-radius: 6px; height: 10px; overflow: hidden; margin-bottom: 0.75rem;">
+                        <div id="incrementalProgressFill" style="height: 100%; background: #22c55e; width: 0%; transition: width 0.4s ease;"></div>
+                    </div>
+                    <div id="incrementalStats" style="font-size: 0.82rem; color: #166534; line-height: 1.7;"></div>
+                </div>
+
                 <!-- Culture Scoring Section -->
                 <div style="margin-bottom: 2rem; padding: 1.25rem; background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 10px;">
                     <h3 style="color: #0369a1; margin-bottom: 0.5rem; font-size: 1rem; font-weight: 600;">Culture Score Processing</h3>
@@ -5009,6 +5027,110 @@
         function initExtractionManager() {
             loadExtractionStatus();
             loadScoringStatus();
+            loadIncrementalStatus();
+        }
+
+        // ── Incremental Update ────────────────────────────────────────────────
+        let incrementalPollTimer = null;
+
+        function startIncrementalUpdate() {
+            fetch('/api/incremental-update/start', { method: 'POST' })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.status === 'already_running') {
+                        document.getElementById('incrementalStatusText').textContent = 'Already running.';
+                    } else if (data.status === 'error') {
+                        document.getElementById('incrementalStatusText').textContent = 'Error: ' + (data.error || 'unknown');
+                    } else {
+                        setIncrementalRunning(true);
+                    }
+                    pollIncrementalStatus();
+                })
+                .catch(err => {
+                    document.getElementById('incrementalStatusText').textContent = 'Request failed: ' + err;
+                });
+        }
+
+        function stopIncrementalUpdate() {
+            fetch('/api/incremental-update/stop', { method: 'POST' })
+                .then(r => r.json())
+                .then(() => {
+                    document.getElementById('incrementalStatusText').textContent = 'Stopping after current company…';
+                })
+                .catch(() => {});
+        }
+
+        function loadIncrementalStatus() {
+            fetch('/api/incremental-update/status')
+                .then(r => r.json())
+                .then(renderIncrementalStatus)
+                .catch(() => {});
+        }
+
+        function pollIncrementalStatus() {
+            if (incrementalPollTimer) clearTimeout(incrementalPollTimer);
+            incrementalPollTimer = setTimeout(function() {
+                fetch('/api/incremental-update/status')
+                    .then(r => r.json())
+                    .then(data => {
+                        renderIncrementalStatus(data);
+                        if (data.state === 'running' || data.state === 'stopping') {
+                            pollIncrementalStatus();
+                        }
+                    })
+                    .catch(() => { pollIncrementalStatus(); });
+            }, 3000);
+        }
+
+        function setIncrementalRunning(running) {
+            document.getElementById('btnStartIncremental').style.display = running ? 'none' : '';
+            document.getElementById('btnStopIncremental').style.display  = running ? '' : 'none';
+            document.getElementById('incrementalProgressBar').style.display = running ? '' : 'none';
+        }
+
+        function renderIncrementalStatus(data) {
+            const state      = data.state || 'idle';
+            const total      = data.total_companies || 0;
+            const done       = data.companies_done  || 0;
+            const newRevs    = data.new_reviews_total || 0;
+            const pct        = data.pct_done || 0;
+            const current    = data.current_company || '';
+            const lastError  = data.last_error || '';
+
+            const statusEl  = document.getElementById('incrementalStatusText');
+            const fillEl    = document.getElementById('incrementalProgressFill');
+            const statsEl   = document.getElementById('incrementalStats');
+
+            const isRunning  = state === 'running' || state === 'stopping';
+            setIncrementalRunning(isRunning);
+            document.getElementById('incrementalProgressBar').style.display =
+                (isRunning || state === 'completed') ? '' : 'none';
+
+            const stateLabels = {
+                idle:      'Idle — not started',
+                running:   'Running…',
+                stopping:  'Stopping after current company…',
+                stopped:   'Stopped by user',
+                completed: 'Completed',
+                error:     'Error',
+            };
+            statusEl.textContent = stateLabels[state] || state;
+
+            fillEl.style.width = pct + '%';
+
+            let statsHtml = '';
+            if (state !== 'idle') {
+                statsHtml += `<strong>${done}</strong> of <strong>${total}</strong> companies processed`;
+                if (total > 0) statsHtml += ` (${pct}%)`;
+                statsHtml += `&nbsp;&nbsp;·&nbsp;&nbsp;<strong>${newRevs.toLocaleString()}</strong> new reviews fetched`;
+                if (current) statsHtml += `<br>Current: <em>${current}</em>`;
+                if (lastError) statsHtml += `<br><span style="color:#ef4444;">Last error: ${lastError}</span>`;
+                if (data.started_at) {
+                    const started = new Date(data.started_at);
+                    statsHtml += `<br>Started: ${started.toLocaleString()}`;
+                }
+            }
+            statsEl.innerHTML = statsHtml;
         }
     </script>
 </body>

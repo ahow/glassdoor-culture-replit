@@ -4093,6 +4093,32 @@ def extraction_update_match(queue_id):
     return jsonify({'success': success})
 
 
+@app.route('/api/incremental-update/start', methods=['POST'])
+def incremental_update_start():
+    """Start a background job that fetches only new reviews for every company."""
+    from extraction_manager import IncrementalUpdateManager
+    mgr = IncrementalUpdateManager.get_instance()
+    result = mgr.start()
+    return jsonify(result)
+
+
+@app.route('/api/incremental-update/stop', methods=['POST'])
+def incremental_update_stop():
+    """Signal the running incremental update to stop after the current company."""
+    from extraction_manager import IncrementalUpdateManager
+    mgr = IncrementalUpdateManager.get_instance()
+    result = mgr.stop()
+    return jsonify(result)
+
+
+@app.route('/api/incremental-update/status', methods=['GET'])
+def incremental_update_status():
+    """Return current state and progress of the incremental update job."""
+    from extraction_manager import IncrementalUpdateManager
+    mgr = IncrementalUpdateManager.get_instance()
+    return jsonify(mgr.get_status())
+
+
 @app.errorhandler(404)
 def not_found(error):
     """Handle 404 errors"""
