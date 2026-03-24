@@ -934,3 +934,237 @@ class ExtractionManager:
         except Exception as e:
             logger.error(f"Error updating match: {e}")
             return False
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Incremental Update Manager
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _init_incremental_status_table():
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS incremental_update_status (
+                id INTEGER PRIMARY KEY DEFAULT 1,
+                state VARCHAR(20) DEFAULT 'idle',
+                started_at TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT NOW(),
+                total_companies INTEGER DEFAULT 0,
+                companies_done INTEGER DEFAULT 0,
+                new_reviews_total INTEGER DEFAULT 0,
+                current_company VARCHAR(255),
+                last_error TEXT,
+                CONSTRAINT incremental_single_row CHECK (id = 1)
+            )
+        """)
+        cur.execute("""
+            INSERT INTO incremental_update_status (id, state)
+            VALUES (1, 'idle') ON CONFLICT (id) DO NOTHING
+        """)
+        conn.commit()
+        cur.close()
+        conn.close()
+    except Exception as e:
+        logger.error(f"Error initializing incremental_update_status: {e}")
+
+
+class IncrementalUpdateManager:
+    """Background manager that fetches only new reviews for every company
+    that already has a known Glassdoor company_id in the companies table."""
+
+    _instance = None
+    _lock = threading.Lock()
+
+    @classmethod
+    def get_instance(cls):
+        if cls._instance is None:
+            with cls._lock:
+                if cls._instance is None:
+                    cls._instance = cls()
+        return cls._instance
+
+    def __init__(self):
+        self._thread = None
+        _init_incremental_status_table()
+
+    # ── DB helpers ──────────────────────────────────────────────────────────
+
+    def _get_state(self):
+        try:
+            conn = get_db_connection()
+            cur = conn.cursor()
+            cur.execute("SELECT state FROM incremental_update_status WHERE id = 1")
+            row = cur.fetchone()
+            cur.close()
+            conn.close()
+            return row[0] if row else 'idle'
+        except Exception:
+            return 'idle'
+
+    def _set_state(self, state, **kwargs):
+        try:
+            conn = get_db_connection()
+            cur = conn.cursor()
+            sets = ["state = %s", "updated_at = NOW()"]
+            vals = [state]
+            for k, v in kwargs.items():
+                if v is None:
+                    sets.append(f"{k} = NULL")
+                else:
+                    sets.append(f"{k} = %s")
+                    vals.append(v)
+            cur.execute(
+                f"UPDATE incremental_update_status SET {', '.join(sets)} WHERE id = 1",
+                vals
+            )
+            conn.commit()
+            cur.close()
+            conn.close()
+        except Exception as e:
+            logger.error(f"Error setting incremental state: {e}")
+
+    # ── Public API ───────────────────────────────────────────────────────────
+
+    def get_status(self):
+        try:
+            conn = get_db_connection()
+            cur = conn.cursor()
+            cur.execute("""
+                SELECT state, started_at, updated_at, total_companies,
+                       companies_done, new_reviews_total, current_company, last_error
+                FROM incremental_update_status WHERE id = 1
+            """)
+            row = cur.fetchone()
+            cur.close()
+            conn.close()
+            if not row:
+                return {'state': 'idle'}
+            total = row[3] or 0
+            done  = row[4] or 0
+            return {
+                'state':            row[0],
+                'started_at':       row[1].isoformat() if row[1] else None,
+                'updated_at':       row[2].isoformat() if row[2] else None,
+                'total_companies':  total,
+                'companies_done':   done,
+                'new_reviews_total': row[5] or 0,
+                'current_company':  row[6],
+                'last_error':       row[7],
+                'pct_done':         round(100 * done / total, 1) if total > 0 else 0,
+            }
+        except Exception as e:
+            return {'state': 'error', 'error': str(e)}
+
+    def start(self):
+        state = self._get_state()
+        if state == 'running':
+            return {'status': 'already_running'}
+
+        # Collect companies with known Glassdoor IDs that also have reviews
+        try:
+            conn = get_db_connection()
+            cur = conn.cursor()
+            cur.execute("""
+                SELECT c.company_name, c.company_id,
+                       c.gics_sector, c.gics_industry, c.gics_sub_industry
+                FROM companies c
+                WHERE c.company_id IS NOT NULL
+                  AND EXISTS (
+                      SELECT 1 FROM reviews r WHERE r.company_name = c.company_name
+                  )
+                ORDER BY c.company_name
+            """)
+            companies = cur.fetchall()
+            cur.close()
+            conn.close()
+        except Exception as e:
+            return {'status': 'error', 'error': str(e)}
+
+        if not companies:
+            return {'status': 'error', 'error': 'No companies with known Glassdoor IDs found'}
+
+        self._set_state(
+            'running',
+            started_at=datetime.now(),
+            total_companies=len(companies),
+            companies_done=0,
+            new_reviews_total=0,
+            last_error=None,
+        )
+
+        self._thread = threading.Thread(
+            target=self._run_incremental,
+            args=(companies,),
+            daemon=True,
+        )
+        self._thread.start()
+        logger.info(f"Incremental update started for {len(companies)} companies")
+        return {'status': 'started', 'total_companies': len(companies)}
+
+    def stop(self):
+        state = self._get_state()
+        if state not in ('running', 'stopping'):
+            return {'status': 'not_running'}
+        self._set_state('stopping')
+        logger.info("Incremental update stop requested")
+        return {'status': 'stopping'}
+
+    # ── Background worker ────────────────────────────────────────────────────
+
+    def _run_incremental(self, companies):
+        from extraction_openweb import OpenWebNinjaExtractor
+        new_reviews_total = 0
+        companies_done    = 0
+
+        for row in companies:
+            company_name, company_id = row[0], row[1]
+            gics_sector   = row[2] if len(row) > 2 else None
+            gics_industry = row[3] if len(row) > 3 else None
+            gics_sub      = row[4] if len(row) > 4 else None
+
+            if self._get_state() == 'stopping':
+                self._set_state(
+                    'stopped',
+                    companies_done=companies_done,
+                    new_reviews_total=new_reviews_total,
+                    current_company=None,
+                )
+                logger.info("Incremental update stopped by user request")
+                return
+
+            self._set_state(
+                'running',
+                current_company=company_name,
+                companies_done=companies_done,
+                new_reviews_total=new_reviews_total,
+            )
+
+            try:
+                extractor = OpenWebNinjaExtractor(
+                    company_name=company_name,
+                    company_id=company_id,
+                    gics_sector=gics_sector,
+                    gics_industry=gics_industry,
+                    gics_sub_industry=gics_sub,
+                )
+                new = extractor.extract_incremental()
+                new_reviews_total += new
+                if new > 0:
+                    logger.info(f"Incremental [{company_name}]: +{new} new reviews")
+            except Exception as e:
+                err_msg = f"{company_name}: {str(e)[:200]}"
+                logger.error(f"Incremental update error — {err_msg}")
+                self._set_state('running', last_error=err_msg)
+
+            companies_done += 1
+            time.sleep(0.3)
+
+        self._set_state(
+            'completed',
+            companies_done=companies_done,
+            new_reviews_total=new_reviews_total,
+            current_company=None,
+        )
+        logger.info(f"Incremental update completed: {new_reviews_total} new reviews "
+                    f"across {companies_done} companies")

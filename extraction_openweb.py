@@ -316,6 +316,66 @@ class OpenWebNinjaExtractor:
             logger.error(f"Error saving company metadata: {e}")
             return False
 
+    def extract_incremental(self, stop_after_empty_pages=2):
+        """Fetch only reviews newer than what we already have.
+
+        Fetches pages in MOST_RECENT order and stops as soon as
+        `stop_after_empty_pages` consecutive pages are entirely made up of
+        already-known review IDs — meaning we have caught up to the previous
+        extraction cutoff.  Returns the number of new reviews saved.
+        """
+        self.existing_review_ids = self.get_existing_review_ids()
+        if not self.company_id:
+            logger.error(f"No company_id for {self.company_name}, skipping incremental extract")
+            return 0
+
+        consecutive_all_known = 0
+        page = 1
+        total_pages = None
+
+        while True:
+            try:
+                page_data = self.fetch_reviews_page(page=page, sort='MOST_RECENT')
+                data = page_data.get('data', {})
+                page_reviews = data.get('reviews', [])
+
+                if page == 1:
+                    total_pages = data.get('page_count', 1)
+
+                if not page_reviews:
+                    break
+
+                new_reviews = [r for r in page_reviews
+                               if r.get('review_id') not in self.existing_review_ids]
+
+                if not new_reviews:
+                    consecutive_all_known += 1
+                    if consecutive_all_known >= stop_after_empty_pages:
+                        logger.info(f"{self.company_name}: caught up after page {page} "
+                                    f"({self.new_reviews_saved} new reviews saved)")
+                        break
+                else:
+                    consecutive_all_known = 0
+                    saved = self.save_review_batch_to_db(new_reviews)
+                    self.new_reviews_saved += saved
+                    self.existing_review_ids.update(
+                        r['review_id'] for r in new_reviews if r.get('review_id')
+                    )
+                    logger.info(f"{self.company_name} page {page}: "
+                                f"{len(new_reviews)} new, total so far: {self.new_reviews_saved}")
+
+                if total_pages and page >= total_pages:
+                    break
+
+                page += 1
+                time.sleep(0.5)
+
+            except Exception as e:
+                logger.error(f"Error on incremental page {page} for {self.company_name}: {e}")
+                break
+
+        return self.new_reviews_saved
+
     def extract_all_reviews(self, sort='MOST_RECENT'):
         """Extract all reviews for the company, saving each page to DB immediately."""
         logger.info(f"Starting extraction for {self.company_name} (ID: {self.company_id}) via {self.api_source}")
