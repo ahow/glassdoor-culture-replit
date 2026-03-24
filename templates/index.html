@@ -500,43 +500,15 @@
         <!-- Overview Tab -->
         <div id="overviewTab" class="tab-content">
             <div id="dashboard" style="display: none;">
-                <div class="chart-container">
-                    <h2 class="chart-title">About This Dashboard</h2>
-                    <div style="padding: 1rem 0; line-height: 1.8;">
-                        <p style="margin-bottom: 1.5rem; font-size: 1.05rem; color: #475569;">
-                            This dashboard analyzes employee reviews from Glassdoor to extract and visualize organizational culture insights for financial services companies. The system uses two established culture analysis frameworks to provide a comprehensive view of workplace culture.
-                        </p>
-                        
-                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
-                            <div style="background: #f8fafc; border-radius: 10px; padding: 1.25rem; border: 1px solid #e2e8f0;">
-                                <h3 style="color: #3b82f6; margin-bottom: 0.75rem; font-size: 1rem; font-weight: 600;">Hofstede Framework</h3>
-                                <p style="color: #64748b; font-size: 0.9rem;">6 bipolar dimensions measuring organizational culture on a -1 to +1 scale. This framework examines aspects like power distance, individualism vs. collectivism, and uncertainty avoidance.</p>
-                                <a href="https://www.hofstede-insights.com/models/organisational-culture/" target="_blank" rel="noopener noreferrer" style="display: inline-block; margin-top: 0.75rem; color: #3b82f6; font-size: 0.85rem; text-decoration: none; font-weight: 500;">Learn more about Hofstede's model</a>
-                            </div>
-                            <div style="background: #f8fafc; border-radius: 10px; padding: 1.25rem; border: 1px solid #e2e8f0;">
-                                <h3 style="color: #6366f1; margin-bottom: 0.75rem; font-size: 1rem; font-weight: 600;">MIT Big 9 Framework</h3>
-                                <p style="color: #64748b; font-size: 0.9rem;">9 unipolar dimensions measuring culture attributes on a 0-10 scale. Covers agility, collaboration, customer orientation, diversity, execution, innovation, integrity, performance, and respect.</p>
-                                <a href="https://sloanreview.mit.edu/culture500/" target="_blank" rel="noopener noreferrer" style="display: inline-block; margin-top: 0.75rem; color: #6366f1; font-size: 0.85rem; text-decoration: none; font-weight: 500;">Learn more about MIT's Culture 500</a>
-                            </div>
-                        </div>
-                        
-                        <h3 style="color: #1e293b; margin-bottom: 1rem; font-size: 1.1rem; font-weight: 600;">How It Works</h3>
-                        <ol style="color: #475569; padding-left: 1.5rem; margin-bottom: 1.5rem;">
-                            <li style="margin-bottom: 0.5rem;"><strong>Data Collection:</strong> Reviews are extracted from Glassdoor using their public data</li>
-                            <li style="margin-bottom: 0.5rem;"><strong>Culture Scoring:</strong> Each review is analyzed using keyword-based scoring algorithms for both frameworks</li>
-                            <li style="margin-bottom: 0.5rem;"><strong>Aggregation:</strong> Individual scores are aggregated to company-level metrics with confidence indicators</li>
-                            <li style="margin-bottom: 0.5rem;"><strong>Visualization:</strong> Results are presented through interactive charts for comparison and trend analysis</li>
-                        </ol>
-                    </div>
-                </div>
-                
-                <div class="stats-grid">
+
+                <!-- Stats bar -->
+                <div class="stats-grid" style="margin-bottom: 2rem;">
                     <div class="stat-card">
                         <div class="stat-label">Total Reviews</div>
                         <div class="stat-value" id="totalReviews">0</div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-label">Companies</div>
+                        <div class="stat-label">Companies Analysed</div>
                         <div class="stat-value" id="totalCompanies">0</div>
                     </div>
                     <div class="stat-card">
@@ -548,6 +520,215 @@
                         <button class="export-button" onclick="exportToCSV()">Download CSV</button>
                     </div>
                 </div>
+
+                <!-- Purpose -->
+                <div class="chart-container" style="margin-bottom: 1.5rem;">
+                    <h2 class="chart-title">About This Dashboard</h2>
+                    <p style="font-size: 1rem; color: #475569; line-height: 1.8; margin-bottom: 1rem;">
+                        This dashboard analyses employee reviews published on Glassdoor to extract and visualise organisational culture signals for companies in the financial services sector. It covers <strong>2,442 MSCI-listed companies</strong> spanning 11 GICS sectors and 73 industries, plus 14 major unlisted asset managers, giving a universe of institutions from global investment banks and insurers to boutique asset managers and fintech firms.
+                    </p>
+                    <p style="font-size: 1rem; color: #475569; line-height: 1.8;">
+                        Culture is scored using two well-established academic frameworks — <strong>Hofstede's Organisational Culture model</strong> and the <strong>MIT Sloan "Big 9" framework</strong> — applied consistently across all companies so that direct, apples-to-apples comparisons are possible. Financial performance data from FMP is then linked to each company, enabling the dashboard to test empirically whether stronger culture correlates with better business outcomes.
+                    </p>
+                </div>
+
+                <!-- How the analysis works -->
+                <div class="chart-container" style="margin-bottom: 1.5rem;">
+                    <h2 class="chart-title">How the Analysis Works</h2>
+
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+                        <div style="background: #f0f9ff; border-radius: 10px; padding: 1.1rem 1.25rem; border-left: 4px solid #3b82f6;">
+                            <div style="font-weight: 700; color: #1e40af; font-size: 0.8rem; letter-spacing: 0.05em; margin-bottom: 0.4rem;">STEP 1</div>
+                            <div style="font-weight: 600; color: #1e293b; margin-bottom: 0.35rem;">Data Collection</div>
+                            <p style="color: #475569; font-size: 0.85rem; margin: 0;">Employee reviews are fetched from Glassdoor via the OpenWeb Ninja API (with a RapidAPI fallback). Each review captures the free-text pros, cons and advice fields alongside structured ratings for overall score, culture, work-life balance, compensation, career opportunities, management and diversity.</p>
+                        </div>
+                        <div style="background: #f0fdf4; border-radius: 10px; padding: 1.1rem 1.25rem; border-left: 4px solid #22c55e;">
+                            <div style="font-weight: 700; color: #15803d; font-size: 0.8rem; letter-spacing: 0.05em; margin-bottom: 0.4rem;">STEP 2</div>
+                            <div style="font-weight: 600; color: #1e293b; margin-bottom: 0.35rem;">Keyword Scoring</div>
+                            <p style="color: #475569; font-size: 0.85rem; margin: 0;">Each review is scored against curated keyword dictionaries for every culture dimension. For Hofstede dimensions the score is bipolar (keywords pull the score towards −1 or +1). For MIT dimensions the score is unipolar (keywords accumulate on a 0–10 scale). Scores are computed per review and then averaged to company level.</p>
+                        </div>
+                        <div style="background: #fdf4ff; border-radius: 10px; padding: 1.1rem 1.25rem; border-left: 4px solid #a855f7;">
+                            <div style="font-weight: 700; color: #7e22ce; font-size: 0.8rem; letter-spacing: 0.05em; margin-bottom: 0.4rem;">STEP 3</div>
+                            <div style="font-weight: 600; color: #1e293b; margin-bottom: 0.35rem;">Confidence Grading</div>
+                            <p style="color: #475569; font-size: 0.85rem; margin: 0;">Each company is assigned a confidence level based on its review count: <strong>High</strong> (&gt; 50 reviews), <strong>Medium</strong> (20–50 reviews) or <strong>Low</strong> (&lt; 20 reviews). Low-confidence scores should be treated as directional only. The dashboard displays the confidence indicator throughout.</p>
+                        </div>
+                        <div style="background: #fff7ed; border-radius: 10px; padding: 1.1rem 1.25rem; border-left: 4px solid #f97316;">
+                            <div style="font-weight: 700; color: #c2410c; font-size: 0.8rem; letter-spacing: 0.05em; margin-bottom: 0.4rem;">STEP 4</div>
+                            <div style="font-weight: 600; color: #1e293b; margin-bottom: 0.35rem;">Performance Linkage</div>
+                            <p style="color: #475569; font-size: 0.85rem; margin: 0;">Financial metrics (ROE, operating margin, TSR, revenue growth) are sourced from FMP for listed companies and from proprietary data for unlisted asset managers. A composite performance score is computed within peer groups (same GICS sector) and linked to culture scores for correlation analysis.</p>
+                        </div>
+                    </div>
+
+                    <div style="background: #f8fafc; border-radius: 10px; padding: 1.1rem 1.5rem; border: 1px solid #e2e8f0;">
+                        <h3 style="font-size: 0.95rem; color: #1e293b; margin-bottom: 0.6rem;">GICS Filtering</h3>
+                        <p style="color: #475569; font-size: 0.875rem; line-height: 1.7; margin: 0;">
+                            The <strong>GICS filter</strong> in the top-right header controls which companies are included in every chart across the dashboard. GICS (Global Industry Classification Standard) is a four-level hierarchy: Sector → Industry → Sub-Industry → Company. You can filter to a broad <em>Sector</em> (e.g. "Financials"), a narrower <em>Industry</em> (e.g. "Capital Markets") or a precise <em>Sub-Industry</em> (e.g. "Asset Management &amp; Custody Banks"). Selecting "All" restores the full universe. Most analysis tabs update instantly when the filter changes.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Culture frameworks -->
+                <div class="chart-container" style="margin-bottom: 1.5rem;">
+                    <h2 class="chart-title">The Two Culture Frameworks</h2>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem;">
+
+                        <!-- Hofstede -->
+                        <div style="background: #f8fafc; border-radius: 10px; padding: 1.25rem; border: 1px solid #e2e8f0;">
+                            <h3 style="color: #3b82f6; margin-bottom: 0.6rem; font-size: 1rem;">Hofstede Organisational Culture Model</h3>
+                            <p style="color: #475569; font-size: 0.875rem; line-height: 1.7; margin-bottom: 0.75rem;">
+                                Developed by Geert Hofstede, this model describes culture along six <em>bipolar</em> dimensions. Each dimension is scored from <strong>−1 to +1</strong>; the sign indicates which pole dominates.
+                            </p>
+                            <table style="width: 100%; font-size: 0.82rem; border-collapse: collapse;">
+                                <tr style="background: #eff6ff;">
+                                    <td style="padding: 0.35rem 0.5rem; font-weight: 600; color: #1e40af; border-radius: 4px 0 0 4px;">Process vs Results</td>
+                                    <td style="padding: 0.35rem 0.5rem; color: #475569;">Routine &amp; risk-avoidance vs outcome focus &amp; effort</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 0.35rem 0.5rem; font-weight: 600; color: #1e40af;">Employee vs Job</td>
+                                    <td style="padding: 0.35rem 0.5rem; color: #475569;">People-first culture vs task and deliverable focus</td>
+                                </tr>
+                                <tr style="background: #eff6ff;">
+                                    <td style="padding: 0.35rem 0.5rem; font-weight: 600; color: #1e40af;">Parochial vs Professional</td>
+                                    <td style="padding: 0.35rem 0.5rem; color: #475569;">Identity from employer vs professional standards</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 0.35rem 0.5rem; font-weight: 600; color: #1e40af;">Open vs Closed</td>
+                                    <td style="padding: 0.35rem 0.5rem; color: #475569;">Welcoming to outsiders vs secretive &amp; cliquey</td>
+                                </tr>
+                                <tr style="background: #eff6ff;">
+                                    <td style="padding: 0.35rem 0.5rem; font-weight: 600; color: #1e40af;">Loose vs Tight</td>
+                                    <td style="padding: 0.35rem 0.5rem; color: #475569;">Informal norms vs strict rules &amp; compliance</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 0.35rem 0.5rem; font-weight: 600; color: #1e40af; border-radius: 0 0 0 4px;">Normative vs Pragmatic</td>
+                                    <td style="padding: 0.35rem 0.5rem; color: #475569;">Ethics-driven vs market &amp; client-driven</td>
+                                </tr>
+                            </table>
+                            <a href="https://www.hofstede-insights.com/models/organisational-culture/" target="_blank" rel="noopener noreferrer" style="display: inline-block; margin-top: 0.9rem; color: #3b82f6; font-size: 0.82rem; text-decoration: none; font-weight: 500;">Learn more ↗</a>
+                        </div>
+
+                        <!-- MIT Big 9 -->
+                        <div style="background: #f8fafc; border-radius: 10px; padding: 1.25rem; border: 1px solid #e2e8f0;">
+                            <h3 style="color: #6366f1; margin-bottom: 0.6rem; font-size: 1rem;">MIT Sloan "Big 9" Culture Framework</h3>
+                            <p style="color: #475569; font-size: 0.875rem; line-height: 1.7; margin-bottom: 0.75rem;">
+                                Derived from MIT's Culture 500 research project, this model identifies nine <em>unipolar</em> culture attributes. Each is scored from <strong>0 to 10</strong>; higher is stronger presence of that attribute.
+                            </p>
+                            <table style="width: 100%; font-size: 0.82rem; border-collapse: collapse;">
+                                <tr style="background: #eef2ff;">
+                                    <td style="padding: 0.35rem 0.5rem; font-weight: 600; color: #4338ca;">Agility</td>
+                                    <td style="padding: 0.35rem 0.5rem; color: #475569;">Speed, adaptability and responsiveness to change</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 0.35rem 0.5rem; font-weight: 600; color: #4338ca;">Collaboration</td>
+                                    <td style="padding: 0.35rem 0.5rem; color: #475569;">Teamwork, cross-functional cooperation</td>
+                                </tr>
+                                <tr style="background: #eef2ff;">
+                                    <td style="padding: 0.35rem 0.5rem; font-weight: 600; color: #4338ca;">Customer Orientation</td>
+                                    <td style="padding: 0.35rem 0.5rem; color: #475569;">Focus on client needs and service quality</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 0.35rem 0.5rem; font-weight: 600; color: #4338ca;">Diversity</td>
+                                    <td style="padding: 0.35rem 0.5rem; color: #475569;">Inclusion of different backgrounds and perspectives</td>
+                                </tr>
+                                <tr style="background: #eef2ff;">
+                                    <td style="padding: 0.35rem 0.5rem; font-weight: 600; color: #4338ca;">Execution</td>
+                                    <td style="padding: 0.35rem 0.5rem; color: #475569;">Operational discipline and delivering results</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 0.35rem 0.5rem; font-weight: 600; color: #4338ca;">Innovation</td>
+                                    <td style="padding: 0.35rem 0.5rem; color: #475569;">Creativity, experimentation and new ideas</td>
+                                </tr>
+                                <tr style="background: #eef2ff;">
+                                    <td style="padding: 0.35rem 0.5rem; font-weight: 600; color: #4338ca;">Integrity</td>
+                                    <td style="padding: 0.35rem 0.5rem; color: #475569;">Ethical behaviour, honesty and transparency</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 0.35rem 0.5rem; font-weight: 600; color: #4338ca;">Performance</td>
+                                    <td style="padding: 0.35rem 0.5rem; color: #475569;">Meritocracy, accountability and high standards</td>
+                                </tr>
+                                <tr style="background: #eef2ff;">
+                                    <td style="padding: 0.35rem 0.5rem; font-weight: 600; color: #4338ca;">Respect</td>
+                                    <td style="padding: 0.35rem 0.5rem; color: #475569;">Dignity, psychological safety and wellbeing</td>
+                                </tr>
+                            </table>
+                            <a href="https://sloanreview.mit.edu/culture500/" target="_blank" rel="noopener noreferrer" style="display: inline-block; margin-top: 0.9rem; color: #6366f1; font-size: 0.82rem; text-decoration: none; font-weight: 500;">Learn more ↗</a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab guide -->
+                <div class="chart-container">
+                    <h2 class="chart-title">Guide to Each Page</h2>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem;">
+
+                        <div style="border: 1px solid #e2e8f0; border-radius: 10px; padding: 1rem 1.25rem;">
+                            <div style="display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.5rem;">
+                                <span style="background: #dbeafe; color: #1e40af; font-size: 0.75rem; font-weight: 700; padding: 0.2rem 0.55rem; border-radius: 20px;">Companies</span>
+                            </div>
+                            <p style="color: #475569; font-size: 0.85rem; line-height: 1.65; margin: 0;">Browse the full list of analysed companies with review counts, average ratings and confidence levels. Use this as your starting point to identify which institutions have robust data before diving into individual company analysis.</p>
+                        </div>
+
+                        <div style="border: 1px solid #e2e8f0; border-radius: 10px; padding: 1rem 1.25rem;">
+                            <div style="display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.5rem;">
+                                <span style="background: #dbeafe; color: #1e40af; font-size: 0.75rem; font-weight: 700; padding: 0.2rem 0.55rem; border-radius: 20px;">Company Analysis</span>
+                            </div>
+                            <p style="color: #475569; font-size: 0.85rem; line-height: 1.65; margin: 0;">Side-by-side radar charts showing a selected company's Hofstede and MIT Big 9 profiles simultaneously, with optional overlay of the sector or industry average. Good for a quick top-level culture summary of a single firm.</p>
+                        </div>
+
+                        <div style="border: 1px solid #e2e8f0; border-radius: 10px; padding: 1rem 1.25rem;">
+                            <div style="display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.5rem;">
+                                <span style="background: #dcfce7; color: #15803d; font-size: 0.75rem; font-weight: 700; padding: 0.2rem 0.55rem; border-radius: 20px;">Quarterly Trends</span>
+                            </div>
+                            <p style="color: #475569; font-size: 0.85rem; line-height: 1.65; margin: 0;">Time-series line chart of any Glassdoor rating dimension (overall, culture, work-life balance, compensation, career opportunities, management, diversity, CEO approval, business outlook, recommendation rate) for a chosen company, with an optional second company or industry average for comparison.</p>
+                        </div>
+
+                        <div style="border: 1px solid #e2e8f0; border-radius: 10px; padding: 1rem 1.25rem;">
+                            <div style="display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.5rem;">
+                                <span style="background: #ede9fe; color: #6d28d9; font-size: 0.75rem; font-weight: 700; padding: 0.2rem 0.55rem; border-radius: 20px;">Hofstede Framework</span>
+                            </div>
+                            <p style="color: #475569; font-size: 0.85rem; line-height: 1.65; margin: 0;">Deep dive into a single company's six Hofstede dimensions, shown as position-on-spectrum sliders. A trend sub-tab shows how each dimension has shifted quarter by quarter. Compare with an optional benchmark company or industry average.</p>
+                        </div>
+
+                        <div style="border: 1px solid #e2e8f0; border-radius: 10px; padding: 1rem 1.25rem;">
+                            <div style="display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.5rem;">
+                                <span style="background: #ede9fe; color: #6d28d9; font-size: 0.75rem; font-weight: 700; padding: 0.2rem 0.55rem; border-radius: 20px;">MIT Framework</span>
+                            </div>
+                            <p style="color: #475569; font-size: 0.85rem; line-height: 1.65; margin: 0;">Equivalent deep dive for the nine MIT Big 9 dimensions, with bar charts showing absolute scores and a trend sub-tab for temporal changes. Particularly useful for tracking cultural evolution during mergers, leadership changes or market disruptions.</p>
+                        </div>
+
+                        <div style="border: 1px solid #e2e8f0; border-radius: 10px; padding: 1rem 1.25rem;">
+                            <div style="display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.5rem;">
+                                <span style="background: #fef9c3; color: #854d0e; font-size: 0.75rem; font-weight: 700; padding: 0.2rem 0.55rem; border-radius: 20px;">Performance Insights</span>
+                            </div>
+                            <p style="color: #475569; font-size: 0.85rem; line-height: 1.65; margin: 0;">Correlation heatmap between each of the 15 culture dimensions and four financial performance metrics (ROE, operating margin, TSR, AUM growth). Pearson r values are shown with significance flags. Reveals which culture signals are most predictive of financial outperformance within the selected GICS group.</p>
+                        </div>
+
+                        <div style="border: 1px solid #e2e8f0; border-radius: 10px; padding: 1rem 1.25rem;">
+                            <div style="display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.5rem;">
+                                <span style="background: #fef9c3; color: #854d0e; font-size: 0.75rem; font-weight: 700; padding: 0.2rem 0.55rem; border-radius: 20px;">Culture vs Performance</span>
+                            </div>
+                            <p style="color: #475569; font-size: 0.85rem; line-height: 1.65; margin: 0;">Scatter plot where each dot is a company. The X-axis is its composite culture score (correlation-weighted across all dimensions) and the Y-axis is its composite business performance score (normalised within its GICS peer group). The regression line and R² measure how tightly culture tracks performance within the current filter.</p>
+                        </div>
+
+                        <div style="border: 1px solid #e2e8f0; border-radius: 10px; padding: 1rem 1.25rem;">
+                            <div style="display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.5rem;">
+                                <span style="background: #fef9c3; color: #854d0e; font-size: 0.75rem; font-weight: 700; padding: 0.2rem 0.55rem; border-radius: 20px;">Correlation Analysis</span>
+                            </div>
+                            <p style="color: #475569; font-size: 0.85rem; line-height: 1.65; margin: 0;">Two views of the culture-performance relationship broken down by group. A <strong>3×3 summary matrix</strong> shows company-count-weighted average R² and slope across all grouping levels (Sector / Industry / Sub-Industry) and score types (Combined / Hofstede / MIT). A <strong>scatter plot</strong> then shows the individual groups — dot position encodes R² (Y) and slope (X), dot size encodes company count, colour encodes statistical significance.</p>
+                        </div>
+
+                        <div style="border: 1px solid #e2e8f0; border-radius: 10px; padding: 1rem 1.25rem;">
+                            <div style="display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.5rem;">
+                                <span style="background: #f1f5f9; color: #475569; font-size: 0.75rem; font-weight: 700; padding: 0.2rem 0.55rem; border-radius: 20px;">Export Data</span>
+                                <span style="background: #f1f5f9; color: #475569; font-size: 0.75rem; font-weight: 700; padding: 0.2rem 0.55rem; border-radius: 20px;">Data Status</span>
+                                <span style="background: #f1f5f9; color: #475569; font-size: 0.75rem; font-weight: 700; padding: 0.2rem 0.55rem; border-radius: 20px;">Extraction Manager</span>
+                            </div>
+                            <p style="color: #475569; font-size: 0.85rem; line-height: 1.65; margin: 0;"><strong>Export Data</strong> downloads the company-level culture and performance dataset as a CSV. <strong>Data Status</strong> shows which companies have been extracted, scored and linked to financial data. <strong>Extraction Manager</strong> lets you trigger or pause Glassdoor data extraction on a sector-by-sector basis.</p>
+                        </div>
+
+                    </div>
+                </div>
+
             </div>
         </div>
         
