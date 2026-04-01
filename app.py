@@ -4407,10 +4407,11 @@ init_extraction_queue()
 init_culture_scores_table()
 ensure_db_indexes()
 
-from extraction_manager import init_extraction_control
+from extraction_manager import init_extraction_control, start_monthly_scheduler
 init_extraction_control()
 init_fmp_tables()
 load_excel_performance_data()
+start_monthly_scheduler()
 
 if __name__ == '__main__':
     app.run(debug=False, host='0.0.0.0', port=int(os.environ.get('FLASK_PORT', os.environ.get('PORT', 8080))))

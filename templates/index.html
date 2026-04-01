@@ -1489,6 +1489,7 @@
                         <div id="incrementalProgressFill" style="height: 100%; background: #22c55e; width: 0%; transition: width 0.4s ease;"></div>
                     </div>
                     <div id="incrementalStats" style="font-size: 0.82rem; color: #166534; line-height: 1.7;"></div>
+                    <div id="incrementalScheduleInfo" style="margin-top: 0.75rem; font-size: 0.8rem; color: #4ade80; opacity: 0.85;"></div>
                 </div>
 
                 <!-- Culture Scoring Section -->
@@ -5131,6 +5132,18 @@
                 }
             }
             statsEl.innerHTML = statsHtml;
+
+            // Monthly schedule note
+            const schedEl = document.getElementById('incrementalScheduleInfo');
+            if (schedEl) {
+                const mlt = data.monthly_last_triggered;
+                let schedText = 'Scheduled: runs automatically on the 1st of every month.';
+                if (mlt) {
+                    const trigDate = new Date(mlt);
+                    schedText += ` Last auto-trigger: ${trigDate.toLocaleDateString('en-GB', {day:'numeric', month:'long', year:'numeric'})}.`;
+                }
+                schedEl.textContent = schedText;
+            }
         }
     </script>
 </body>

@@ -955,8 +955,14 @@ def _init_incremental_status_table():
                 new_reviews_total INTEGER DEFAULT 0,
                 current_company VARCHAR(255),
                 last_error TEXT,
+                monthly_last_triggered TIMESTAMP,
                 CONSTRAINT incremental_single_row CHECK (id = 1)
             )
+        """)
+        # Safe migration: add column if upgrading from older schema
+        cur.execute("""
+            ALTER TABLE incremental_update_status
+            ADD COLUMN IF NOT EXISTS monthly_last_triggered TIMESTAMP
         """)
         cur.execute("""
             INSERT INTO incremental_update_status (id, state)
@@ -1032,7 +1038,8 @@ class IncrementalUpdateManager:
             cur = conn.cursor()
             cur.execute("""
                 SELECT state, started_at, updated_at, total_companies,
-                       companies_done, new_reviews_total, current_company, last_error
+                       companies_done, new_reviews_total, current_company, last_error,
+                       monthly_last_triggered
                 FROM incremental_update_status WHERE id = 1
             """)
             row = cur.fetchone()
@@ -1043,9 +1050,10 @@ class IncrementalUpdateManager:
             total = row[3] or 0
             done  = row[4] or 0
             return {
-                'state':            row[0],
-                'started_at':       row[1].isoformat() if row[1] else None,
-                'updated_at':       row[2].isoformat() if row[2] else None,
+                'state':                   row[0],
+                'started_at':              row[1].isoformat() if row[1] else None,
+                'updated_at':              row[2].isoformat() if row[2] else None,
+                'monthly_last_triggered':  row[8].isoformat() if row[8] else None,
                 'total_companies':  total,
                 'companies_done':   done,
                 'new_reviews_total': row[5] or 0,
@@ -1147,6 +1155,7 @@ class IncrementalUpdateManager:
                     gics_sector=gics_sector,
                     gics_industry=gics_industry,
                     gics_sub_industry=gics_sub,
+                    api_source='rapidapi',  # RapidAPI primary, OpenWeb Ninja fallback
                 )
                 new = extractor.extract_incremental()
                 new_reviews_total += new
@@ -1168,3 +1177,69 @@ class IncrementalUpdateManager:
         )
         logger.info(f"Incremental update completed: {new_reviews_total} new reviews "
                     f"across {companies_done} companies")
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Monthly auto-scheduler
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _monthly_trigger_check():
+    """Start the incremental update if today is the 1st and it hasn't run this month."""
+    try:
+        now = datetime.now()
+        if now.day != 1:
+            return
+
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("SELECT monthly_last_triggered FROM incremental_update_status WHERE id = 1")
+        row = cur.fetchone()
+        cur.close()
+        conn.close()
+
+        last_triggered = row[0] if row and row[0] else None
+        if last_triggered:
+            if last_triggered.year == now.year and last_triggered.month == now.month:
+                return  # already ran this month
+
+        # Record trigger timestamp BEFORE starting to prevent double-fire on restart
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("UPDATE incremental_update_status SET monthly_last_triggered = NOW() WHERE id = 1")
+        conn.commit()
+        cur.close()
+        conn.close()
+
+        logger.info(f"Monthly auto-trigger: starting incremental update for "
+                    f"{now.strftime('%B %Y')}")
+        mgr = IncrementalUpdateManager.get_instance()
+        result = mgr.start()
+        logger.info(f"Monthly auto-trigger result: {result}")
+
+    except Exception as e:
+        logger.error(f"Monthly trigger check error: {e}")
+
+
+def start_monthly_scheduler():
+    """Launch a background thread that triggers the incremental update on the 1st of each month.
+
+    On startup it immediately checks whether today is the 1st and the job
+    hasn't run this month yet.  It then wakes up every hour to repeat the
+    check, which means a Heroku dyno restart mid-day-1 will still catch the
+    schedule within an hour.
+    """
+    # Ensure the table (and the monthly_last_triggered column) exist before
+    # any scheduler logic tries to query or update them.
+    _init_incremental_status_table()
+
+    def _scheduler_loop():
+        # Immediate startup check
+        _monthly_trigger_check()
+        # Hourly recurring check
+        while True:
+            time.sleep(3600)
+            _monthly_trigger_check()
+
+    t = threading.Thread(target=_scheduler_loop, daemon=True, name='monthly-scheduler')
+    t.start()
+    logger.info("Monthly incremental update scheduler started (checks every hour on the 1st)")
