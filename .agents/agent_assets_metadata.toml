@@ -6,3 +6,9 @@ id = "SiwmnQxdS9XG10xLzGlZF"
 uri = "file://API_DOCUMENTATION.md"
 type = "text"
 title = "Glassdoor Culture Dashboard — API Documentation"
+
+[[outputs]]
+id = "uhA-OGGShLSDCt2M0MLN-"
+uri = "file://Culture_Analytics_Dashboard_Model_Guide.md"
+type = "text"
+title = "Culture Analytics Dashboard — Model & User Guide"
