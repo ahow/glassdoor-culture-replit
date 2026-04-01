@@ -61,7 +61,7 @@ class OpenWebNinjaExtractor:
 
     def __init__(self, company_name, company_id, glassdoor_url=None, gics_sector=None,
                  gics_industry=None, gics_sub_industry=None, isin=None, country=None,
-                 issuer_name=None):
+                 issuer_name=None, api_source='openweb_ninja'):
         self.company_name = company_name
         self.company_id = company_id
         self.glassdoor_url = glassdoor_url
@@ -72,7 +72,7 @@ class OpenWebNinjaExtractor:
         self.country = country
         self.issuer_name = issuer_name
 
-        self.api_source = 'openweb_ninja'
+        self.api_source = api_source
         self.reviews = []
         self.metadata = {}
         self.start_time = datetime.now()
@@ -87,10 +87,11 @@ class OpenWebNinjaExtractor:
         return {'x-api-key': api_key}
 
     def _get_rapidapi_headers(self):
+        # RAPIDAPI_KEY is the primary key; _1 / _2 are backup rotation keys
         keys = [
+            os.environ.get('RAPIDAPI_KEY'),
             os.environ.get('RAPIDAPI_KEY_1'),
             os.environ.get('RAPIDAPI_KEY_2'),
-            os.environ.get('RAPIDAPI_KEY'),
         ]
         keys = [k for k in keys if k]
         if not keys:
@@ -101,67 +102,72 @@ class OpenWebNinjaExtractor:
         }
 
     def fetch_reviews_page(self, page=1, sort=None, max_retries=3):
-        """Fetch a page of reviews, trying OpenWeb Ninja first, then RapidAPI."""
+        """Fetch a page of reviews with automatic API fallback.
+
+        When api_source is 'rapidapi': tries RapidAPI first, falls back to
+        OpenWeb Ninja if RapidAPI returns a 401/403.
+        When api_source is 'openweb_ninja' (default): tries OpenWeb Ninja first,
+        falls back to RapidAPI on auth errors.
+        """
         params = {'company_id': str(self.company_id), 'page': str(page)}
         if sort:
             params['sort'] = sort
 
-        for attempt in range(max_retries):
-            try:
-                if self.api_source == 'openweb_ninja':
-                    headers = self._get_openweb_headers()
-                    if headers:
-                        url = f"{OPENWEB_BASE_URL}/company-reviews"
-                        response = requests.get(url, headers=headers, params=params, timeout=30)
-                        if response.status_code == 200:
-                            return response.json()
-                        elif response.status_code in (401, 403):
-                            logger.warning(f"OpenWeb Ninja auth error ({response.status_code}), falling back to RapidAPI")
-                            self.api_source = 'rapidapi_fallback'
-                        elif response.status_code == 429:
-                            logger.warning("OpenWeb Ninja rate limit, waiting...")
-                            time.sleep(5 * (attempt + 1))
+        # Ordered list of APIs to attempt
+        if self.api_source in ('rapidapi', 'rapidapi_fallback'):
+            api_order = ['rapidapi', 'openweb_ninja']
+        else:
+            api_order = ['openweb_ninja', 'rapidapi']
+
+        def _call(api):
+            if api == 'openweb_ninja':
+                hdrs = self._get_openweb_headers()
+                url  = f"{OPENWEB_BASE_URL}/company-reviews"
+            else:
+                hdrs = self._get_rapidapi_headers()
+                url  = f"{RAPIDAPI_BASE_URL}/company-reviews"
+            if not hdrs:
+                return None  # key not configured
+            return requests.get(url, headers=hdrs, params=params, timeout=30)
+
+        for api in api_order:
+            for attempt in range(max_retries):
+                try:
+                    response = _call(api)
+                    if response is None:
+                        break  # no key for this API — try next one
+                    if response.status_code == 200:
+                        return response.json()
+                    elif response.status_code in (401, 403):
+                        logger.warning(f"{api} auth error {response.status_code} on page {page} "
+                                       f"— switching to next API")
+                        break  # permanent auth failure → try the other API
+                    elif response.status_code == 429:
+                        wait = 5 * (attempt + 1)
+                        logger.warning(f"{api} rate-limit on page {page}, waiting {wait}s…")
+                        time.sleep(wait)
+                        continue  # retry same API after waiting
+                    else:
+                        logger.warning(f"{api} error {response.status_code} on page {page}, "
+                                       f"attempt {attempt + 1}/{max_retries}")
+                        if attempt < max_retries - 1:
+                            time.sleep(2 ** attempt)
                             continue
-                        else:
-                            logger.warning(f"OpenWeb Ninja error {response.status_code}, attempt {attempt+1}")
-                            if attempt < max_retries - 1:
-                                time.sleep(2 ** attempt)
-                                continue
+                        break  # transient error exhausted retries → try next API
+                except requests.exceptions.Timeout:
+                    logger.warning(f"{api} timeout on page {page}, attempt {attempt + 1}/{max_retries}")
+                    if attempt < max_retries - 1:
+                        time.sleep(2 ** attempt)
+                        continue
+                    break
+                except requests.exceptions.RequestException as e:
+                    logger.error(f"{api} request error on page {page}: {e}")
+                    if attempt < max_retries - 1:
+                        time.sleep(2 ** attempt)
+                        continue
+                    break
 
-                if self.api_source in ('rapidapi_fallback', 'rapidapi'):
-                    headers = self._get_rapidapi_headers()
-                    if headers:
-                        url = f"{RAPIDAPI_BASE_URL}/company-reviews"
-                        response = requests.get(url, headers=headers, params=params, timeout=30)
-                        if response.status_code == 200:
-                            return response.json()
-                        elif response.status_code == 429:
-                            logger.warning("RapidAPI rate limit, waiting...")
-                            time.sleep(5 * (attempt + 1))
-                            continue
-                        else:
-                            logger.warning(f"RapidAPI error {response.status_code}")
-                            if attempt < max_retries - 1:
-                                time.sleep(2 ** attempt)
-                                continue
-
-                if attempt == max_retries - 1:
-                    raise Exception(f"All API attempts failed for page {page}")
-
-            except requests.exceptions.Timeout:
-                logger.warning(f"Timeout on page {page}, attempt {attempt+1}/{max_retries}")
-                if attempt < max_retries - 1:
-                    time.sleep(2 ** attempt)
-                else:
-                    raise
-            except requests.exceptions.RequestException as e:
-                logger.error(f"Request error on page {page}: {e}")
-                if attempt < max_retries - 1:
-                    time.sleep(2 ** attempt)
-                else:
-                    raise
-
-        raise Exception(f"Failed to fetch page {page} after {max_retries} retries")
+        raise Exception(f"All API attempts failed for page {page}")
 
     def search_company(self, query):
         """Search for a company on Glassdoor via the API."""
