@@ -1171,6 +1171,11 @@ class IncrementalUpdateManager:
         state = self._get_state()
         if state not in ('running', 'stopping'):
             return {'status': 'not_running'}
+        # If no live thread exists (e.g. after a dyno restart), mark stopped immediately
+        if self._thread is None or not self._thread.is_alive():
+            self._set_state('stopped', current_company=None)
+            logger.info("Incremental update stopped (no active thread)")
+            return {'status': 'stopped'}
         self._set_state('stopping')
         logger.info("Incremental update stop requested")
         return {'status': 'stopping'}
