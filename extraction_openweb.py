@@ -322,13 +322,17 @@ class OpenWebNinjaExtractor:
             logger.error(f"Error saving company metadata: {e}")
             return False
 
-    def extract_incremental(self, stop_after_empty_pages=2):
+    def extract_incremental(self, stop_after_empty_pages=2, max_pages=None):
         """Fetch only reviews newer than what we already have.
 
         Fetches pages in MOST_RECENT order and stops as soon as
         `stop_after_empty_pages` consecutive pages are entirely made up of
         already-known review IDs — meaning we have caught up to the previous
-        extraction cutoff.  Returns the number of new reviews saved.
+        extraction cutoff.
+
+        `max_pages` caps the total pages fetched per company so one large
+        company cannot block the entire incremental run indefinitely.
+        Returns the number of new reviews saved.
         """
         self.existing_review_ids = self.get_existing_review_ids()
         if not self.company_id:
@@ -371,6 +375,11 @@ class OpenWebNinjaExtractor:
                                 f"{len(new_reviews)} new, total so far: {self.new_reviews_saved}")
 
                 if total_pages and page >= total_pages:
+                    break
+
+                if max_pages and page >= max_pages:
+                    logger.info(f"{self.company_name}: reached page cap ({max_pages} pages), "
+                                f"moving on with {self.new_reviews_saved} new reviews saved")
                     break
 
                 page += 1

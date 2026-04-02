@@ -5125,6 +5125,17 @@
                 if (total > 0) statsHtml += ` (${pct}%)`;
                 statsHtml += `&nbsp;&nbsp;·&nbsp;&nbsp;<strong>${newRevs.toLocaleString()}</strong> new reviews fetched`;
                 if (current) statsHtml += `<br>Current: <em>${current}</em>`;
+
+                // Show how long since the last DB update — useful to spot stalls
+                if (isRunning && data.seconds_since_update != null) {
+                    const secs = data.seconds_since_update;
+                    let ageStr, ageColor;
+                    if (secs < 60)        { ageStr = secs + 's ago';                            ageColor = '#15803d'; }
+                    else if (secs < 300)  { ageStr = Math.round(secs/60) + ' min ago';          ageColor = '#ca8a04'; }
+                    else                  { ageStr = Math.round(secs/60) + ' min ago — may be slow or stuck'; ageColor = '#dc2626'; }
+                    statsHtml += `<br><span style="color:${ageColor};">Last activity: ${ageStr}</span>`;
+                }
+
                 if (lastError) statsHtml += `<br><span style="color:#ef4444;">Last error: ${lastError}</span>`;
                 if (data.started_at) {
                     const started = new Date(data.started_at);
