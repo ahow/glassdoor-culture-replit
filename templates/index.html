@@ -5105,17 +5105,19 @@
             const isRunning  = state === 'running' || state === 'stopping';
             setIncrementalRunning(isRunning);
             document.getElementById('incrementalProgressBar').style.display =
-                (isRunning || state === 'completed') ? '' : 'none';
+                (isRunning || state === 'completed' || state === 'interrupted') ? '' : 'none';
 
             const stateLabels = {
-                idle:      'Idle — not started',
-                running:   'Running…',
-                stopping:  'Stopping after current company…',
-                stopped:   'Stopped by user',
-                completed: 'Completed',
-                error:     'Error',
+                idle:        'Idle — not started',
+                running:     'Running…',
+                stopping:    'Stopping after current company…',
+                stopped:     'Stopped by user',
+                completed:   'Completed',
+                interrupted: 'Interrupted (server restart)',
+                error:       'Error',
             };
             statusEl.textContent = stateLabels[state] || state;
+            statusEl.style.color = state === 'interrupted' ? '#dc2626' : '';
 
             fillEl.style.width = pct + '%';
 
@@ -5124,7 +5126,12 @@
                 statsHtml += `<strong>${done}</strong> of <strong>${total}</strong> companies processed`;
                 if (total > 0) statsHtml += ` (${pct}%)`;
                 statsHtml += `&nbsp;&nbsp;·&nbsp;&nbsp;<strong>${newRevs.toLocaleString()}</strong> new reviews fetched`;
-                if (current) statsHtml += `<br>Current: <em>${current}</em>`;
+                if (current) {
+                    const currentLabel = state === 'interrupted'
+                        ? `<br>Was processing: <em>${current}</em> — click <strong>Update All Companies</strong> to resume from here`
+                        : `<br>Current: <em>${current}</em>`;
+                    statsHtml += currentLabel;
+                }
 
                 // Show how long since the last DB update — useful to spot stalls
                 if (isRunning && data.seconds_since_update != null) {
