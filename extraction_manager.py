@@ -1163,7 +1163,7 @@ class IncrementalUpdateManager:
                     gics_sub_industry=gics_sub,
                     api_source='rapidapi',  # RapidAPI primary, OpenWeb Ninja fallback
                 )
-                new = extractor.extract_incremental(max_pages=30)
+                new = extractor.extract_incremental()
                 new_reviews_total += new
                 if new > 0:
                     logger.info(f"Incremental [{company_name}]: +{new} new reviews")
