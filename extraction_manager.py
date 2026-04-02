@@ -1049,10 +1049,16 @@ class IncrementalUpdateManager:
                 return {'state': 'idle'}
             total = row[3] or 0
             done  = row[4] or 0
+            updated_at = row[2]
+            seconds_since_update = None
+            if updated_at:
+                delta = datetime.utcnow() - updated_at.replace(tzinfo=None)
+                seconds_since_update = int(delta.total_seconds())
             return {
                 'state':                   row[0],
                 'started_at':              row[1].isoformat() if row[1] else None,
                 'updated_at':              row[2].isoformat() if row[2] else None,
+                'seconds_since_update':    seconds_since_update,
                 'monthly_last_triggered':  row[8].isoformat() if row[8] else None,
                 'total_companies':  total,
                 'companies_done':   done,
@@ -1157,7 +1163,7 @@ class IncrementalUpdateManager:
                     gics_sub_industry=gics_sub,
                     api_source='rapidapi',  # RapidAPI primary, OpenWeb Ninja fallback
                 )
-                new = extractor.extract_incremental()
+                new = extractor.extract_incremental(max_pages=30)
                 new_reviews_total += new
                 if new > 0:
                     logger.info(f"Incremental [{company_name}]: +{new} new reviews")
