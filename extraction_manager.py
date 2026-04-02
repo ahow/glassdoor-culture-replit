@@ -993,6 +993,19 @@ class IncrementalUpdateManager:
     def __init__(self):
         self._thread = None
         _init_incremental_status_table()
+        self._reset_stale_running_state()
+
+    def _reset_stale_running_state(self):
+        """If the DB shows 'running' but we have no active thread (e.g. after a
+        dyno restart), mark the state as 'interrupted' so the UI reflects
+        reality and the user can resume."""
+        try:
+            state = self._get_state()
+            if state == 'running':
+                self._set_state('interrupted', last_error='Interrupted by server restart — click Update All Companies to resume')
+                logger.warning("Incremental update was in 'running' state at startup with no active thread — marked as interrupted")
+        except Exception as e:
+            logger.error(f"Error resetting stale running state: {e}")
 
     # ── DB helpers ──────────────────────────────────────────────────────────
 
@@ -1075,20 +1088,50 @@ class IncrementalUpdateManager:
         if state == 'running':
             return {'status': 'already_running'}
 
+        # Determine whether to resume from a previous interrupted run
+        resume_from = None
+        resume_done = 0
+        resume_new  = 0
+        if state == 'interrupted':
+            try:
+                status = self.get_status()
+                resume_from = status.get('current_company')
+                resume_done = status.get('companies_done', 0)
+                resume_new  = status.get('new_reviews_total', 0)
+                if resume_from:
+                    logger.info(f"Resuming incremental update from '{resume_from}' "
+                                f"(already done: {resume_done})")
+            except Exception:
+                resume_from = None
+
         # Collect companies with known Glassdoor IDs that also have reviews
         try:
             conn = get_db_connection()
             cur = conn.cursor()
-            cur.execute("""
-                SELECT c.company_name, c.company_id,
-                       c.gics_sector, c.gics_industry, c.gics_sub_industry
-                FROM companies c
-                WHERE c.company_id IS NOT NULL
-                  AND EXISTS (
-                      SELECT 1 FROM reviews r WHERE r.company_name = c.company_name
-                  )
-                ORDER BY c.company_name
-            """)
+            # If resuming, start from the interrupted company (inclusive)
+            if resume_from:
+                cur.execute("""
+                    SELECT c.company_name, c.company_id,
+                           c.gics_sector, c.gics_industry, c.gics_sub_industry
+                    FROM companies c
+                    WHERE c.company_id IS NOT NULL
+                      AND c.company_name >= %s
+                      AND EXISTS (
+                          SELECT 1 FROM reviews r WHERE r.company_name = c.company_name
+                      )
+                    ORDER BY c.company_name
+                """, (resume_from,))
+            else:
+                cur.execute("""
+                    SELECT c.company_name, c.company_id,
+                           c.gics_sector, c.gics_industry, c.gics_sub_industry
+                    FROM companies c
+                    WHERE c.company_id IS NOT NULL
+                      AND EXISTS (
+                          SELECT 1 FROM reviews r WHERE r.company_name = c.company_name
+                      )
+                    ORDER BY c.company_name
+                """)
             companies = cur.fetchall()
             cur.close()
             conn.close()
@@ -1098,38 +1141,51 @@ class IncrementalUpdateManager:
         if not companies:
             return {'status': 'error', 'error': 'No companies with known Glassdoor IDs found'}
 
-        self._set_state(
-            'running',
-            started_at=datetime.now(),
-            total_companies=len(companies),
-            companies_done=0,
-            new_reviews_total=0,
+        # Total is full count (not just remaining) when resuming
+        total_companies = resume_done + len(companies) if resume_from else len(companies)
+
+        state_kwargs = dict(
+            total_companies=total_companies,
+            companies_done=resume_done,
+            new_reviews_total=resume_new,
             last_error=None,
         )
+        if not resume_from:
+            state_kwargs['started_at'] = datetime.now()
+        self._set_state('running', **state_kwargs)
 
         self._thread = threading.Thread(
             target=self._run_incremental,
             args=(companies,),
+            kwargs={'companies_done_offset': resume_done, 'new_reviews_offset': resume_new},
             daemon=True,
         )
         self._thread.start()
-        logger.info(f"Incremental update started for {len(companies)} companies")
-        return {'status': 'started', 'total_companies': len(companies)}
+        action = 'resumed' if resume_from else 'started'
+        logger.info(f"Incremental update {action} for {len(companies)} companies "
+                    f"(total: {total_companies})")
+        return {'status': action, 'total_companies': total_companies,
+                'resuming_from': resume_from}
 
     def stop(self):
         state = self._get_state()
         if state not in ('running', 'stopping'):
             return {'status': 'not_running'}
+        # If no live thread exists (e.g. after a dyno restart), mark stopped immediately
+        if self._thread is None or not self._thread.is_alive():
+            self._set_state('stopped', current_company=None)
+            logger.info("Incremental update stopped (no active thread)")
+            return {'status': 'stopped'}
         self._set_state('stopping')
         logger.info("Incremental update stop requested")
         return {'status': 'stopping'}
 
     # ── Background worker ────────────────────────────────────────────────────
 
-    def _run_incremental(self, companies):
+    def _run_incremental(self, companies, companies_done_offset=0, new_reviews_offset=0):
         from extraction_openweb import OpenWebNinjaExtractor
-        new_reviews_total = 0
-        companies_done    = 0
+        new_reviews_total = new_reviews_offset
+        companies_done    = companies_done_offset
 
         for row in companies:
             company_name, company_id = row[0], row[1]
