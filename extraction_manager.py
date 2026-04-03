@@ -1236,6 +1236,7 @@ class IncrementalUpdateManager:
             companies_done=companies_done,
             new_reviews_total=new_reviews_total,
             current_company=None,
+            last_error=None,
         )
         logger.info(f"Incremental update completed: {new_reviews_total} new reviews "
                     f"across {companies_done} companies")
