@@ -899,6 +899,22 @@ def warm_cache():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+# Shared CTE for fast company-level unscored-review counting.
+# Avoids the slow row-level LEFT JOIN across 3M+ rows by comparing per-company
+# COUNT(*) aggregates using the company_name index on both tables.
+_UNSCORED_CTE = """
+    WITH review_counts AS (
+        SELECT company_name, COUNT(*) AS total
+        FROM reviews
+        GROUP BY company_name
+    ),
+    scored_counts AS (
+        SELECT company_name, COUNT(*) AS scored
+        FROM review_culture_scores
+        GROUP BY company_name
+    )
+"""
+
 @app.route('/api/score-reviews', methods=['POST'])
 def score_unscored_reviews():
     """Score unscored reviews for companies that have reviews but no culture scores.
@@ -914,14 +930,17 @@ def score_unscored_reviews():
             return jsonify({'success': False, 'error': 'Database connection failed'}), 500
 
         cursor = conn.cursor()
-        # Pick the company with the fewest unscored reviews first (fastest to complete)
-        cursor.execute("""
-            SELECT r.company_name, COUNT(r.id) as unscored_count
-            FROM reviews r
-            LEFT JOIN review_culture_scores rcs ON r.id = rcs.review_id
-            WHERE rcs.review_id IS NULL
-            GROUP BY r.company_name
-            ORDER BY COUNT(r.id) ASC
+        cursor.execute('SET statement_timeout = 25000')
+        # Pick the company with the fewest unscored reviews first (fastest to complete).
+        # Uses company-level counts via the company_name index instead of a row-level
+        # LEFT JOIN, keeping the query fast even at 3M+ rows.
+        cursor.execute(_UNSCORED_CTE + """
+            SELECT rc.company_name,
+                   rc.total - COALESCE(sc.scored, 0) AS unscored_count
+            FROM review_counts rc
+            LEFT JOIN scored_counts sc ON sc.company_name = rc.company_name
+            WHERE rc.total > COALESCE(sc.scored, 0)
+            ORDER BY unscored_count ASC
             LIMIT 1
         """)
         row = cursor.fetchone()
@@ -951,21 +970,24 @@ def score_unscored_reviews():
             logger.error(f"Error scoring {company_name}: {e}")
             status = f'error: {str(e)}'
 
-        # Count remaining companies AND reviews after this batch
+        # Count remaining companies AND reviews after this batch (fast company-level query)
         conn = get_db_connection()
         remaining_companies = 0
         remaining_reviews = 0
         if conn:
             cursor = conn.cursor()
-            cursor.execute("""
-                SELECT COUNT(DISTINCT r.company_name), COUNT(r.id)
-                FROM reviews r
-                LEFT JOIN review_culture_scores rcs ON r.id = rcs.review_id
-                WHERE rcs.review_id IS NULL
+            cursor.execute('SET statement_timeout = 25000')
+            cursor.execute(_UNSCORED_CTE + """
+                SELECT
+                    COUNT(*) FILTER (WHERE rc.total > COALESCE(sc.scored, 0)) AS remaining_companies,
+                    SUM(GREATEST(rc.total - COALESCE(sc.scored, 0), 0))        AS remaining_reviews
+                FROM review_counts rc
+                LEFT JOIN scored_counts sc ON sc.company_name = rc.company_name
             """)
             row2 = cursor.fetchone()
             if row2:
-                remaining_companies, remaining_reviews = row2
+                remaining_companies = row2[0] or 0
+                remaining_reviews = row2[1] or 0
             cursor.close()
             conn.close()
 
@@ -1264,17 +1286,18 @@ def get_score_status():
         if not conn:
             return jsonify({'success': False, 'error': 'Database connection failed'}), 500
         cur = conn.cursor()
-        cur.execute("""
-            SELECT COUNT(DISTINCT company_name) FROM reviews
+        cur.execute('SET statement_timeout = 25000')
+        # Fast company-level comparison via the company_name index on both tables.
+        cur.execute(_UNSCORED_CTE + """
+            SELECT
+                COUNT(*)                                                         AS total_companies,
+                COUNT(*) FILTER (WHERE rc.total > COALESCE(sc.scored, 0))        AS unscored_companies
+            FROM review_counts rc
+            LEFT JOIN scored_counts sc ON sc.company_name = rc.company_name
         """)
-        total_companies = cur.fetchone()[0]
-        cur.execute("""
-            SELECT COUNT(DISTINCT r.company_name)
-            FROM reviews r
-            LEFT JOIN review_culture_scores rcs ON r.id = rcs.review_id
-            WHERE rcs.review_id IS NULL
-        """)
-        unscored_companies = cur.fetchone()[0]
+        row = cur.fetchone()
+        total_companies = row[0] or 0
+        unscored_companies = row[1] or 0
         cur.close()
         conn.close()
         return jsonify({
