@@ -1757,37 +1757,33 @@ def get_stats():
         cursor.close()
         conn.close()
         
+        # Cache-only: uncached companies are simply omitted — no live DB fallback.
+        # The background pre-warm (triggered by the frontend on filter change)
+        # populates the cache without blocking any request.
         companies = []
         uncached_count = 0
         for company_name in company_names:
             metrics = cached_metrics_map.get(company_name)
             if not metrics:
                 uncached_count += 1
-                if uncached_count <= 50:
-                    metrics = get_company_metrics(company_name)
-                    if metrics:
-                        cache_metrics(company_name, metrics)
-                else:
-                    continue
-            
-            if metrics:
-                companies.append({
-                    'id': company_name.lower().replace(' ', ''),
-                    'name': company_name,
-                    'total_reviews': metrics.get('total_reviews', 0),
-                    'overall_rating': metrics.get('overall_rating', 0),
-                    'culture_values': metrics.get('culture_values', 0),
-                    'work_life_balance': metrics.get('work_life_balance', 0),
-                    'career_opportunities': metrics.get('career_opportunities', 0),
-                    'compensation_benefits': metrics.get('compensation_benefits', 0),
-                    'senior_management': metrics.get('senior_management', 0),
-                    'recommend_percentage': metrics.get('recommend_percentage', 0),
-                    'ceo_approval': metrics.get('ceo_approval', 0),
-                    'industry': get_company_sector(company_name) or ''
-                })
+                continue
+            companies.append({
+                'id': company_name.lower().replace(' ', ''),
+                'name': company_name,
+                'total_reviews': metrics.get('total_reviews', 0),
+                'overall_rating': metrics.get('overall_rating', 0),
+                'culture_values': metrics.get('culture_values', 0),
+                'work_life_balance': metrics.get('work_life_balance', 0),
+                'career_opportunities': metrics.get('career_opportunities', 0),
+                'compensation_benefits': metrics.get('compensation_benefits', 0),
+                'senior_management': metrics.get('senior_management', 0),
+                'recommend_percentage': metrics.get('recommend_percentage', 0),
+                'ceo_approval': metrics.get('ceo_approval', 0),
+                'industry': get_company_sector(company_name) or ''
+            })
         
-        if uncached_count > 50:
-            logger.warning(f"Stats: {uncached_count} uncached companies, loaded first 50. Use /api/warm-cache to populate rest.")
+        if uncached_count:
+            logger.info(f"Stats: {uncached_count} uncached companies omitted (pre-warm will populate them)")
         
         return jsonify({
             'success': True,
@@ -1831,34 +1827,26 @@ def get_companies():
                 except:
                     pass
         
+        # Cache-only: uncached companies are omitted; background pre-warm fills them in.
         companies = []
-        uncached_count = 0
         for company_name in company_names:
             metrics = cached_metrics_map.get(company_name)
             if not metrics:
-                uncached_count += 1
-                if uncached_count <= 50:
-                    metrics = get_company_metrics(company_name)
-                    if metrics:
-                        cache_metrics(company_name, metrics)
-                else:
-                    continue
-            
-            if metrics:
-                companies.append({
-                    'id': company_name.lower().replace(' ', ''),
-                    'name': company_name,
-                    'total_reviews': metrics['total_reviews'],
-                    'overall_rating': metrics['overall_rating'],
-                    'culture_values': metrics['culture_values'],
-                    'work_life_balance': metrics['work_life_balance'],
-                    'career_opportunities': metrics['career_opportunities'],
-                    'compensation_benefits': metrics['compensation_benefits'],
-                    'senior_management': metrics['senior_management'],
-                    'recommend_percentage': metrics['recommend_percentage'],
-                    'ceo_approval': metrics['ceo_approval'],
-                    'industry': get_company_sector(company_name) or ''
-                })
+                continue
+            companies.append({
+                'id': company_name.lower().replace(' ', ''),
+                'name': company_name,
+                'total_reviews': metrics.get('total_reviews', 0),
+                'overall_rating': metrics.get('overall_rating', 0),
+                'culture_values': metrics.get('culture_values', 0),
+                'work_life_balance': metrics.get('work_life_balance', 0),
+                'career_opportunities': metrics.get('career_opportunities', 0),
+                'compensation_benefits': metrics.get('compensation_benefits', 0),
+                'senior_management': metrics.get('senior_management', 0),
+                'recommend_percentage': metrics.get('recommend_percentage', 0),
+                'ceo_approval': metrics.get('ceo_approval', 0),
+                'industry': get_company_sector(company_name) or ''
+            })
         
         all_ratings = [c['overall_rating'] for c in companies if c['overall_rating']]
         avg_rating = round(mean(all_ratings), 2) if all_ratings else 0

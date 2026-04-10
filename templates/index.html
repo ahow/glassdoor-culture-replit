@@ -1945,10 +1945,19 @@
             }
         }
         
+        async function safeJson(response) {
+            const text = await response.text();
+            try { return JSON.parse(text); }
+            catch(e) {
+                console.warn('Non-JSON response from server:', text.slice(0, 200));
+                throw new Error('Server returned an unexpected response. It may be temporarily overloaded — please try again in a moment.');
+            }
+        }
+
         async function loadData() {
             try {
                 const response = await fetch(buildUrl('/api/stats'));
-                const data = await response.json();
+                const data = await safeJson(response);
                 
                 document.getElementById('totalReviews').textContent = data.total_reviews.toLocaleString();
                 document.getElementById('totalCompanies').textContent = data.total_companies;
@@ -3869,9 +3878,9 @@
                     fetch('/api/company-culture-score-trend/' + encodeURIComponent(companyName))
                 ]);
                 
-                const analysisData = await analysisResponse.json();
-                const trendData = await trendResponse.json();
-                const scoreTrendData = await scoreTrendResponse.json();
+                const analysisData = await safeJson(analysisResponse);
+                const trendData = await safeJson(trendResponse);
+                const scoreTrendData = await safeJson(scoreTrendResponse);
                 
                 if (!analysisData.success) {
                     document.getElementById('analysisLoading').textContent = 'Error loading company data';
