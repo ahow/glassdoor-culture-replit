@@ -2569,8 +2569,18 @@ def culture_benchmarking(company_name):
 # PERFORMANCE CORRELATION API
 # ============================================================================
 
+_fmp_perf_map_cache: dict = {}
+_fmp_perf_map_loaded_at: float = 0.0
+_FMP_PERF_MAP_TTL: float = 600.0  # 10 minutes
+
 def _load_fmp_perf_map():
-    """Load all rows from fmp_performance_metrics as a company→dict map."""
+    """Load all rows from fmp_performance_metrics as a company→dict map.
+    Results are kept in a module-level in-memory cache (10-minute TTL) to avoid
+    re-querying 1,957 rows on every request that needs performance data."""
+    global _fmp_perf_map_cache, _fmp_perf_map_loaded_at
+    import time as _time
+    if _fmp_perf_map_cache and (_time.time() - _fmp_perf_map_loaded_at) < _FMP_PERF_MAP_TTL:
+        return _fmp_perf_map_cache
     fmp_map = {}
     try:
         conn = get_db_connection()
@@ -2589,6 +2599,8 @@ def _load_fmp_perf_map():
             conn.close()
     except Exception as e:
         logger.warning(f"Could not load fmp_performance_metrics: {e}")
+    _fmp_perf_map_cache = fmp_map
+    _fmp_perf_map_loaded_at = _time.time()
     return fmp_map
 
 
@@ -2666,11 +2678,8 @@ def get_performance_correlation():
         peer_stats = performance_analyzer.get_peer_statistics()
         
         for company in culture_companies:
+            # Cache-only — no live DB fallback to avoid N×3 query timeout
             metrics = cached_map.get(company)
-            if not metrics:
-                metrics = get_company_metrics(company)
-                if metrics:
-                    cache_metrics(company, metrics)
             
             if metrics:
                 culture_data.append({
@@ -2758,9 +2767,8 @@ def get_performance_rankings():
             if _has_financial_metrics(perf_metrics):
                 composite = performance_analyzer.calculate_composite_score(perf_metrics, peer_stats)
                 if composite is not None:
+                    # Cache-only — no live DB fallback to avoid N×3 query timeout
                     culture_metrics = cached_map.get(company)
-                    if not culture_metrics:
-                        culture_metrics = get_company_metrics(company)
                     
                     aum_raw = perf_metrics.get('aum_cagr_5y')
                     rankings.append({
