@@ -472,9 +472,17 @@
                 <select id="gicsValueFilter" onchange="onGicsValueChange(this.value)" data-testid="select-gics-value" style="padding: 0.4rem 0.6rem; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.85rem; background: #f8fafc; color: #1e293b; cursor: pointer; min-width: 200px; max-width: 320px;">
                     <option value="">All</option>
                 </select>
+                <!-- Pre-warm progress indicator -->
+                <div id="prewarmIndicator" style="display:none; align-items:center; gap:0.35rem; font-size:0.78rem; color:#64748b; white-space:nowrap;">
+                    <svg id="prewarmSpinner" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2.5" style="animation:spin 1s linear infinite;flex-shrink:0;">
+                        <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+                    </svg>
+                    <span id="prewarmText">Caching peer data…</span>
+                </div>
             </div>
         </div>
     </div>
+    <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
     
     <div class="container">
         <div id="loading" class="loading">
@@ -1661,6 +1669,65 @@
             });
         }
 
+        // ── Pre-warm state ────────────────────────────────────────────────────
+        let _prewarmPollTimer = null;
+        let _prewarmDoneTimeout = null;
+
+        function _setPrewarmIndicator(visible, text, done) {
+            const el = document.getElementById('prewarmIndicator');
+            const spinner = document.getElementById('prewarmSpinner');
+            const label = document.getElementById('prewarmText');
+            if (!el) return;
+            if (!visible) { el.style.display = 'none'; return; }
+            el.style.display = 'flex';
+            label.textContent = text;
+            spinner.style.display = done ? 'none' : 'inline';
+            label.style.color = done ? '#10b981' : '#64748b';
+        }
+
+        function _stopPrewarmPoll() {
+            if (_prewarmPollTimer) { clearInterval(_prewarmPollTimer); _prewarmPollTimer = null; }
+            if (_prewarmDoneTimeout) { clearTimeout(_prewarmDoneTimeout); _prewarmDoneTimeout = null; }
+        }
+
+        async function _pollPrewarmStatus() {
+            try {
+                const res = await fetch('/api/prewarm-status');
+                const data = await res.json();
+                if (!data.running) {
+                    _stopPrewarmPoll();
+                    _setPrewarmIndicator(true, `✓ Peer data ready (${data.warmed} companies cached)`, true);
+                    _prewarmDoneTimeout = setTimeout(() => _setPrewarmIndicator(false), 4000);
+                    // Reload company analysis if it is visible, so the now-complete peer averages show
+                    if (document.getElementById('analysisTab') && document.getElementById('analysisTab').style.display !== 'none') {
+                        const sel = document.getElementById('analysisCompanySelect');
+                        if (sel && sel.value) loadCompanyAnalysis(sel.value);
+                    }
+                } else {
+                    _setPrewarmIndicator(true, `Caching peer data… ${data.pct}% (${data.done}/${data.total})`, false);
+                }
+            } catch(e) { /* ignore poll errors */ }
+        }
+
+        async function triggerPrewarm(gicsLevel, gicsValue) {
+            _stopPrewarmPoll();
+            try {
+                const res = await fetch('/api/prewarm-cache', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({gics_level: gicsLevel, gics_value: gicsValue})
+                });
+                const data = await res.json();
+                if (data.already_complete) {
+                    _setPrewarmIndicator(false);   // nothing to show — all cached already
+                } else if (data.started) {
+                    _setPrewarmIndicator(true, `Caching peer data… 0% (0/${data.uncached})`, false);
+                    _prewarmPollTimer = setInterval(_pollPrewarmStatus, 3000);
+                }
+            } catch(e) { /* non-critical, ignore */ }
+        }
+        // ─────────────────────────────────────────────────────────────────────
+
         function onGicsLevelChange(level) {
             currentGicsLevel = level;
             currentGicsValue = '';
@@ -1684,6 +1751,8 @@
             analysisCompaniesLoaded = false;
             culturePerfData = null;
             insightsLoaded = false;
+            // Kick off background pre-warm so peer averages are always complete
+            triggerPrewarm(currentGicsLevel, value);
             await loadData();
             loadCompaniesForTrends();
             if (document.getElementById('analysisTab') && document.getElementById('analysisTab').style.display !== 'none') {

@@ -8,6 +8,7 @@ import re
 import json
 import logging
 import math
+import threading as _threading_module
 import psycopg2
 from psycopg2.extras import RealDictCursor
 from flask import Flask, render_template, jsonify, request, Response, send_file
@@ -897,6 +898,98 @@ def warm_cache():
     except Exception as e:
         logger.error(f"Error warming cache: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
+
+
+# ---------------------------------------------------------------------------
+# Background sector pre-warm: computes and caches metrics for all companies
+# in a GICS filter group so peer averages are always complete.
+# ---------------------------------------------------------------------------
+_prewarm_state: dict = {
+    'running': False, 'gics_level': '', 'gics_value': '',
+    'done': 0, 'total': 0, 'warmed': 0,
+}
+_prewarm_lock = _threading_module.Lock()
+_prewarm_cancel: list = [False]   # one-element list so the thread can read it
+
+
+def _run_prewarm(gics_level: str, gics_value: str, uncached_names: list, cancel_flag: list):
+    """Background thread: compute and cache metrics for uncached companies one by one."""
+    warmed = 0
+    for i, name in enumerate(uncached_names):
+        if cancel_flag[0]:
+            logger.info(f"Prewarm cancelled at {i}/{len(uncached_names)} for '{gics_value or 'All'}'")
+            break
+        try:
+            metrics = get_company_metrics(name)
+            if metrics:
+                cache_metrics(name, metrics)
+                warmed += 1
+        except Exception as exc:
+            logger.warning(f"Prewarm: error for '{name}': {exc}")
+        with _prewarm_lock:
+            _prewarm_state['done'] = i + 1
+            _prewarm_state['warmed'] = warmed
+    with _prewarm_lock:
+        _prewarm_state['running'] = False
+    logger.info(f"Prewarm finished: {warmed} newly cached for '{gics_value or 'All'}'")
+
+
+@app.route('/api/prewarm-cache', methods=['POST'])
+def prewarm_cache_api():
+    """Start a background metrics pre-warm for the selected GICS filter.
+    Returns immediately; clients poll /api/prewarm-status for progress."""
+    global _prewarm_cancel
+    try:
+        data = request.get_json(silent=True) or {}
+        gics_level = data.get('gics_level', 'sector')
+        gics_value = data.get('gics_value', '')
+
+        company_names = get_companies_for_sector(gics_level=gics_level, gics_value=gics_value)
+        cached_map = get_cached_metrics_batch(company_names)
+        uncached = [n for n in company_names if n not in cached_map]
+
+        if not uncached:
+            return jsonify({'success': True, 'already_complete': True,
+                            'total': len(company_names), 'uncached': 0})
+
+        with _prewarm_lock:
+            _prewarm_cancel[0] = True          # cancel any running prewarm
+            cancel_flag = [False]
+            _prewarm_cancel = cancel_flag      # replace with fresh flag for new thread
+            _prewarm_state.update({
+                'running': True, 'gics_level': gics_level, 'gics_value': gics_value,
+                'done': 0, 'total': len(uncached), 'warmed': 0,
+            })
+
+        t = _threading_module.Thread(
+            target=_run_prewarm,
+            args=(gics_level, gics_value, uncached, cancel_flag),
+            daemon=True,
+        )
+        t.start()
+        logger.info(f"Prewarm started: {len(uncached)} uncached companies for '{gics_value or 'All'}'")
+        return jsonify({'success': True, 'started': True,
+                        'total': len(company_names), 'uncached': len(uncached)})
+    except Exception as e:
+        logger.error(f"Error starting prewarm: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/prewarm-status', methods=['GET'])
+def prewarm_status_api():
+    """Return current pre-warm progress (polled by the frontend)."""
+    with _prewarm_lock:
+        state = dict(_prewarm_state)
+    pct = round(state['done'] / state['total'] * 100) if state['total'] > 0 else 100
+    return jsonify({
+        'success': True,
+        'running': state['running'],
+        'gics_value': state['gics_value'],
+        'done': state['done'],
+        'total': state['total'],
+        'warmed': state['warmed'],
+        'pct': pct,
+    })
 
 
 # Shared CTE for fast company-level unscored-review counting.
