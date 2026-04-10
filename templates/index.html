@@ -3762,6 +3762,9 @@
                 
                 if (data.success && data.companies) {
                     const select = document.getElementById('analysisCompany');
+                    // Clear existing options before repopulating (prevents duplicates
+                    // when the GICS filter changes and this function is called again)
+                    select.innerHTML = '<option value="">Select a company...</option>';
                     data.companies.forEach(company => {
                         const option = document.createElement('option');
                         // Handle both string format and object format

@@ -2814,17 +2814,18 @@ def get_company_analysis(company_name):
         
         company_names = get_companies_for_sector(gics_level=gics_level, gics_value=gics_value)
         
+        # Fetch all peer metrics in one DB query.  We deliberately do NOT fall back to
+        # get_company_metrics() for cache misses here — that would fire hundreds of DB
+        # round-trips for a large sector and blow the 30-second request timeout.
+        # Uncached peers are simply omitted from the averages; they represent companies
+        # that have never been scored and would return empty data anyway.
         cached_map = get_cached_metrics_batch(company_names)
         
         hofstede_avg = {dim: [] for dim in HOFSTEDE_DIMENSIONS}
         mit_avg = {dim: [] for dim in MIT_DIMENSIONS}
         
         for name in company_names:
-            m = cached_map.get(name)
-            if not m:
-                m = get_company_metrics(name)
-                if m:
-                    cache_metrics(name, m)
+            m = cached_map.get(name)   # cache-only — no live DB fallback
             if m:
                 for dim in HOFSTEDE_DIMENSIONS:
                     val = m.get('hofstede', {}).get(dim, {}).get('value', 0)
@@ -2856,9 +2857,7 @@ def get_company_analysis(company_name):
         peer_stats = performance_analyzer.get_peer_statistics()
         
         for name in company_names:
-            m = cached_map.get(name)
-            if not m:
-                m = get_company_metrics(name)
+            m = cached_map.get(name)   # cache-only — no live DB fallback
             if m:
                 culture_data.append({
                     'company': name,
