@@ -913,7 +913,10 @@ _prewarm_cancel: list = [False]   # one-element list so the thread can read it
 
 
 def _run_prewarm(gics_level: str, gics_value: str, uncached_names: list, cancel_flag: list):
-    """Background thread: compute and cache metrics for uncached companies one by one."""
+    """Background thread: compute and cache metrics for uncached companies one by one.
+    Sleeps 0.4 s between companies to avoid saturating the DB with concurrent queries
+    from main request handlers."""
+    import time as _t
     warmed = 0
     for i, name in enumerate(uncached_names):
         if cancel_flag[0]:
@@ -929,6 +932,7 @@ def _run_prewarm(gics_level: str, gics_value: str, uncached_names: list, cancel_
         with _prewarm_lock:
             _prewarm_state['done'] = i + 1
             _prewarm_state['warmed'] = warmed
+        _t.sleep(0.4)   # throttle: give DB headroom for live request handlers
     with _prewarm_lock:
         _prewarm_state['running'] = False
     logger.info(f"Prewarm finished: {warmed} newly cached for '{gics_value or 'All'}'")
@@ -3086,6 +3090,80 @@ def get_company_analysis(company_name):
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+# ── Industry-wide trend caches (avoids full-table scans on every company request) ──
+_industry_quarterly_cache: list = []
+_industry_quarterly_loaded_at: float = 0.0
+_industry_yearly_cache: list = []
+_industry_yearly_loaded_at: float = 0.0
+_INDUSTRY_TREND_TTL: float = 3600.0  # 1 hour
+
+
+def _get_cached_industry_quarterly() -> list:
+    """Return (and populate if stale) the global industry quarterly trend."""
+    global _industry_quarterly_cache, _industry_quarterly_loaded_at
+    import time as _t
+    if _industry_quarterly_cache and (_t.time() - _industry_quarterly_loaded_at) < _INDUSTRY_TREND_TTL:
+        return _industry_quarterly_cache
+    try:
+        conn = get_db_connection()
+        if not conn:
+            return _industry_quarterly_cache
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        cur.execute("""
+            SELECT
+                EXTRACT(YEAR FROM review_datetime) as year,
+                EXTRACT(QUARTER FROM review_datetime) as quarter,
+                AVG(culture_and_values_rating) as avg_culture_rating,
+                COUNT(*) as review_count
+            FROM reviews
+            WHERE culture_and_values_rating IS NOT NULL
+              AND review_datetime IS NOT NULL
+            GROUP BY year, quarter
+            ORDER BY year, quarter
+        """)
+        rows = [dict(r) for r in cur.fetchall()]
+        cur.close()
+        conn.close()
+        _industry_quarterly_cache = rows
+        _industry_quarterly_loaded_at = _t.time()
+    except Exception as e:
+        logger.warning(f"Could not refresh industry quarterly trend: {e}")
+    return _industry_quarterly_cache
+
+
+def _get_cached_industry_yearly() -> list:
+    """Return (and populate if stale) the global industry yearly trend (last 5 years)."""
+    global _industry_yearly_cache, _industry_yearly_loaded_at
+    import time as _t
+    if _industry_yearly_cache and (_t.time() - _industry_yearly_loaded_at) < _INDUSTRY_TREND_TTL:
+        return _industry_yearly_cache
+    try:
+        conn = get_db_connection()
+        if not conn:
+            return _industry_yearly_cache
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        cur.execute("""
+            SELECT
+                EXTRACT(YEAR FROM review_datetime) as year,
+                AVG(culture_and_values_rating) as avg_rating,
+                AVG(rating) as avg_overall
+            FROM reviews
+            WHERE review_datetime IS NOT NULL
+              AND culture_and_values_rating IS NOT NULL
+              AND EXTRACT(YEAR FROM review_datetime) >= EXTRACT(YEAR FROM CURRENT_DATE) - 4
+            GROUP BY year
+            ORDER BY year
+        """)
+        rows = [dict(r) for r in cur.fetchall()]
+        cur.close()
+        conn.close()
+        _industry_yearly_cache = rows
+        _industry_yearly_loaded_at = _t.time()
+    except Exception as e:
+        logger.warning(f"Could not refresh industry yearly trend: {e}")
+    return _industry_yearly_cache
+
+
 @app.route('/api/company-culture-trend/<company_name>', methods=['GET'])
 def get_company_culture_trend(company_name):
     """Get quarterly culture rating trend for a company vs industry average"""
@@ -3096,7 +3174,7 @@ def get_company_culture_trend(company_name):
         
         cursor = conn.cursor(cursor_factory=RealDictCursor)
         
-        # Get company quarterly ratings
+        # Get company quarterly ratings (fast — company_name is indexed)
         cursor.execute("""
             SELECT 
                 EXTRACT(YEAR FROM review_datetime) as year,
@@ -3112,23 +3190,11 @@ def get_company_culture_trend(company_name):
         """, (company_name,))
         company_data = cursor.fetchall()
         
-        # Get industry quarterly averages
-        cursor.execute("""
-            SELECT 
-                EXTRACT(YEAR FROM review_datetime) as year,
-                EXTRACT(QUARTER FROM review_datetime) as quarter,
-                AVG(culture_and_values_rating) as avg_culture_rating,
-                COUNT(*) as review_count
-            FROM reviews
-            WHERE culture_and_values_rating IS NOT NULL
-              AND review_datetime IS NOT NULL
-            GROUP BY year, quarter
-            ORDER BY year, quarter
-        """)
-        industry_data = cursor.fetchall()
-        
         cursor.close()
         conn.close()
+        
+        # Industry averages come from the in-memory cache (avoids 3.3M-row scan)
+        industry_data = _get_cached_industry_quarterly()
         
         # Format data
         company_trend = []
@@ -3194,23 +3260,11 @@ def get_company_culture_score_trend(company_name):
         """, (company_name,))
         company_yearly = cursor.fetchall()
         
-        # Get industry yearly averages
-        cursor.execute("""
-            SELECT 
-                EXTRACT(YEAR FROM review_datetime) as year,
-                AVG(culture_and_values_rating) as avg_rating,
-                AVG(rating) as avg_overall
-            FROM reviews
-            WHERE review_datetime IS NOT NULL
-              AND culture_and_values_rating IS NOT NULL
-              AND EXTRACT(YEAR FROM review_datetime) >= EXTRACT(YEAR FROM CURRENT_DATE) - 4
-            GROUP BY year
-            ORDER BY year
-        """)
-        industry_yearly = cursor.fetchall()
-        
         cursor.close()
         conn.close()
+        
+        # Industry yearly averages from in-memory cache (avoids full 3.3M-row scan)
+        industry_yearly = _get_cached_industry_yearly()
         
         if not company_yearly:
             return jsonify({
@@ -4523,6 +4577,21 @@ init_extraction_control()
 init_fmp_tables()
 load_excel_performance_data()
 start_monthly_scheduler()
+
+# Pre-warm the industry-wide trend caches in the background so they are ready
+# before any user clicks on a company in the Company Analysis tab.
+def _startup_warm_trend_caches():
+    import time as _t
+    _t.sleep(5)   # let gunicorn finish binding before hitting the DB
+    logger.info("Startup: warming industry trend caches…")
+    try:
+        _get_cached_industry_quarterly()
+        _get_cached_industry_yearly()
+        logger.info("Startup: industry trend caches ready")
+    except Exception as e:
+        logger.warning(f"Startup trend cache warm failed: {e}")
+
+_threading_module.Thread(target=_startup_warm_trend_caches, daemon=True).start()
 
 if __name__ == '__main__':
     app.run(debug=False, host='0.0.0.0', port=int(os.environ.get('FLASK_PORT', os.environ.get('PORT', 8080))))
