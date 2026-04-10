@@ -2267,42 +2267,99 @@ def get_industry_average():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+_industry_qt_by_dim: dict = {}   # dimension -> (rows, loaded_at)
+
+def _get_industry_qt_for_dim(dimension: str, rating_column: str) -> list:
+    """Return cached industry-wide quarterly averages for the given dimension (1-hr TTL)."""
+    import time as _t
+    cached = _industry_qt_by_dim.get(dimension)
+    if cached and (_t.time() - cached[1]) < _INDUSTRY_TREND_TTL:
+        return cached[0]
+    try:
+        conn = get_db_connection()
+        if not conn:
+            return cached[0] if cached else []
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        cur.execute(f"""
+            SELECT DATE_TRUNC('quarter', review_datetime) as quarter,
+                   AVG({rating_column}) as avg_rating,
+                   COUNT(*) as review_count,
+                   MIN({rating_column}) as min_rating,
+                   MAX({rating_column}) as max_rating
+            FROM reviews
+            WHERE {rating_column} IS NOT NULL
+              AND review_datetime IS NOT NULL
+            GROUP BY DATE_TRUNC('quarter', review_datetime)
+            ORDER BY quarter ASC
+        """)
+        rows = [dict(r) for r in cur.fetchall()]
+        cur.close()
+        conn.close()
+        _industry_qt_by_dim[dimension] = (rows, _t.time())
+        return rows
+    except Exception as e:
+        logger.warning(f"Industry quarterly trend ({dimension}): {e}")
+        return cached[0] if cached else []
+
+
 @app.route('/api/quarterly-trends', methods=['GET'])
 def get_quarterly_trends():
-    """Get quarterly trends for a company"""
+    """Get quarterly trends for a company (or 'Industry Average')"""
     try:
         company_name = request.args.get('company')
         rating_type = request.args.get('rating_type', 'overall_rating')
-        
+        dimension = request.args.get('dimension', 'overall')
+
         if not company_name:
             return jsonify({'success': False, 'error': 'company parameter required'}), 400
-        
-        # Try to get from cache first
-        metrics = get_cached_metrics(company_name)
-        
-        # If not in cache, calculate and cache it
-        if not metrics:
-            metrics = get_company_metrics(company_name)
-            if metrics:
-                cache_metrics(company_name, metrics)
-        
-        if not metrics:
-            return jsonify({'success': False, 'error': f'Company {company_name} not found'}), 404
-        
-        # Map dimension parameter to database column
-        # Frontend sends: 'overall', 'culture', 'worklife', 'compensation', 'career', 'management'
+
         rating_column_map = {
             'overall': 'rating',
             'culture': 'culture_and_values_rating',
             'worklife': 'work_life_balance_rating',
             'compensation': 'compensation_and_benefits_rating',
             'career': 'career_opportunities_rating',
-            'management': 'senior_management_rating'
+            'management': 'senior_management_rating',
+            'diversity': 'diversity_and_inclusion_rating',
+            'ceo': 'ceo_ratings_count',
+            'outlook': 'business_outlook_rating',
+            'recommend': 'recommend_to_friend_rating',
         }
-        
-        # Get dimension from query parameter (frontend sends 'dimension')
-        dimension = request.args.get('dimension', 'overall')
         rating_column = rating_column_map.get(dimension, 'rating')
+
+        # Special case: return industry-wide averages from cache
+        if company_name == 'Industry Average':
+            rows = _get_industry_qt_for_dim(dimension, rating_column)
+            MIN_REVIEWS = 5
+            main_trends = []
+            for row in rows:
+                if row.get('review_count', 0) < MIN_REVIEWS:
+                    continue
+                q = row['quarter']
+                if hasattr(q, 'strftime'):
+                    year = q.year
+                    month = q.month
+                    quarter_num = (month - 1) // 3 + 1
+                    q_str = f"Q{quarter_num} {year}"
+                else:
+                    q_str = str(q)
+                main_trends.append({
+                    'quarter': q_str,
+                    'avg_rating': round(float(row['avg_rating']), 2) if row['avg_rating'] else None,
+                    'review_count': row['review_count'],
+                    'min_rating': round(float(row['min_rating']), 2) if row.get('min_rating') else None,
+                    'max_rating': round(float(row['max_rating']), 2) if row.get('max_rating') else None,
+                })
+            return jsonify({'success': True, 'company': 'Industry Average', 'main_trends': main_trends})
+
+        # Try to get from cache first
+        metrics = get_cached_metrics(company_name)
+        if not metrics:
+            metrics = get_company_metrics(company_name)
+            if metrics:
+                cache_metrics(company_name, metrics)
+        if not metrics:
+            return jsonify({'success': False, 'error': f'Company {company_name} not found'}), 404
         
         # Query quarterly trends from database
         conn = get_db_connection()
@@ -4587,6 +4644,8 @@ def _startup_warm_trend_caches():
     try:
         _get_cached_industry_quarterly()
         _get_cached_industry_yearly()
+        _get_industry_qt_for_dim('overall', 'rating')          # prime Quarterly Trends default
+        _get_industry_qt_for_dim('culture', 'culture_and_values_rating')
         logger.info("Startup: industry trend caches ready")
     except Exception as e:
         logger.warning(f"Startup trend cache warm failed: {e}")

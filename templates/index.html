@@ -1610,6 +1610,8 @@
         let currentGicsLevel = 'sector';
         let currentGicsValue = '';
         let currentSector = '';
+        // Company selection shared across all tabs (Company Analysis, Quarterly Trends, Hofstede, MIT)
+        let _selectedCompany = '';
         let gicsHierarchy = {};
 
         function getSectorParam() {
@@ -1867,6 +1869,8 @@
             // Load data for specific tabs
             if (tab === 'analysis') {
                 loadAnalysisCompanies();
+            } else if (tab === 'trends') {
+                loadCompaniesForTrends();
             } else if (tab === 'hofstede') {
                 loadCultureCompanies('hofstede');
             } else if (tab === 'mit') {
@@ -1999,8 +2003,18 @@
                             option.textContent = company;
                             mainSelect.appendChild(option);
                         });
+                        // Restore shared company selection and trigger load
+                        if (_selectedCompany) {
+                            for (let opt of mainSelect.options) {
+                                if (opt.value === _selectedCompany) {
+                                    mainSelect.value = _selectedCompany;
+                                    loadCultureProfile(prefix);
+                                    break;
+                                }
+                            }
+                        }
                     }
-                    // Populate comparison select
+                    // Populate comparison select and default to Industry Average
                     const compSelect = document.getElementById(prefix + 'ComparisonSelect');
                     if (compSelect) {
                         compSelect.innerHTML = '<option value="">None</option><option value="Industry Average">Industry Average</option>';
@@ -2010,6 +2024,7 @@
                             option.textContent = company;
                             compSelect.appendChild(option);
                         });
+                        compSelect.value = 'Industry Average';
                     }
                     // Populate trends company select
                     const trendsSelect = document.getElementById(prefix + 'TrendsCompanySelect');
@@ -2021,8 +2036,17 @@
                             option.textContent = company;
                             trendsSelect.appendChild(option);
                         });
+                        // Restore shared company selection
+                        if (_selectedCompany) {
+                            for (let opt of trendsSelect.options) {
+                                if (opt.value === _selectedCompany) {
+                                    trendsSelect.value = _selectedCompany;
+                                    break;
+                                }
+                            }
+                        }
                     }
-                    // Populate trends comparison select
+                    // Populate trends comparison select and default to Industry Average
                     const trendsCompSelect = document.getElementById(prefix + 'TrendsComparisonSelect');
                     if (trendsCompSelect) {
                         trendsCompSelect.innerHTML = '<option value="">None</option><option value="Industry Average">Industry Average</option>';
@@ -2032,6 +2056,7 @@
                             option.textContent = company;
                             trendsCompSelect.appendChild(option);
                         });
+                        trendsCompSelect.value = 'Industry Average';
                     }
                 } else if (framework === 'profile') {
                     // Legacy support for old parameter
@@ -2807,7 +2832,8 @@
                 const comparator = document.getElementById('comparatorCompany');
                 
                 select.innerHTML = '<option value="">Select a company...</option>';
-                comparator.innerHTML = '<option value="">-- None --</option>';
+                // Always keep "Industry Average" at the top of the comparator list
+                comparator.innerHTML = '<option value="">-- None --</option><option value="Industry Average">Industry Average</option>';
                 
                 data.companies.forEach(company => {
                     const option1 = document.createElement('option');
@@ -2820,6 +2846,20 @@
                     option2.textContent = company;
                     comparator.appendChild(option2);
                 });
+
+                // Default comparator to "Industry Average"
+                comparator.value = 'Industry Average';
+
+                // Restore shared company selection
+                if (_selectedCompany) {
+                    for (let opt of select.options) {
+                        if (opt.value === _selectedCompany) {
+                            select.value = _selectedCompany;
+                            updateTrendsChart();
+                            break;
+                        }
+                    }
+                }
             } catch (error) {
                 console.error('Error loading companies:', error);
             }
@@ -3852,6 +3892,15 @@
                         select.appendChild(option);
                     });
                     analysisCompaniesLoaded = true;
+                    // Restore shared company selection
+                    if (_selectedCompany) {
+                        for (let opt of select.options) {
+                            if (opt.value === _selectedCompany) {
+                                select.value = _selectedCompany;
+                                break;
+                            }
+                        }
+                    }
                 }
             } catch (error) {
                 console.error('Error loading companies for analysis:', error);
@@ -4694,6 +4743,21 @@
         loadData();
         loadCompaniesForTrends();
         setInterval(loadData, 60000);
+
+        // Keep _selectedCompany in sync across all tabs
+        const _companySelectIds = [
+            'analysisCompany', 'trendCompany',
+            'hofstedeCompanySelect', 'mitCompanySelect',
+            'hofstedeTrendsCompanySelect', 'mitTrendsCompanySelect'
+        ];
+        _companySelectIds.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.addEventListener('change', function() {
+                    if (this.value) _selectedCompany = this.value;
+                });
+            }
+        });
 
         let extractionPollInterval = null;
         let extractionLogs = [];
