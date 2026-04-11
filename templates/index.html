@@ -811,7 +811,6 @@
                             <label for="cultureComparisonSelect">Compare with:</label>
                             <select id="hofstedeComparisonSelect" onchange="loadCultureProfile('hofstede')">
                                 <option value="">None</option>
-                                <option value="Industry Average">Industry Average</option>
                             </select>
                         </div>
                     </div>
@@ -847,7 +846,6 @@
                             <label for="trendsComparisonSelect2">Compare with:</label>
                             <select id="hofstedeTrendsComparisonSelect" onchange="loadCultureTrends('hofstede')">
                                 <option value="">None</option>
-                                <option value="Industry Average">Industry Average</option>
                                 <option value="AllianceBernstein">AllianceBernstein</option>
                                 <option value="Allianz Group">Allianz Group</option>
                                 <option value="Ameriprise Financial">Ameriprise Financial</option>
@@ -946,7 +944,6 @@
                             <label for="cultureComparisonSelect">Compare with:</label>
                             <select id="mitComparisonSelect" onchange="loadCultureProfile('mit')">
                                 <option value="">None</option>
-                                <option value="Industry Average">Industry Average</option>
                             </select>
                         </div>
                     </div>
@@ -984,7 +981,6 @@
                             <label for="trendsComparisonSelect2">Compare with:</label>
                             <select id="mitTrendsComparisonSelect" onchange="loadCultureTrends('mit')">
                                 <option value="">None</option>
-                                <option value="Industry Average">Industry Average</option>
                                 <option value="AllianceBernstein">AllianceBernstein</option>
                                 <option value="Allianz Group">Allianz Group</option>
                                 <option value="Ameriprise Financial">Ameriprise Financial</option>
@@ -1361,7 +1357,7 @@
                         <select id="corrGicsLevel" onchange="onCorrFilterChange()" style="width: 100%; padding: 0.75rem; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 1rem;">
                             <option value="sector">Sector</option>
                             <option value="industry">Industry</option>
-                            <option value="sub_industry">Sub-Industry</option>
+                            <option value="sub_industry" selected>Sub-Industry</option>
                         </select>
                     </div>
                     <div class="control-group" style="flex: 1; min-width: 180px;">
@@ -1612,6 +1608,8 @@
         let currentSector = '';
         // Company selection shared across all tabs (Company Analysis, Quarterly Trends, Hofstede, MIT)
         let _selectedCompany = '';
+        // Comparator selection shared across Quarterly Trends, Hofstede, MIT tabs
+        let _selectedComparator = '';
         let gicsHierarchy = {};
 
         function getSectorParam() {
@@ -2014,17 +2012,25 @@
                             }
                         }
                     }
-                    // Populate comparison select and default to Industry Average
+                    // Populate comparison select (Industry Average is now always shown in chart, not as a dropdown option)
                     const compSelect = document.getElementById(prefix + 'ComparisonSelect');
                     if (compSelect) {
-                        compSelect.innerHTML = '<option value="">None</option><option value="Industry Average">Industry Average</option>';
+                        compSelect.innerHTML = '<option value="">None</option>';
                         data.companies.forEach(company => {
                             const option = document.createElement('option');
                             option.value = company;
                             option.textContent = company;
                             compSelect.appendChild(option);
                         });
-                        compSelect.value = 'Industry Average';
+                        // Restore shared comparator selection
+                        if (_selectedComparator) {
+                            for (let opt of compSelect.options) {
+                                if (opt.value === _selectedComparator) {
+                                    compSelect.value = _selectedComparator;
+                                    break;
+                                }
+                            }
+                        }
                     }
                     // Populate trends company select
                     const trendsSelect = document.getElementById(prefix + 'TrendsCompanySelect');
@@ -2046,17 +2052,25 @@
                             }
                         }
                     }
-                    // Populate trends comparison select and default to Industry Average
+                    // Populate trends comparison select and restore shared comparator
                     const trendsCompSelect = document.getElementById(prefix + 'TrendsComparisonSelect');
                     if (trendsCompSelect) {
-                        trendsCompSelect.innerHTML = '<option value="">None</option><option value="Industry Average">Industry Average</option>';
+                        trendsCompSelect.innerHTML = '<option value="">None</option>';
                         data.companies.forEach(company => {
                             const option = document.createElement('option');
                             option.value = company;
                             option.textContent = company;
                             trendsCompSelect.appendChild(option);
                         });
-                        trendsCompSelect.value = 'Industry Average';
+                        // Restore shared comparator selection
+                        if (_selectedComparator) {
+                            for (let opt of trendsCompSelect.options) {
+                                if (opt.value === _selectedComparator) {
+                                    trendsCompSelect.value = _selectedComparator;
+                                    break;
+                                }
+                            }
+                        }
                     }
                 } else if (framework === 'profile') {
                     // Legacy support for old parameter
@@ -2132,7 +2146,7 @@
                 cacheStatus[company] = 'updating';
                 updateCacheStatusDisplay();
                 
-                let url = company === 'Industry Average' ? buildUrl('/api/industry-average') : buildUrl(`/api/culture-profile/${encodeURIComponent(company)}`);
+                let url = buildUrl(`/api/culture-profile/${encodeURIComponent(company)}`);
                 const response = await fetch(url);
                 if (!response.ok) {
                     document.getElementById(prefix + 'Message').textContent = 'Culture profile not available yet. Scoring in progress...';
@@ -2143,7 +2157,7 @@
                 let profile = await response.json();
 
                 // If all scores are zero, auto-trigger scoring for this company then reload
-                if (company !== 'Industry Average' && profileHasNoScores(profile)) {
+                if (profileHasNoScores(profile)) {
                     const msgEl = document.getElementById(prefix + 'Message');
                     msgEl.textContent = `Generating culture scores for ${company}... please wait.`;
                     msgEl.style.display = 'block';
@@ -2161,15 +2175,22 @@
 
                 cacheStatus[company] = 'cached';
                 updateCacheStatusDisplay();
+
+                // Always fetch Industry Average as a fixed reference series
+                let industryAvgProfile = null;
+                try {
+                    const indAvgResp = await fetch(buildUrl('/api/industry-average'));
+                    if (indAvgResp.ok) industryAvgProfile = await indAvgResp.json();
+                } catch(e) { console.warn('Industry average fetch failed:', e); }
                 
                 let comparisonProfile = null;
                 if (comparison) {
-                    let compUrl = comparison === 'Industry Average' ? buildUrl('/api/industry-average') : buildUrl(`/api/culture-profile/${encodeURIComponent(comparison)}`);
+                    let compUrl = buildUrl(`/api/culture-profile/${encodeURIComponent(comparison)}`);
                     const compResponse = await fetch(compUrl);
                     if (compResponse.ok) {
                         comparisonProfile = await compResponse.json();
                         // Auto-score comparison company too if needed
-                        if (comparison !== 'Industry Average' && profileHasNoScores(comparisonProfile)) {
+                        if (profileHasNoScores(comparisonProfile)) {
                             try {
                                 await fetch(`/api/score-company/${encodeURIComponent(comparison)}`, { method: 'POST' });
                                 const refreshed = await fetch(compUrl);
@@ -2179,14 +2200,14 @@
                     }
                 }
                 
-                displayCultureProfile(profile, comparisonProfile, framework);
+                displayCultureProfile(profile, comparisonProfile, industryAvgProfile, framework);
             } catch (error) {
                 console.error('Error loading culture profile:', error);
                 document.getElementById(prefix + 'Message').textContent = 'Error loading culture data';
             }
         }
         
-        function displayCultureProfile(profile, comparisonProfile, framework = 'hofstede') {
+        function displayCultureProfile(profile, comparisonProfile, industryAvgProfile, framework = 'hofstede') {
             const hofstedeDims = [
                 {key: 'process_results', label: 'Process vs Results'},
                 {key: 'job_employee', label: 'Job vs Employee'},
@@ -2208,17 +2229,15 @@
                 {key: 'respect', label: 'Respect'}
             ];
             
-            const prefix = framework === 'mit' ? 'mit' : 'hofstede';
-            
             // Only display the relevant framework
             if (framework === 'hofstede') {
-                displayHofstedeProfile(profile, comparisonProfile, hofstedeDims);
+                displayHofstedeProfile(profile, comparisonProfile, industryAvgProfile, hofstedeDims);
             } else if (framework === 'mit') {
-                displayMitProfile(profile, comparisonProfile, mitDims);
+                displayMitProfile(profile, comparisonProfile, industryAvgProfile, mitDims);
             }
         }
         
-        function displayHofstedeProfile(profile, comparisonProfile, hofstedeDims) {
+        function displayHofstedeProfile(profile, comparisonProfile, industryAvgProfile, hofstedeDims) {
             const hofstedeLabels = hofstedeDims.map(d => d.label);
                 const hofstedeData = hofstedeDims.map(d => {
                 let mean;
@@ -2260,6 +2279,7 @@
             dimensionPairs.forEach((pair, idx) => {
                 // Handle both old format (with _mean suffix) and new format (with nested structure)
                 let mainValue, mainConfidence, mainConfidenceLevel;
+                let indAvgValue = null;
                 let compValue = null, compConfidence = null, compConfidenceLevel = null;
                 
                 // Check if using new API format (nested with value and confidence)
@@ -2272,6 +2292,15 @@
                     mainValue = profile[`${pair.left}_mean`] || 0;
                     mainConfidence = 0;
                     mainConfidenceLevel = 'Unknown';
+                }
+
+                // Always extract Industry Average value
+                if (industryAvgProfile) {
+                    if (industryAvgProfile.hofstede && industryAvgProfile.hofstede[pair.left]) {
+                        indAvgValue = industryAvgProfile.hofstede[pair.left].value || 0;
+                    } else {
+                        indAvgValue = industryAvgProfile[`${pair.left}_mean`] || 0;
+                    }
                 }
                 
                 if (comparisonProfile) {
@@ -2292,20 +2321,29 @@
                 const maxVal = range.max;
                 const rangeSize = maxVal - minVal;
                 
-                // Calculate percentages FIRST before using them
+                // Calculate percentages for all three series
                 const mainPercent = ((mainValue - minVal) / rangeSize) * 100;
+                const indAvgPercent = indAvgValue !== null ? ((indAvgValue - minVal) / rangeSize) * 100 : null;
                 const compPercent = compValue !== null ? ((compValue - minVal) / rangeSize) * 100 : null;
                 
-                // Normalize values to 0-100% based on actual min/max
                 // Clamp percentages to keep dots within visible bounds (5-95%)
                 const clampedMainPercent = Math.max(5, Math.min(95, mainPercent));
+                const clampedIndAvgPercent = indAvgPercent !== null ? Math.max(5, Math.min(95, indAvgPercent)) : null;
                 const clampedCompPercent = compPercent !== null ? Math.max(5, Math.min(95, compPercent)) : null;
                 
-                // Calculate if dots are too close and need vertical offset
-                const dotDistance = Math.abs(clampedMainPercent - (clampedCompPercent || clampedMainPercent));
-                const needsOffset = compValue !== null && dotDistance < 15;
-                const mainDotTop = needsOffset ? "35%" : "50%";
-                const compDotTop = needsOffset ? "65%" : "50%";
+                // Vertical positioning: stagger dots to avoid overlap
+                let mainDotTop, indAvgDotTop, compDotTop;
+                if (compValue !== null) {
+                    // 3 dots: stagger at 28%, 52%, 76%
+                    mainDotTop = '28%'; indAvgDotTop = '52%'; compDotTop = '76%';
+                } else {
+                    // 2 dots: check horizontal proximity and offset vertically if close
+                    const dotDist = Math.abs(clampedMainPercent - (clampedIndAvgPercent || clampedMainPercent));
+                    const needsOffset = indAvgValue !== null && dotDist < 15;
+                    mainDotTop = needsOffset ? '35%' : '50%';
+                    indAvgDotTop = needsOffset ? '65%' : '50%';
+                    compDotTop = '50%';
+                }
                 
                 // Determine confidence gauge color
                 const getConfidenceColor = (conf) => {
@@ -2316,8 +2354,9 @@
                 
                 const mainConfColor = getConfidenceColor(mainConfidence);
                 const compConfColor = compConfidence ? getConfidenceColor(compConfidence) : null;
-                const mainDotColor = '#667eea';
-                const compDotColor = '#a0aec0';
+                const mainDotColor = '#667eea';    // blue – main company
+                const indAvgDotColor = '#f59e0b';  // amber – industry average (always shown)
+                const compDotColor = '#a0aec0';    // gray – optional comparator
                 
                 const html = `
                     <div style="margin-bottom: 1.5rem;">
@@ -2327,12 +2366,13 @@
                         </div>
                         <div style="position: relative; height: 60px; background: linear-gradient(to right, #e8f4f8, #f0f0f0, #f8e8e8); border-radius: 8px; display: flex; align-items: center; overflow: visible; padding: 0 10px;">
                             <div style="position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 2px; height: 100%; background: #ccc;"></div>
-                            <div style="position: absolute; left: ${clampedMainPercent}%; top: ${mainDotTop}; transform: translate(-50%, -50%); width: 20px; height: 20px; background: ${mainDotColor}; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.1);"></div>
-                            ${compValue !== null ? `<div style="position: absolute; left: ${clampedCompPercent}%; top: ${compDotTop}; transform: translate(-50%, -50%); width: 20px; height: 20px; background: ${compDotColor}; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.1); z-index: 1;"></div>` : ''}
+                            <div style="position: absolute; left: ${clampedMainPercent}%; top: ${mainDotTop}; transform: translate(-50%, -50%); width: 20px; height: 20px; background: ${mainDotColor}; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.15); z-index: 3;"></div>
+                            ${indAvgValue !== null ? `<div style="position: absolute; left: ${clampedIndAvgPercent}%; top: ${indAvgDotTop}; transform: translate(-50%, -50%); width: 16px; height: 16px; background: ${indAvgDotColor}; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.12); z-index: 2;"></div>` : ''}
+                            ${compValue !== null ? `<div style="position: absolute; left: ${clampedCompPercent}%; top: ${compDotTop}; transform: translate(-50%, -50%); width: 16px; height: 16px; background: ${compDotColor}; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.1); z-index: 1;"></div>` : ''}
                         </div>
-                        <div style="display: flex; justify-content: space-between; margin-top: 0.5rem; font-size: 0.8rem; color: #7f8c8d;">
+                        <div style="display: flex; justify-content: space-between; margin-top: 0.5rem; font-size: 0.8rem; color: #7f8c8d; gap: 0.5rem;">
                             <div>
-                                <span style="color: ${mainDotColor}; font-weight: 600;">${profile.company_name || 'Company'}: ${mainValue.toFixed(2)}</span>
+                                <span style="color: ${mainDotColor}; font-weight: 600;">&#11044; ${profile.company_name || 'Company'}: ${mainValue.toFixed(2)}</span>
                                 <div style="display: flex; align-items: center; gap: 0.5rem; margin-top: 0.25rem;">
                                     <span style="font-size: 0.75rem; font-weight: 500;">${mainConfidence.toFixed(0)}%</span>
                                     <div style="width: 60px; height: 8px; background: #e5e7eb; border-radius: 4px; overflow: visible;">
@@ -2341,9 +2381,12 @@
                                     <span style="font-size: 0.7rem; color: #6b7280;">${mainConfidenceLevel}</span>
                                 </div>
                             </div>
-                            ${comparisonProfile ? `<div>
-                                <span style="color: ${compDotColor}; font-weight: 600;">${comparisonProfile.company_name || 'Comparison'}: ${compValue.toFixed(2)}</span>
-                                <div style="display: flex; align-items: center; gap: 0.5rem; margin-top: 0.25rem;">
+                            ${indAvgValue !== null ? `<div style="text-align: center;">
+                                <span style="color: ${indAvgDotColor}; font-weight: 600;">&#9679; Ind. Avg: ${indAvgValue.toFixed(2)}</span>
+                            </div>` : ''}
+                            ${comparisonProfile ? `<div style="text-align: right;">
+                                <span style="color: ${compDotColor}; font-weight: 600;">&#9679; ${comparisonProfile.company_name || 'Comparison'}: ${compValue.toFixed(2)}</span>
+                                <div style="display: flex; align-items: center; gap: 0.5rem; margin-top: 0.25rem; justify-content: flex-end;">
                                     <span style="font-size: 0.75rem; font-weight: 500;">${compConfidence.toFixed(0)}%</span>
                                     <div style="width: 60px; height: 8px; background: #e5e7eb; border-radius: 4px; overflow: visible;">
                                         <div style="width: ${compConfidence}%; height: 100%; background: ${compConfColor}; transition: width 0.3s ease;"></div>
@@ -2362,7 +2405,7 @@
             document.getElementById('hofstedeMessage').style.display = 'none';
         }
         
-        function displayMitProfile(profile, comparisonProfile, mitDims) {
+        function displayMitProfile(profile, comparisonProfile, industryAvgProfile, mitDims) {
             console.log('displayMitProfile called with profile:', profile);
             const mitLabels = mitDims.map(d => d.label);
             // MIT values should come from profile.mit which has rescaled 0-10 values
@@ -2425,6 +2468,29 @@
                 borderRadius: 8,
                 confidence: mitConfidence
             }];
+
+            // Always add Industry Average as a fixed amber reference dataset
+            if (industryAvgProfile) {
+                const indAvgMitData = mitDims.map(d => {
+                    let rawVal = 0;
+                    if (industryAvgProfile.mit && industryAvgProfile.mit[d.key]) {
+                        rawVal = industryAvgProfile.mit[d.key].value || 0;
+                    } else if (industryAvgProfile.mit_big_9 && industryAvgProfile.mit_big_9[d.key]) {
+                        rawVal = industryAvgProfile.mit_big_9[d.key].value || 0;
+                    } else {
+                        rawVal = industryAvgProfile[`${d.key}_mean`] || 0;
+                    }
+                    return rawVal > 10 ? rawVal / 10 : rawVal;
+                });
+                mitDatasets.push({
+                    label: 'Industry Average',
+                    data: indAvgMitData,
+                    backgroundColor: 'rgba(245, 158, 11, 0.55)',
+                    borderColor: 'rgba(245, 158, 11, 0.9)',
+                    borderWidth: 1,
+                    borderRadius: 8
+                });
+            }
             
             if (comparisonProfile) {
                 // Apply same scaling logic as primary company
@@ -2441,17 +2507,12 @@
                     console.log(`MIT comparison ${d.key}: raw=${rawVal}, scaled=${value.toFixed(2)}`);
                     return value;
                 });
-                // Use same correlation-based colors but with lower opacity for comparison
-                const compMitColors = mitDims.map(d => {
-                    if (!hasCorrelations) return 'rgba(148, 163, 184, 0.5)'; // Default gray
-                    const corr = window.mitCorrelations[d.key];
-                    if (corr === undefined || isNaN(corr)) return 'rgba(148, 163, 184, 0.5)';
-                    return getCorrelationColor(corr, 0.5);
-                });
                 mitDatasets.push({
                     label: comparisonProfile.company_name,
                     data: comparisonMitData,
-                    backgroundColor: compMitColors,
+                    backgroundColor: 'rgba(148, 163, 184, 0.5)',
+                    borderColor: 'rgba(148, 163, 184, 0.9)',
+                    borderWidth: 1,
                     borderRadius: 8
                 });
             }
@@ -2849,6 +2910,15 @@
 
                 // Default comparator to "Industry Average"
                 comparator.value = 'Industry Average';
+                // Restore shared comparator selection (overrides the default if user previously chose something)
+                if (_selectedComparator) {
+                    for (let opt of comparator.options) {
+                        if (opt.value === _selectedComparator) {
+                            comparator.value = _selectedComparator;
+                            break;
+                        }
+                    }
+                }
 
                 // Restore shared company selection
                 if (_selectedCompany) {
@@ -4755,6 +4825,23 @@
             if (el) {
                 el.addEventListener('change', function() {
                     if (this.value) _selectedCompany = this.value;
+                });
+            }
+        });
+
+        // Keep _selectedComparator in sync across Quarterly Trends, Hofstede, MIT tabs
+        const _comparatorSelectIds = [
+            'comparatorCompany',
+            'hofstedeComparisonSelect', 'mitComparisonSelect',
+            'hofstedeTrendsComparisonSelect', 'mitTrendsComparisonSelect'
+        ];
+        _comparatorSelectIds.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.addEventListener('change', function() {
+                    // Store any selection (including empty = None), skip "Industry Average" since
+                    // that's now a fixed series on Hofstede/MIT and stored separately on QT
+                    _selectedComparator = this.value;
                 });
             }
         });
