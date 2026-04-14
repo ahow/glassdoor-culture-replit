@@ -2957,14 +2957,11 @@
                 const ratings = data.main_trends.map(t => parseFloat(t.avg_rating));
                 const reviewCounts = data.main_trends.map(t => t.review_count);
                 
-                // Format quarters as MMM/YY
+                // Format quarters as Q# 'YY
                 const formattedQuarters = quarters.map(q => {
                     const match = q.match(/Q(\d) (\d{4})/);
                     if (match) {
-                        const quarter = parseInt(match[1]);
-                        const year = parseInt(match[2]);
-                        const months = ['Jan', 'Apr', 'Jul', 'Oct'];
-                        return months[quarter - 1] + ' ' + year.toString().slice(-2);
+                        return `Q${match[1]} '${match[2].slice(-2)}`;
                     }
                     return q;
                 });
@@ -3004,14 +3001,11 @@
                     return 0;
                 });
                 
-                // Format quarters for display
+                // Format quarters for display as Q# 'YY
                 const allFormattedQuarters = allQuarters.map(q => {
                     const match = q.match(/Q(\d) (\d{4})/);
                     if (match) {
-                        const quarter = parseInt(match[1]);
-                        const year = parseInt(match[2]);
-                        const months = ['Jan', 'Apr', 'Jul', 'Oct'];
-                        return months[quarter - 1] + ' ' + year.toString().slice(-2);
+                        return `Q${match[1]} '${match[2].slice(-2)}`;
                     }
                     return q;
                 });
