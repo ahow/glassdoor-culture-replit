@@ -12,3 +12,9 @@ id = "uhA-OGGShLSDCt2M0MLN-"
 uri = "file://Culture_Analytics_Dashboard_Model_Guide.md"
 type = "text"
 title = "Culture Analytics Dashboard — Model & User Guide"
+
+[[outputs]]
+id = "izkyr962rPqawtbpeXP46"
+uri = "file://keyword_candidates.zip"
+type = "unspecified"
+title = "Keyword Expansion Candidates — 21 CSVs (Stage 4 review)"

@@ -149,29 +149,39 @@ def _get_db_connection():
     return psycopg2.connect(db_url)
 
 
-def _extract_vocabulary(min_freq: int, batch_size: int = 10_000):
+def _extract_vocabulary(min_freq: int, batch_size: int = 10_000, max_reviews: int = 0):
     """
     Stream review text from the database in batches, tokenise into
     unigrams and bigrams, and return a frequency Counter.
+    max_reviews=0 means scan the full corpus.
     """
     log.info("  Extracting vocabulary from review corpus (this may take several minutes)…")
     conn = _get_db_connection()
     cur  = conn.cursor()
 
-    cur.execute("SELECT COUNT(*) FROM reviews WHERE review_text IS NOT NULL")
+    # Reviews are stored as separate pros/cons/summary columns — concatenate all three
+    cur.execute(
+        "SELECT COUNT(*) FROM reviews WHERE (pros IS NOT NULL OR cons IS NOT NULL OR summary IS NOT NULL)"
+    )
     total = cur.fetchone()[0]
-    log.info(f"  Total reviews to scan: {total:,}")
+    if max_reviews > 0:
+        total = min(total, max_reviews)
+        log.info(f"  Reviews to scan: {total:,} (capped by --max-reviews)")
+    else:
+        log.info(f"  Total reviews to scan: {total:,}")
 
     counts: Counter = Counter()
     processed = 0
     offset = 0
 
-    while True:
+    while processed < total:
+        limit = min(batch_size, total - processed)
         cur.execute(
-            "SELECT review_text FROM reviews "
-            "WHERE review_text IS NOT NULL "
+            "SELECT COALESCE(pros,'') || ' ' || COALESCE(cons,'') || ' ' || COALESCE(summary,'') "
+            "FROM reviews "
+            "WHERE (pros IS NOT NULL OR cons IS NOT NULL OR summary IS NOT NULL) "
             "ORDER BY id LIMIT %s OFFSET %s",
-            (batch_size, offset),
+            (limit, offset),
         )
         rows = cur.fetchall()
         if not rows:
@@ -190,6 +200,7 @@ def _extract_vocabulary(min_freq: int, batch_size: int = 10_000):
         offset    += batch_size
         if processed % 100_000 == 0 or processed >= total:
             log.info(f"  Processed {processed:,} / {total:,} reviews …")
+            sys.stdout.flush()
 
     conn.close()
 
@@ -198,7 +209,7 @@ def _extract_vocabulary(min_freq: int, batch_size: int = 10_000):
     return vocab
 
 
-def stage2_build_faiss_index(model_name: str, min_freq: int):
+def stage2_build_faiss_index(model_name: str, min_freq: int, max_reviews: int = 0):
     """
     Extract the review vocabulary, encode every term, and build a
     FAISS inner-product index (equivalent to cosine similarity on
@@ -214,12 +225,14 @@ def stage2_build_faiss_index(model_name: str, min_freq: int):
     log.info("STAGE 2: Building vocabulary FAISS index")
     log.info(f"  Model     : {model_name}")
     log.info(f"  Min freq  : {min_freq}")
+    if max_reviews:
+        log.info(f"  Max reviews: {max_reviews:,}")
     log.info("=" * 60)
 
     import faiss
     from sentence_transformers import SentenceTransformer
 
-    vocab_freq = _extract_vocabulary(min_freq)
+    vocab_freq = _extract_vocabulary(min_freq, batch_size=50_000, max_reviews=max_reviews)
     vocab_terms = list(vocab_freq.keys())
     vocab_freqs = [vocab_freq[t] for t in vocab_terms]
 
@@ -424,27 +437,33 @@ def parse_args():
         "--min-freq", type=int, default=50,
         help="Minimum corpus frequency for vocabulary inclusion (default: 50)"
     )
+    parser.add_argument(
+        "--max-reviews", type=int, default=0,
+        help="Cap the number of reviews scanned for vocabulary (0 = full corpus)"
+    )
     return parser.parse_args()
 
 
 def main():
-    args   = parse_args()
-    model  = MODELS[args.model]
-    stage  = args.stage
-    top_k  = args.topk
-    min_freq = args.min_freq
+    args       = parse_args()
+    model      = MODELS[args.model]
+    stage      = args.stage
+    top_k      = args.topk
+    min_freq   = args.min_freq
+    max_reviews = args.max_reviews
 
     t0 = time.time()
     log.info("Embedding keyword expansion pipeline — starting")
-    log.info(f"  Model    : {model}")
-    log.info(f"  Top-K    : {top_k}")
-    log.info(f"  Min freq : {min_freq}")
+    log.info(f"  Model       : {model}")
+    log.info(f"  Top-K       : {top_k}")
+    log.info(f"  Min freq    : {min_freq}")
+    log.info(f"  Max reviews : {max_reviews if max_reviews else 'full corpus'}")
 
     if stage in (None, 1):
         stage1_build_centroids(model)
 
     if stage in (None, 2):
-        stage2_build_faiss_index(model, min_freq)
+        stage2_build_faiss_index(model, min_freq, max_reviews)
 
     if stage in (None, 3):
         stage3_expand_and_weight(top_k)
