@@ -472,6 +472,20 @@
                 <select id="gicsValueFilter" onchange="onGicsValueChange(this.value)" data-testid="select-gics-value" style="padding: 0.4rem 0.6rem; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.85rem; background: #f8fafc; color: #1e293b; cursor: pointer; min-width: 200px; max-width: 320px;">
                     <option value="">All</option>
                 </select>
+                <!-- Employee filter toggle -->
+                <div style="display:flex; align-items:center; gap:0.4rem; margin-left:0.5rem; padding-left:0.75rem; border-left:1px solid #e2e8f0;">
+                    <label style="font-size:0.82rem; color:#64748b; font-weight:500; white-space:nowrap;">Reviews:</label>
+                    <div id="employeeFilterToggle" style="display:flex; border:1px solid #e2e8f0; border-radius:8px; overflow:hidden; font-size:0.8rem;">
+                        <button id="btnFilterAll" onclick="setEmployeeFilter('all')" data-testid="btn-filter-all"
+                            style="padding:0.35rem 0.7rem; border:none; background:#2563eb; color:#fff; cursor:pointer; font-size:0.8rem; font-weight:500; transition:all 0.15s;">
+                            All
+                        </button>
+                        <button id="btnFilterCurrent" onclick="setEmployeeFilter('current')" data-testid="btn-filter-current"
+                            style="padding:0.35rem 0.7rem; border:none; background:#f8fafc; color:#64748b; cursor:pointer; font-size:0.8rem; font-weight:500; transition:all 0.15s;">
+                            Current
+                        </button>
+                    </div>
+                </div>
                 <!-- Pre-warm progress indicator -->
                 <div id="prewarmIndicator" style="display:none; align-items:center; gap:0.35rem; font-size:0.78rem; color:#64748b; white-space:nowrap;">
                     <svg id="prewarmSpinner" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2.5" style="animation:spin 1s linear infinite;flex-shrink:0;">
@@ -1617,11 +1631,27 @@
             return `gics_level=${encodeURIComponent(currentGicsLevel)}&gics_value=${encodeURIComponent(currentGicsValue)}`;
         }
 
+        let _employeeFilter = 'all';
+
+        function setEmployeeFilter(filter) {
+            _employeeFilter = filter;
+            document.getElementById('btnFilterAll').style.background = filter === 'all' ? '#2563eb' : '#f8fafc';
+            document.getElementById('btnFilterAll').style.color = filter === 'all' ? '#fff' : '#64748b';
+            document.getElementById('btnFilterCurrent').style.background = filter === 'current' ? '#2563eb' : '#f8fafc';
+            document.getElementById('btnFilterCurrent').style.color = filter === 'current' ? '#fff' : '#64748b';
+            // Reload active tab data
+            const activeTab = document.querySelector('.tab-btn.active');
+            if (activeTab) activeTab.click();
+        }
+
         function buildUrl(base, params = {}) {
             const allParams = {...params};
             if (currentGicsValue) {
                 allParams.gics_level = currentGicsLevel;
                 allParams.gics_value = currentGicsValue;
+            }
+            if (_employeeFilter && _employeeFilter !== 'all') {
+                allParams.employee_filter = _employeeFilter;
             }
             const qs = Object.entries(allParams).filter(([k,v]) => v !== undefined && v !== '').map(([k,v]) => `${k}=${encodeURIComponent(v)}`).join('&');
             return qs ? `${base}?${qs}` : base;

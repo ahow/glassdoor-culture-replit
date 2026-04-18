@@ -428,17 +428,19 @@ def get_mit_max_values(company_names=None):
         logger.error(f"Error getting MIT max values: {e}")
         return {dim: 1 for dim in MIT_DIMENSIONS}
 
-def get_company_metrics(company_name):
+def get_company_metrics(company_name, employee_filter='all'):
     """Get aggregated metrics for a company from the database.
-    Uses SQL aggregation instead of loading all reviews into memory."""
+    Uses SQL aggregation instead of loading all reviews into memory.
+    employee_filter: 'all' (default) or 'current' (is_current_employee=TRUE only)."""
     try:
         conn = get_db_connection()
         if not conn:
             return None
         
         cursor = conn.cursor(cursor_factory=RealDictCursor)
+        emp_clause = "AND is_current_employee = TRUE" if employee_filter == 'current' else ""
         
-        cursor.execute("""
+        cursor.execute(f"""
             SELECT 
                 COUNT(*) as review_count,
                 AVG(rating) as avg_rating,
@@ -448,7 +450,7 @@ def get_company_metrics(company_name):
                 AVG(compensation_and_benefits_rating) as avg_comp,
                 AVG(senior_management_rating) as avg_mgmt
             FROM reviews
-            WHERE company_name = %s
+            WHERE company_name = %s {emp_clause}
         """, (company_name,))
         
         rating_result = cursor.fetchone()
@@ -487,7 +489,16 @@ def get_company_metrics(company_name):
             logger.warning(f"Error computing recommend/ceo for {company_name}: {e}")
             conn.rollback()
         
-        cursor.execute("""
+        if employee_filter == 'current':
+            culture_join = """
+                FROM review_culture_scores rcs
+                JOIN reviews r ON rcs.review_id = r.review_id
+                WHERE rcs.company_name = %s AND r.is_current_employee = TRUE
+            """
+        else:
+            culture_join = "FROM review_culture_scores WHERE company_name = %s"
+
+        cursor.execute(f"""
             SELECT 
                 COUNT(*) as score_count,
                 AVG(process_results_score) as process_results,
@@ -520,8 +531,7 @@ def get_company_metrics(company_name):
                 COUNT(CASE WHEN integrity_score IS NOT NULL AND integrity_score > 0 THEN 1 END) as integrity_count,
                 COUNT(CASE WHEN performance_score IS NOT NULL AND performance_score > 0 THEN 1 END) as performance_count,
                 COUNT(CASE WHEN respect_score IS NOT NULL AND respect_score > 0 THEN 1 END) as respect_count
-            FROM review_culture_scores
-            WHERE company_name = %s
+            {culture_join}
         """, (company_name,))
         
         culture_result = cursor.fetchone()
@@ -632,6 +642,11 @@ def init_cache_table():
                 last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 review_count INT
             )
+        """)
+        # Add current-employees column if it doesn't exist yet
+        cursor.execute("""
+            ALTER TABLE company_metrics_cache
+            ADD COLUMN IF NOT EXISTS metrics_json_current JSONB
         """)
         conn.commit()
         cursor.close()
@@ -750,7 +765,7 @@ def init_extraction_queue():
         logger.error(f"Error initializing extraction queue: {e}")
         return False
 
-def get_cached_metrics_batch(company_names):
+def get_cached_metrics_batch(company_names, employee_filter='all'):
     """Get metrics from cache for multiple companies in a single query"""
     if not company_names:
         return {}
@@ -758,15 +773,20 @@ def get_cached_metrics_batch(company_names):
         conn = get_db_connection()
         if not conn:
             return {}
+
+        col = 'metrics_json_current' if employee_filter == 'current' else 'metrics_json'
         cursor = conn.cursor(cursor_factory=RealDictCursor)
         placeholders = ','.join(['%s'] * len(company_names))
         cursor.execute(f"""
-            SELECT company_name, metrics_json FROM company_metrics_cache
+            SELECT company_name, {col} as metrics_json FROM company_metrics_cache
             WHERE company_name IN ({placeholders})
         """, list(company_names))
         result = {}
         for row in cursor.fetchall():
-            m = row['metrics_json'] if isinstance(row['metrics_json'], dict) else json.loads(row['metrics_json'])
+            raw = row['metrics_json']
+            if raw is None:
+                continue
+            m = raw if isinstance(raw, dict) else json.loads(raw)
             result[row['company_name']] = m
         cursor.close()
         conn.close()
@@ -776,8 +796,8 @@ def get_cached_metrics_batch(company_names):
         return {}
 
 
-def get_cached_metrics(company_name):
-    """Get metrics from cache if available"""
+def get_cached_metrics(company_name, employee_filter='all'):
+    """Get metrics from cache if available. employee_filter: 'all' or 'current'"""
     try:
         conn = get_db_connection()
         if not conn:
@@ -785,7 +805,7 @@ def get_cached_metrics(company_name):
         
         cursor = conn.cursor(cursor_factory=RealDictCursor)
         cursor.execute("""
-            SELECT metrics_json, last_updated, review_count 
+            SELECT metrics_json, metrics_json_current, last_updated, review_count 
             FROM company_metrics_cache 
             WHERE company_name = %s
         """, (company_name,))
@@ -795,15 +815,17 @@ def get_cached_metrics(company_name):
         conn.close()
         
         if result:
-            metrics = result['metrics_json'] if isinstance(result['metrics_json'], dict) else json.loads(result['metrics_json'])
-            return metrics
+            raw = result['metrics_json_current'] if employee_filter == 'current' else result['metrics_json']
+            if raw is None:
+                return None
+            return raw if isinstance(raw, dict) else json.loads(raw)
         return None
     except Exception as e:
         logger.error(f"Error getting cached metrics: {e}")
         return None
 
-def cache_metrics(company_name, metrics):
-    """Store metrics in cache"""
+def cache_metrics(company_name, metrics, employee_filter='all'):
+    """Store metrics in cache. employee_filter: 'all' or 'current'"""
     try:
         conn = get_db_connection()
         if not conn:
@@ -813,19 +835,28 @@ def cache_metrics(company_name, metrics):
         metrics_json = json.dumps(metrics) if not isinstance(metrics, str) else metrics
         review_count = metrics.get('total_reviews', 0)
         
-        cursor.execute("""
-            INSERT INTO company_metrics_cache (company_name, metrics_json, review_count, last_updated)
-            VALUES (%s, %s, %s, CURRENT_TIMESTAMP)
-            ON CONFLICT (company_name) DO UPDATE SET
-                metrics_json = EXCLUDED.metrics_json,
-                review_count = EXCLUDED.review_count,
-                last_updated = CURRENT_TIMESTAMP
-        """, (company_name, metrics_json, review_count))
+        if employee_filter == 'current':
+            cursor.execute("""
+                INSERT INTO company_metrics_cache (company_name, metrics_json_current, last_updated)
+                VALUES (%s, %s, CURRENT_TIMESTAMP)
+                ON CONFLICT (company_name) DO UPDATE SET
+                    metrics_json_current = EXCLUDED.metrics_json_current,
+                    last_updated = CURRENT_TIMESTAMP
+            """, (company_name, metrics_json))
+        else:
+            cursor.execute("""
+                INSERT INTO company_metrics_cache (company_name, metrics_json, review_count, last_updated)
+                VALUES (%s, %s, %s, CURRENT_TIMESTAMP)
+                ON CONFLICT (company_name) DO UPDATE SET
+                    metrics_json = EXCLUDED.metrics_json,
+                    review_count = EXCLUDED.review_count,
+                    last_updated = CURRENT_TIMESTAMP
+            """, (company_name, metrics_json, review_count))
         
         conn.commit()
         cursor.close()
         conn.close()
-        logger.info(f"Cached metrics for {company_name}")
+        logger.info(f"Cached metrics for {company_name} (filter={employee_filter})")
         return True
     except Exception as e:
         logger.error(f"Error caching metrics: {e}")
@@ -1871,14 +1902,20 @@ def get_companies():
 def get_culture_profile(company_name):
     """Get culture profile for a specific company"""
     try:
+        employee_filter = request.args.get('employee_filter', 'all')
+
         # Try to get from cache first
-        metrics = get_cached_metrics(company_name)
+        metrics = get_cached_metrics(company_name, employee_filter)
         
-        # If not in cache, calculate and cache it
+        # If not in cache, calculate and cache BOTH variants simultaneously
         if not metrics:
-            metrics = get_company_metrics(company_name)
-            if metrics:
-                cache_metrics(company_name, metrics)
+            metrics_all = get_company_metrics(company_name, 'all')
+            if metrics_all:
+                cache_metrics(company_name, metrics_all, 'all')
+            metrics_current = get_company_metrics(company_name, 'current')
+            if metrics_current:
+                cache_metrics(company_name, metrics_current, 'current')
+            metrics = metrics_current if employee_filter == 'current' else metrics_all
         
         if not metrics:
             return jsonify({'success': False, 'error': f'Company {company_name} not found'}), 404
@@ -2158,8 +2195,10 @@ def get_industry_average():
     """Get industry average culture profile, optionally filtered by sector"""
     try:
         gics_level, gics_value = get_gics_filter_params()
+        employee_filter = request.args.get('employee_filter', 'all')
         company_names = get_companies_for_sector(gics_level=gics_level, gics_value=gics_value)
-        
+        col = 'metrics_json_current' if employee_filter == 'current' else 'metrics_json'
+
         cached_metrics_map = {}
         conn = get_db_connection()
         if conn and company_names:
@@ -2167,11 +2206,14 @@ def get_industry_average():
                 cursor = conn.cursor(cursor_factory=RealDictCursor)
                 placeholders = ','.join(['%s'] * len(company_names))
                 cursor.execute(f"""
-                    SELECT company_name, metrics_json FROM company_metrics_cache
+                    SELECT company_name, {col} as metrics_json FROM company_metrics_cache
                     WHERE company_name IN ({placeholders})
                 """, company_names)
                 for row in cursor.fetchall():
-                    m = row['metrics_json'] if isinstance(row['metrics_json'], dict) else json.loads(row['metrics_json'])
+                    raw = row['metrics_json']
+                    if raw is None:
+                        continue
+                    m = raw if isinstance(raw, dict) else json.loads(raw)
                     cached_metrics_map[row['company_name']] = m
                 cursor.close()
                 conn.close()
@@ -2267,14 +2309,16 @@ def get_industry_average():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
-_industry_qt_by_dim: dict = {}   # dimension -> (rows, loaded_at)
+_industry_qt_by_dim: dict = {}   # (dimension, employee_filter) -> (rows, loaded_at)
 
-def _get_industry_qt_for_dim(dimension: str, rating_column: str) -> list:
+def _get_industry_qt_for_dim(dimension: str, rating_column: str, employee_filter: str = 'all') -> list:
     """Return cached industry-wide quarterly averages for the given dimension (1-hr TTL)."""
     import time as _t
-    cached = _industry_qt_by_dim.get(dimension)
+    cache_key = (dimension, employee_filter)
+    cached = _industry_qt_by_dim.get(cache_key)
     if cached and (_t.time() - cached[1]) < _INDUSTRY_TREND_TTL:
         return cached[0]
+    emp_clause = "AND is_current_employee = TRUE" if employee_filter == 'current' else ""
     try:
         conn = get_db_connection()
         if not conn:
@@ -2288,17 +2332,17 @@ def _get_industry_qt_for_dim(dimension: str, rating_column: str) -> list:
                    MAX({rating_column}) as max_rating
             FROM reviews
             WHERE {rating_column} IS NOT NULL
-              AND review_datetime IS NOT NULL
+              AND review_datetime IS NOT NULL {emp_clause}
             GROUP BY DATE_TRUNC('quarter', review_datetime)
             ORDER BY quarter ASC
         """)
         rows = [dict(r) for r in cur.fetchall()]
         cur.close()
         conn.close()
-        _industry_qt_by_dim[dimension] = (rows, _t.time())
+        _industry_qt_by_dim[cache_key] = (rows, _t.time())
         return rows
     except Exception as e:
-        logger.warning(f"Industry quarterly trend ({dimension}): {e}")
+        logger.warning(f"Industry quarterly trend ({dimension}, {employee_filter}): {e}")
         return cached[0] if cached else []
 
 
@@ -2327,9 +2371,10 @@ def get_quarterly_trends():
         }
         rating_column = rating_column_map.get(dimension, 'rating')
 
+        employee_filter_ia = request.args.get('employee_filter', 'all')
         # Special case: return industry-wide averages from cache
         if company_name == 'Industry Average':
-            rows = _get_industry_qt_for_dim(dimension, rating_column)
+            rows = _get_industry_qt_for_dim(dimension, rating_column, employee_filter_ia)
             MIN_REVIEWS = 5
             main_trends = []
             for row in rows:
@@ -2352,12 +2397,19 @@ def get_quarterly_trends():
                 })
             return jsonify({'success': True, 'company': 'Industry Average', 'main_trends': main_trends})
 
+        employee_filter = request.args.get('employee_filter', 'all')
+        emp_clause = "AND is_current_employee = TRUE" if employee_filter == 'current' else ""
+
         # Try to get from cache first
-        metrics = get_cached_metrics(company_name)
+        metrics = get_cached_metrics(company_name, employee_filter)
         if not metrics:
-            metrics = get_company_metrics(company_name)
-            if metrics:
-                cache_metrics(company_name, metrics)
+            metrics_all = get_company_metrics(company_name, 'all')
+            if metrics_all:
+                cache_metrics(company_name, metrics_all, 'all')
+            metrics_current = get_company_metrics(company_name, 'current')
+            if metrics_current:
+                cache_metrics(company_name, metrics_current, 'current')
+            metrics = metrics_current if employee_filter == 'current' else metrics_all
         if not metrics:
             return jsonify({'success': False, 'error': f'Company {company_name} not found'}), 404
         
@@ -2377,7 +2429,7 @@ def get_quarterly_trends():
                 MIN({rating_column}) as min_rating,
                 MAX({rating_column}) as max_rating
             FROM reviews
-            WHERE company_name = %s AND {rating_column} IS NOT NULL
+            WHERE company_name = %s AND {rating_column} IS NOT NULL {emp_clause}
             GROUP BY DATE_TRUNC('quarter', review_datetime)
             ORDER BY quarter ASC
         """
@@ -2635,17 +2687,18 @@ def culture_benchmarking(company_name):
     """Get benchmarking data comparing company to sector/industry averages"""
     try:
         gics_level, gics_value = get_gics_filter_params()
+        employee_filter = request.args.get('employee_filter', 'all')
         if not gics_value:
             gics_value = get_company_sector(company_name)
         
-        company_profile = get_company_metrics(company_name)
+        company_profile = get_company_metrics(company_name, employee_filter)
         if not company_profile:
             return jsonify({'success': False, 'error': 'Company not found'}), 404
         
         all_companies = get_companies_for_sector(gics_level=gics_level, gics_value=gics_value)
         other_companies = [c for c in all_companies if c != company_name]
         
-        cached_map = get_cached_metrics_batch(other_companies)
+        cached_map = get_cached_metrics_batch(other_companies, employee_filter)
         
         hofstede_avg = {dim: [] for dim in HOFSTEDE_DIMENSIONS}
         mit_avg = {dim: [] for dim in MIT_DIMENSIONS}
@@ -2653,9 +2706,9 @@ def culture_benchmarking(company_name):
         for other_company in other_companies:
             other_profile = cached_map.get(other_company)
             if not other_profile:
-                other_profile = get_company_metrics(other_company)
+                other_profile = get_company_metrics(other_company, employee_filter)
                 if other_profile:
-                    cache_metrics(other_company, other_profile)
+                    cache_metrics(other_company, other_profile, employee_filter)
             if other_profile:
                 for dim in HOFSTEDE_DIMENSIONS:
                     val = other_profile.get('hofstede', {}).get(dim, {}).get('value', 0)
