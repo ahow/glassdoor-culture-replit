@@ -1639,9 +1639,30 @@
             document.getElementById('btnFilterAll').style.color = filter === 'all' ? '#fff' : '#64748b';
             document.getElementById('btnFilterCurrent').style.background = filter === 'current' ? '#2563eb' : '#f8fafc';
             document.getElementById('btnFilterCurrent').style.color = filter === 'current' ? '#fff' : '#64748b';
-            // Reload active tab data
-            const activeTab = document.querySelector('.tab-btn.active');
-            if (activeTab) activeTab.click();
+            // Reload data for whichever tab is currently visible
+            const activeBtn = document.querySelector('.main-tab-button.active');
+            if (!activeBtn) return;
+            const onclickAttr = activeBtn.getAttribute('onclick') || '';
+            const tabMatch = onclickAttr.match(/switchMainTab\('(\w+)'/);
+            const currentTab = tabMatch ? tabMatch[1] : '';
+            if (currentTab === 'trends') {
+                updateTrendsChart();
+            } else if (currentTab === 'analysis') {
+                if (_selectedCompany) loadCompanyAnalysis();
+            } else if (currentTab === 'hofstede') {
+                loadCultureProfile('hofstede');
+            } else if (currentTab === 'mit') {
+                loadCultureProfile('mit');
+            } else if (currentTab === 'insights') {
+                loadPerformanceInsights();
+            } else if (currentTab === 'culturePerf') {
+                loadCulturePerfScatter();
+            } else if (currentTab === 'corrAnalysis') {
+                loadCorrMatrix(); loadCorrAnalysis();
+            } else {
+                // Fallback: re-click the active tab button
+                activeBtn.click();
+            }
         }
 
         function buildUrl(base, params = {}) {
