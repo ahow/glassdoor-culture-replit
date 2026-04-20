@@ -18,3 +18,9 @@ id = "izkyr962rPqawtbpeXP46"
 uri = "file://keyword_candidates.zip"
 type = "unspecified"
 title = "Keyword Expansion Candidates — 21 CSVs (Stage 4 review)"
+
+[[outputs]]
+id = "z3aIsLUS_l9MpKlzGJ1j8"
+uri = "file://keyword_expansion_output/final_keyword_dictionary.csv"
+type = "table"
+title = "Final Keyword Dictionary — 3,691 terms with effective weights"
