@@ -1,0 +1,39 @@
+These are pipeline-level improvements I'd recommend rather than row-level edits:
+
+Signed-weight vocabulary, not unsigned
+Antonyms are unavoidable when you expand around seed embeddings (cosine similarity doesn't distinguish polarity). Rather than discarding them, the pipeline should support negative weights (e.g. −1.0 for hard antonyms, −0.5 for softer opposites). This preserves information — a review full of "slow" should push the agility score down, not be ignored. Reference: Turney & Littman (2003) on semantic orientation using positive/negative paradigms.
+
+Global stopword-bigram blocklist applied before sheet expansion
+A large share of the candidate terms are <stopword> word / word <stopword> / duplicated-token bigrams (e.g., work work, the work, work and). These dominate corpus frequency and erode discriminant validity. Implement:
+
+Drop any n-gram where ≥50% of tokens are stopwords.
+
+Drop any n-gram that is a single lemma repeated.
+
+Drop bigrams whose frequency-weighted mutual information (PMI) falls below a threshold.
+
+Cross-loading handling
+The cross_loads_to field is populated but not used. I'd recommend down-weighting a term proportionally to how many dimensions it cross-loads onto — e.g. effective_weight = proposed_weight / (1 + 0.5 × cross_load_count). This preserves terms that are weakly useful without letting them double-count.
+
+Definitional anchor review for four dimensions
+Four sheets suffer from construct drift and probably need fresh seed words and a re-run:
+
+open_closed__closed_system — Hofstede's closed-system construct concerns insider/outsider permeability (how easily newcomers integrate), not negative-culture generally. Replace seeds like "culture" with "cliquey", "outsider", "insiders", "hard to fit in", "clique".
+
+tight_loose__loose_control — currently contaminated with tight-control antonyms (bureaucracy, controlled); reseed with terms like "autonomy", "discretion", "self-direction", "informal", "flexible approach".
+
+professional_parochial — reseed around identity locus: "identify with company" vs "identify with profession/craft"; many current terms are about careers or industries generically.
+
+process_results__results_orient — bleeds into career/opportunity language; restrict to outcome semantics (goals, targets, deliver, achieve, KPI, win).
+
+Corpus frequency weighting
+Several very-high-frequency terms (e.g. workplace 2,553 hits, employee 10,329) will dominate dimension scores despite modest dimensional loading. Apply IDF or a cap (e.g. log-frequency) so that rare, specific terms like meritocracy or empowerment carry comparable influence.
+
+Human-coded validation set
+Before weights go to production, validate the dictionary against a sample of 300–500 Glassdoor reviews that have been human-coded on each dimension. Report per-dimension precision/recall and Cronbach's α. This is standard for dictionary-based text measurement (Grimmer & Stewart, 2013, Political Analysis; Sull et al., 2019, MIT Sloan).
+
+Dimension-level diagnostics
+Add a workbook tab reporting, per dimension: mean cosine, median corpus frequency, count of accepted terms, count of cross-loaders, and effective unique lexicon size after weights. This helps spot dimensions that will either under- or over-fire.
+
+Reproducibility metadata
+Record, per term: the embedding model, corpus snapshot date, similarity threshold used, and which seed it was expanded from. This is essential if dictionaries need to be rebuilt or audited later.
