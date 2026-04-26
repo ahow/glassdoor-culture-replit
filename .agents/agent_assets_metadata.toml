@@ -24,3 +24,9 @@ id = "z3aIsLUS_l9MpKlzGJ1j8"
 uri = "file://keyword_expansion_output/final_keyword_dictionary.csv"
 type = "table"
 title = "Final Keyword Dictionary — 3,691 terms with effective weights"
+
+[[outputs]]
+id = "ZjUUq_7qjatvoxad7-jHh"
+uri = "file://keyword_expansion_output/Culture_Analytics_Keywords.xlsx"
+type = "table"
+title = "Culture Analytics — Full Keyword Dictionary (16 sheets, 3,691 terms)"
