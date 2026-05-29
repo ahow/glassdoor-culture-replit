@@ -288,6 +288,7 @@ class PerformanceAnalyzer:
             'agility', 'collaboration', 'customer_orientation', 'diversity',
             'execution', 'innovation', 'integrity', 'performance', 'respect'
         ]
+        schroders_dimensions = ['d%02d' % i for i in range(1, 19)]
         performance_metrics = [
             'roe_5y_avg', 'aum_cagr_5y', 'tsr_cagr_5y', 'op_margin_5y_avg', 'composite_score'
         ]
@@ -295,6 +296,7 @@ class PerformanceAnalyzer:
         results = {
             'hofstede': {},
             'mit': {},
+            'schroders': {},
             'summary': {
                 'strongest_positive': [],
                 'strongest_negative': [],
@@ -376,6 +378,39 @@ class PerformanceAnalyzer:
                         }
                         all_correlations.append({
                             'framework': 'MIT',
+                            'dimension': dim,
+                            'metric': metric,
+                            'correlation': corr_val,
+                            'p_value': p_val
+                        })
+                    except Exception as e:
+                        logger.error(f"Correlation error for {dim}/{metric}: {e}")
+        
+        for dim in schroders_dimensions:
+            results['schroders'][dim] = {}
+            for metric in performance_metrics:
+                x_vals = []
+                y_vals = []
+                for company in valid_companies:
+                    culture_val = company_data[company]['culture'].get('schroders', {}).get(dim, {}).get('value')
+                    perf_val = company_data[company]['performance'].get(metric)
+                    if culture_val is not None and perf_val is not None:
+                        x_vals.append(culture_val)
+                        y_vals.append(perf_val)
+                
+                if len(x_vals) >= 5:
+                    try:
+                        corr, p_value = stats.pearsonr(x_vals, y_vals)
+                        corr_val = float(corr)
+                        p_val = float(p_value)
+                        results['schroders'][dim][metric] = {
+                            'correlation': round(corr_val, 3),
+                            'p_value': round(p_val, 4),
+                            'significant': bool(p_val < 0.05),
+                            'sample_size': len(x_vals)
+                        }
+                        all_correlations.append({
+                            'framework': 'Schroders',
                             'dimension': dim,
                             'metric': metric,
                             'correlation': corr_val,

@@ -13,6 +13,13 @@ import re
 from typing import Dict, Optional, Tuple
 import json
 
+# Schroders 18-dimension framework (bipolar scoring, [-1, +1])
+from schroders_keywords import (
+    SCHRODERS_DIMENSIONS,
+    SCHRODERS_DIM_INFO,
+    SCHRODERS_KEYWORDS,
+)
+
 # ============================================================================
 # HOFSTEDE DIMENSION WEIGHTED DICTIONARIES
 # Format: {term: effective_weight}
@@ -3797,6 +3804,7 @@ def score_review_with_dictionary(review_text: str) -> Dict:
     scores = {
         "hofstede": {},
         "mit_big_9": {},
+        "schroders": {},
         "scoring_method": "dictionary"
     }
 
@@ -3832,6 +3840,27 @@ def score_review_with_dictionary(review_text: str) -> Dict:
             "evidence_count": round(weighted_sum, 4)
         }
 
+    # ── Schroders (18 bipolar dimensions) ────────────────────────────────────
+    # Positive-direction words push score toward +1, negative-direction toward -1.
+    #   score = (pos_sum - neg_sum) / (pos_sum + neg_sum)   in [-1, +1]
+    # Returns None when the dimension is not mentioned at all.
+    for dimension in SCHRODERS_DIMENSIONS:
+        kw = SCHRODERS_KEYWORDS[dimension]
+        pos_sum = sum(w for phrase, w in kw["positive"].items() if phrase in text_lower)
+        neg_sum = sum(w for phrase, w in kw["negative"].items() if phrase in text_lower)
+        total_evidence = pos_sum + neg_sum
+
+        if total_evidence == 0:
+            s_score = None
+        else:
+            s_score = round((pos_sum - neg_sum) / total_evidence, 4)
+
+        scores["schroders"][dimension] = {
+            "score": s_score,
+            "confidence": "medium" if s_score is not None else "low",
+            "evidence_count": round(total_evidence, 4)
+        }
+
     return scores
 
 
@@ -3847,6 +3876,7 @@ def aggregate_review_scores(review_scores_list: list) -> Dict:
     aggregated = {
         "hofstede": {},
         "mit_big_9": {},
+        "schroders": {},
         "review_count": len(review_scores_list)
     }
 
@@ -3892,6 +3922,25 @@ def aggregate_review_scores(review_scores_list: list) -> Dict:
         ]
         if scores:
             aggregated["mit_big_9"][dimension] = {
+                "mean": statistics.mean(scores),
+                "std": statistics.stdev(scores) if len(scores) > 1 else 0,
+                "count": len(scores),
+                "total_evidence": sum(evidence_counts)
+            }
+
+    for dimension in SCHRODERS_DIMENSIONS:
+        scores = [
+            r["schroders"][dimension]["score"]
+            for r in review_scores_list
+            if r and r.get("schroders", {}).get(dimension, {}).get("score") is not None
+        ]
+        evidence_counts = [
+            r["schroders"][dimension].get("evidence_count", 0)
+            for r in review_scores_list
+            if r and r.get("schroders", {}).get(dimension, {}).get("score") is not None
+        ]
+        if scores:
+            aggregated["schroders"][dimension] = {
                 "mean": statistics.mean(scores),
                 "std": statistics.stdev(scores) if len(scores) > 1 else 0,
                 "count": len(scores),

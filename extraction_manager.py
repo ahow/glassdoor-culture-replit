@@ -811,6 +811,7 @@ class ExtractionManager:
                     continue
                 try:
                     cur.execute("SAVEPOINT score_review")
+                    sch = scores.get('schroders', {})
                     cur.execute("""
                         INSERT INTO review_culture_scores
                         (review_id, company_name,
@@ -818,8 +819,17 @@ class ExtractionManager:
                          open_closed_score, tight_loose_score, pragmatic_normative_score,
                          agility_score, collaboration_score, customer_orientation_score,
                          diversity_score, execution_score, innovation_score, integrity_score,
-                         performance_score, respect_score, scoring_method, confidence_level)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                         performance_score, respect_score,
+                         schroders_d01_score, schroders_d02_score, schroders_d03_score,
+                         schroders_d04_score, schroders_d05_score, schroders_d06_score,
+                         schroders_d07_score, schroders_d08_score, schroders_d09_score,
+                         schroders_d10_score, schroders_d11_score, schroders_d12_score,
+                         schroders_d13_score, schroders_d14_score, schroders_d15_score,
+                         schroders_d16_score, schroders_d17_score, schroders_d18_score,
+                         scoring_method, confidence_level)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
+                                %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
+                                %s, %s)
                         ON CONFLICT (review_id) DO NOTHING
                     """, (
                         review_id, company_name,
@@ -838,6 +848,15 @@ class ExtractionManager:
                         scores['mit_big_9']['integrity']['score'],
                         scores['mit_big_9']['performance']['score'],
                         scores['mit_big_9']['respect']['score'],
+                        sch.get('d01', {}).get('score'), sch.get('d02', {}).get('score'),
+                        sch.get('d03', {}).get('score'), sch.get('d04', {}).get('score'),
+                        sch.get('d05', {}).get('score'), sch.get('d06', {}).get('score'),
+                        sch.get('d07', {}).get('score'), sch.get('d08', {}).get('score'),
+                        sch.get('d09', {}).get('score'), sch.get('d10', {}).get('score'),
+                        sch.get('d11', {}).get('score'), sch.get('d12', {}).get('score'),
+                        sch.get('d13', {}).get('score'), sch.get('d14', {}).get('score'),
+                        sch.get('d15', {}).get('score'), sch.get('d16', {}).get('score'),
+                        sch.get('d17', {}).get('score'), sch.get('d18', {}).get('score'),
                         scores['scoring_method'],
                         'medium'
                     ))

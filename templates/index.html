@@ -511,6 +511,7 @@
             <button class="main-tab-button" onclick="switchMainTab('trends', event)">Quarterly Trends</button>
             <button class="main-tab-button" onclick="switchMainTab('hofstede', event)">Hofstede Framework</button>
             <button class="main-tab-button" onclick="switchMainTab('mit', event)">MIT Framework</button>
+            <button class="main-tab-button" onclick="switchMainTab('schroders', event)">Schroders Framework</button>
             <button class="main-tab-button" onclick="switchMainTab('insights', event)">Performance Insights</button>
             <button class="main-tab-button" onclick="switchMainTab('culturePerf', event)">Culture vs Performance</button>
             <button class="main-tab-button" onclick="switchMainTab('corrAnalysis', event)">Correlation Analysis</button>
@@ -940,6 +941,41 @@
             </div>
         </div>
         
+        <div id="schrodersTab" class="tab-content hidden-tab" style="display: none;">
+            <!-- Schroders Framework -->
+            <div id="schrodersProfileTab" class="tab-content">
+                <div class="chart-container">
+                    <h3>Select Company</h3>
+                    <div class="controls-grid">
+                        <div class="control-group">
+                            <label for="schrodersCompanySelect">Company:</label>
+                            <select id="schrodersCompanySelect" onchange="loadCultureProfile('schroders')">
+                                <option value="">Select a company...</option>
+                            </select>
+                        </div>
+                        <div class="control-group">
+                            <label for="schrodersComparisonSelect">Compare with:</label>
+                            <select id="schrodersComparisonSelect" onchange="loadCultureProfile('schroders')">
+                                <option value="">None</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="schrodersProfileContainer" style="display: none;">
+                    <div class="chart-container">
+                        <h3>Schroders Culture Dimensions</h3>
+                        <p style="color: #7f8c8d; font-size: 0.9rem; margin-bottom: 1.5rem;">Eighteen dimensions - position shows company's stance on each spectrum</p>
+                        <div id="schrodersDimensionsContainer" style="display: flex; flex-direction: column; gap: 2.5rem; margin-top: 2rem;"></div>
+                    </div>
+                </div>
+
+                <div id="schrodersMessage" style="text-align: center; color: #7f8c8d; padding: 3rem;">
+                    Select a company to view its complete culture profile
+                </div>
+            </div>
+        </div>
+
         <div id="mitTab" class="tab-content hidden-tab" style="display: none;">
             <!-- MIT Framework -->
             
@@ -1875,7 +1911,7 @@
             console.log('switchMainTab called with tab:', tab);
             
             // Hide all tabs using both inline styles AND CSS class
-            const tabs = ['overviewTab', 'companiesTab', 'analysisTab', 'trendsTab', 'hofstedeTab', 'mitTab', 'insightsTab', 'culturePerfTab', 'corrAnalysisTab', 'exportDataTab', 'dataStatusTab', 'extractionMgrTab'];
+            const tabs = ['overviewTab', 'companiesTab', 'analysisTab', 'trendsTab', 'hofstedeTab', 'mitTab', 'schrodersTab', 'insightsTab', 'culturePerfTab', 'corrAnalysisTab', 'exportDataTab', 'dataStatusTab', 'extractionMgrTab'];
             tabs.forEach(tabId => {
                 const el = document.getElementById(tabId);
                 if (el) {
@@ -1897,6 +1933,7 @@
                 'trends': 'trendsTab',
                 'hofstede': 'hofstedeTab',
                 'mit': 'mitTab',
+                'schroders': 'schrodersTab',
                 'insights': 'insightsTab',
                 'culturePerf': 'culturePerfTab',
                 'corrAnalysis': 'corrAnalysisTab',
@@ -1924,6 +1961,8 @@
                 loadCultureCompanies('hofstede');
             } else if (tab === 'mit') {
                 loadCultureCompanies('mit');
+            } else if (tab === 'schroders') {
+                loadCultureCompanies('schroders');
             } else if (tab === 'insights') {
                 loadPerformanceInsights();
             } else if (tab === 'culturePerf') {
@@ -2039,8 +2078,8 @@
                 const response = await fetch(buildUrl('/api/companies-list'));
                 const data = await response.json();
                 
-                // Handle framework parameter (hofstede or mit)
-                if (framework === 'hofstede' || framework === 'mit') {
+                // Handle framework parameter (hofstede, mit, or schroders)
+                if (framework === 'hofstede' || framework === 'mit' || framework === 'schroders') {
                     const prefix = framework;
                     // Populate main company select
                     const mainSelect = document.getElementById(prefix + 'CompanySelect');
@@ -2188,7 +2227,7 @@
         }
 
         async function loadCultureProfile(framework = 'hofstede') {
-            const prefix = framework === 'mit' ? 'mit' : 'hofstede';
+            const prefix = (framework === 'mit' || framework === 'schroders') ? framework : 'hofstede';
             const company = document.getElementById(prefix + 'CompanySelect').value;
             const comparison = document.getElementById(prefix + 'ComparisonSelect').value;
             if (!company) return;
@@ -2285,7 +2324,128 @@
                 displayHofstedeProfile(profile, comparisonProfile, industryAvgProfile, hofstedeDims);
             } else if (framework === 'mit') {
                 displayMitProfile(profile, comparisonProfile, industryAvgProfile, mitDims);
+            } else if (framework === 'schroders') {
+                displaySchrodersProfile(profile, comparisonProfile, industryAvgProfile);
             }
+        }
+
+        // Schroders dimension metadata (injected from backend source of truth)
+        const SCHRODERS_DIM_INFO = {{ schroders_dim_info | tojson }};
+        const SCHRODERS_DIMENSIONS = {{ schroders_dimensions | tojson }};
+
+        function displaySchrodersProfile(profile, comparisonProfile, industryAvgProfile) {
+            const container = document.getElementById('schrodersDimensionsContainer');
+            if (!container) {
+                console.error('Container not found: schrodersDimensionsContainer');
+                return;
+            }
+            container.innerHTML = '';
+
+            const getConfidenceColor = (conf) => {
+                if (conf >= 70) return '#10b981';
+                if (conf >= 40) return '#f59e0b';
+                return '#ef4444';
+            };
+            const minVal = -1, maxVal = 1, rangeSize = 2;
+
+            SCHRODERS_DIMENSIONS.forEach(dim => {
+                const info = SCHRODERS_DIM_INFO[dim] || {title: dim, left_label: 'Weak', right_label: 'Strong'};
+
+                let mainValue = 0, mainConfidence = 0, mainConfidenceLevel = 'Unknown';
+                let indAvgValue = null;
+                let compValue = null, compConfidence = null, compConfidenceLevel = null;
+
+                if (profile.schroders && profile.schroders[dim]) {
+                    mainValue = profile.schroders[dim].value;
+                    mainConfidence = profile.schroders[dim].confidence || profile.schroders[dim].confidence_score || 0;
+                    mainConfidenceLevel = profile.schroders[dim].confidence_level || 'Unknown';
+                }
+                // Skip dimensions with no evidence (null value)
+                if (mainValue === null || mainValue === undefined) return;
+
+                if (industryAvgProfile && industryAvgProfile.schroders && industryAvgProfile.schroders[dim]) {
+                    indAvgValue = industryAvgProfile.schroders[dim].value;
+                }
+                if (comparisonProfile && comparisonProfile.schroders && comparisonProfile.schroders[dim]) {
+                    compValue = comparisonProfile.schroders[dim].value;
+                    compConfidence = comparisonProfile.schroders[dim].confidence || comparisonProfile.schroders[dim].confidence_score || 0;
+                    compConfidenceLevel = comparisonProfile.schroders[dim].confidence_level || 'Unknown';
+                }
+
+                const mainPercent = ((mainValue - minVal) / rangeSize) * 100;
+                const indAvgPercent = indAvgValue !== null ? ((indAvgValue - minVal) / rangeSize) * 100 : null;
+                const compPercent = compValue !== null ? ((compValue - minVal) / rangeSize) * 100 : null;
+
+                const clampedMainPercent = Math.max(5, Math.min(95, mainPercent));
+                const clampedIndAvgPercent = indAvgPercent !== null ? Math.max(5, Math.min(95, indAvgPercent)) : null;
+                const clampedCompPercent = compPercent !== null ? Math.max(5, Math.min(95, compPercent)) : null;
+
+                let mainDotTop, indAvgDotTop, compDotTop;
+                if (compValue !== null) {
+                    mainDotTop = '28%'; indAvgDotTop = '52%'; compDotTop = '76%';
+                } else {
+                    const dotDist = Math.abs(clampedMainPercent - (clampedIndAvgPercent || clampedMainPercent));
+                    const needsOffset = indAvgValue !== null && dotDist < 15;
+                    mainDotTop = needsOffset ? '35%' : '50%';
+                    indAvgDotTop = needsOffset ? '65%' : '50%';
+                    compDotTop = '50%';
+                }
+
+                const mainConfColor = getConfidenceColor(mainConfidence);
+                const compConfColor = compConfidence ? getConfidenceColor(compConfidence) : null;
+                const mainDotColor = '#667eea';
+                const indAvgDotColor = '#f59e0b';
+                const compDotColor = '#a0aec0';
+
+                const html = `
+                    <div style="margin-bottom: 1.5rem;">
+                        <div style="font-weight: 600; font-size: 0.85rem; color: #2c3e50; margin-bottom: 0.35rem;">${info.title}</div>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                            <span style="font-weight: 600; font-size: 0.85rem; color: #7f8c8d;">${info.left_label}</span>
+                            <span style="font-weight: 600; font-size: 0.85rem; color: #7f8c8d;">${info.right_label}</span>
+                        </div>
+                        <div style="position: relative; height: 60px; background: linear-gradient(to right, #e8f4f8, #f0f0f0, #f8e8e8); border-radius: 8px; display: flex; align-items: center; overflow: visible; padding: 0 10px;">
+                            <div style="position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 2px; height: 100%; background: #ccc;"></div>
+                            <div style="position: absolute; left: ${clampedMainPercent}%; top: ${mainDotTop}; transform: translate(-50%, -50%); width: 20px; height: 20px; background: ${mainDotColor}; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.15); z-index: 3;"></div>
+                            ${indAvgValue !== null ? `<div style="position: absolute; left: ${clampedIndAvgPercent}%; top: ${indAvgDotTop}; transform: translate(-50%, -50%); width: 16px; height: 16px; background: ${indAvgDotColor}; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.12); z-index: 2;"></div>` : ''}
+                            ${compValue !== null ? `<div style="position: absolute; left: ${clampedCompPercent}%; top: ${compDotTop}; transform: translate(-50%, -50%); width: 16px; height: 16px; background: ${compDotColor}; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.1); z-index: 1;"></div>` : ''}
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-top: 0.5rem; font-size: 0.8rem; color: #7f8c8d; gap: 0.5rem;">
+                            <div>
+                                <span style="color: ${mainDotColor}; font-weight: 600;">&#11044; ${profile.company_name || 'Company'}: ${mainValue.toFixed(2)}</span>
+                                <div style="display: flex; align-items: center; gap: 0.5rem; margin-top: 0.25rem;">
+                                    <span style="font-size: 0.75rem; font-weight: 500;">${mainConfidence.toFixed(0)}%</span>
+                                    <div style="width: 60px; height: 8px; background: #e5e7eb; border-radius: 4px; overflow: visible;">
+                                        <div style="width: ${mainConfidence}%; height: 100%; background: ${mainConfColor}; transition: width 0.3s ease;"></div>
+                                    </div>
+                                    <span style="font-size: 0.7rem; color: #6b7280;">${mainConfidenceLevel}</span>
+                                </div>
+                            </div>
+                            ${indAvgValue !== null ? `<div style="text-align: center;">
+                                <span style="color: ${indAvgDotColor}; font-weight: 600;">&#9679; Ind. Avg: ${indAvgValue.toFixed(2)}</span>
+                            </div>` : ''}
+                            ${compValue !== null ? `<div style="text-align: right;">
+                                <span style="color: ${compDotColor}; font-weight: 600;">&#9679; ${comparisonProfile.company_name || 'Comparison'}: ${compValue.toFixed(2)}</span>
+                                <div style="display: flex; align-items: center; gap: 0.5rem; margin-top: 0.25rem; justify-content: flex-end;">
+                                    <span style="font-size: 0.75rem; font-weight: 500;">${compConfidence.toFixed(0)}%</span>
+                                    <div style="width: 60px; height: 8px; background: #e5e7eb; border-radius: 4px; overflow: visible;">
+                                        <div style="width: ${compConfidence}%; height: 100%; background: ${compConfColor}; transition: width 0.3s ease;"></div>
+                                    </div>
+                                    <span style="font-size: 0.7rem; color: #6b7280;">${compConfidenceLevel}</span>
+                                </div>
+                            </div>` : ''}
+                        </div>
+                    </div>
+                `;
+                container.insertAdjacentHTML('beforeend', html);
+            });
+
+            if (!container.innerHTML) {
+                container.innerHTML = '<p style="text-align:center; color:#7f8c8d; padding:2rem;">No Schroders dimension scores available for this company yet.</p>';
+            }
+
+            document.getElementById('schrodersProfileContainer').style.display = 'block';
+            document.getElementById('schrodersMessage').style.display = 'none';
         }
         
         function displayHofstedeProfile(profile, comparisonProfile, industryAvgProfile, hofstedeDims) {
@@ -4862,7 +5022,7 @@
         // Keep _selectedCompany in sync across all tabs
         const _companySelectIds = [
             'analysisCompany', 'trendCompany',
-            'hofstedeCompanySelect', 'mitCompanySelect',
+            'hofstedeCompanySelect', 'mitCompanySelect', 'schrodersCompanySelect',
             'hofstedeTrendsCompanySelect', 'mitTrendsCompanySelect'
         ];
         _companySelectIds.forEach(id => {
@@ -4877,7 +5037,7 @@
         // Keep _selectedComparator in sync across Quarterly Trends, Hofstede, MIT tabs
         const _comparatorSelectIds = [
             'comparatorCompany',
-            'hofstedeComparisonSelect', 'mitComparisonSelect',
+            'hofstedeComparisonSelect', 'mitComparisonSelect', 'schrodersComparisonSelect',
             'hofstedeTrendsComparisonSelect', 'mitTrendsComparisonSelect'
         ];
         _comparatorSelectIds.forEach(id => {

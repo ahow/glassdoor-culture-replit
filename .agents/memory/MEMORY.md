@@ -1,0 +1,2 @@
+- [Metrics cache & re-scoring](metrics-cache-rescoring.md) — re-scoring deletes a company's cache row; perf/correlation endpoints are cache-only, so you must rebuild the cache before data reappears.
+- [Adding a culture framework](adding-culture-framework.md) — full list of touch-points (scoring, DB cols, write path, aggregation, all API endpoints, correlation, UI) to mirror Hofstede/MIT for a new framework.

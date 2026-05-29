@@ -55,6 +55,9 @@ MIT_DIMENSIONS = [
     'respect'
 ]
 
+# Schroders 18-dimension framework (bipolar, -1..+1)
+from schroders_keywords import SCHRODERS_DIMENSIONS, SCHRODERS_DIM_INFO
+
 # ============================================================================
 # DATABASE CONNECTION
 # ============================================================================
@@ -101,6 +104,12 @@ def calculate_relative_confidence(metrics):
         if evidence > max_evidence:
             max_evidence = evidence
     
+    # Check Schroders dimensions
+    for dimension, data in metrics.get('schroders', {}).items():
+        evidence = data.get('total_evidence', 0)
+        if evidence > max_evidence:
+            max_evidence = evidence
+    
     # If no evidence found, use review count as fallback
     if max_evidence == 0:
         # Fallback: use review count to estimate confidence
@@ -130,6 +139,14 @@ def calculate_relative_confidence(metrics):
             # Estimate: assume 3 keywords per dimension per review on average
             review_count = metrics.get('total_reviews', 0)
             evidence = max(1, review_count // 15)  # Conservative estimate
+        data['confidence_score'] = round((evidence / max_evidence) * 100, 1) if max_evidence > 0 else 0
+    
+    # Calculate relative confidence for Schroders
+    for dimension, data in metrics.get('schroders', {}).items():
+        evidence = data.get('total_evidence', 0)
+        if evidence == 0 and data.get('value') is not None:
+            review_count = metrics.get('total_reviews', 0)
+            evidence = max(1, review_count // 15)
         data['confidence_score'] = round((evidence / max_evidence) * 100, 1) if max_evidence > 0 else 0
     
     return metrics
@@ -530,7 +547,43 @@ def get_company_metrics(company_name, employee_filter='all'):
                 COUNT(CASE WHEN innovation_score IS NOT NULL AND innovation_score > 0 THEN 1 END) as innovation_count,
                 COUNT(CASE WHEN integrity_score IS NOT NULL AND integrity_score > 0 THEN 1 END) as integrity_count,
                 COUNT(CASE WHEN performance_score IS NOT NULL AND performance_score > 0 THEN 1 END) as performance_count,
-                COUNT(CASE WHEN respect_score IS NOT NULL AND respect_score > 0 THEN 1 END) as respect_count
+                COUNT(CASE WHEN respect_score IS NOT NULL AND respect_score > 0 THEN 1 END) as respect_count,
+                AVG(schroders_d01_score) as schroders_d01,
+                AVG(schroders_d02_score) as schroders_d02,
+                AVG(schroders_d03_score) as schroders_d03,
+                AVG(schroders_d04_score) as schroders_d04,
+                AVG(schroders_d05_score) as schroders_d05,
+                AVG(schroders_d06_score) as schroders_d06,
+                AVG(schroders_d07_score) as schroders_d07,
+                AVG(schroders_d08_score) as schroders_d08,
+                AVG(schroders_d09_score) as schroders_d09,
+                AVG(schroders_d10_score) as schroders_d10,
+                AVG(schroders_d11_score) as schroders_d11,
+                AVG(schroders_d12_score) as schroders_d12,
+                AVG(schroders_d13_score) as schroders_d13,
+                AVG(schroders_d14_score) as schroders_d14,
+                AVG(schroders_d15_score) as schroders_d15,
+                AVG(schroders_d16_score) as schroders_d16,
+                AVG(schroders_d17_score) as schroders_d17,
+                AVG(schroders_d18_score) as schroders_d18,
+                COUNT(CASE WHEN schroders_d01_score IS NOT NULL THEN 1 END) as schroders_d01_count,
+                COUNT(CASE WHEN schroders_d02_score IS NOT NULL THEN 1 END) as schroders_d02_count,
+                COUNT(CASE WHEN schroders_d03_score IS NOT NULL THEN 1 END) as schroders_d03_count,
+                COUNT(CASE WHEN schroders_d04_score IS NOT NULL THEN 1 END) as schroders_d04_count,
+                COUNT(CASE WHEN schroders_d05_score IS NOT NULL THEN 1 END) as schroders_d05_count,
+                COUNT(CASE WHEN schroders_d06_score IS NOT NULL THEN 1 END) as schroders_d06_count,
+                COUNT(CASE WHEN schroders_d07_score IS NOT NULL THEN 1 END) as schroders_d07_count,
+                COUNT(CASE WHEN schroders_d08_score IS NOT NULL THEN 1 END) as schroders_d08_count,
+                COUNT(CASE WHEN schroders_d09_score IS NOT NULL THEN 1 END) as schroders_d09_count,
+                COUNT(CASE WHEN schroders_d10_score IS NOT NULL THEN 1 END) as schroders_d10_count,
+                COUNT(CASE WHEN schroders_d11_score IS NOT NULL THEN 1 END) as schroders_d11_count,
+                COUNT(CASE WHEN schroders_d12_score IS NOT NULL THEN 1 END) as schroders_d12_count,
+                COUNT(CASE WHEN schroders_d13_score IS NOT NULL THEN 1 END) as schroders_d13_count,
+                COUNT(CASE WHEN schroders_d14_score IS NOT NULL THEN 1 END) as schroders_d14_count,
+                COUNT(CASE WHEN schroders_d15_score IS NOT NULL THEN 1 END) as schroders_d15_count,
+                COUNT(CASE WHEN schroders_d16_score IS NOT NULL THEN 1 END) as schroders_d16_count,
+                COUNT(CASE WHEN schroders_d17_score IS NOT NULL THEN 1 END) as schroders_d17_count,
+                COUNT(CASE WHEN schroders_d18_score IS NOT NULL THEN 1 END) as schroders_d18_count
             {culture_join}
         """, (company_name,))
         
@@ -594,6 +647,25 @@ def get_company_metrics(company_name, employee_filter='all'):
             for dim in MIT_DIMENSIONS:
                 mit_avg[dim] = {'value': 0, 'confidence': 0, 'confidence_level': 'Low', 'total_evidence': 0}
         
+        schroders_avg = {}
+        if culture_result and scored_review_count > 0:
+            for dim in SCHRODERS_DIMENSIONS:
+                db_col = f'schroders_{dim}'
+                value = culture_result.get(db_col)
+                count = culture_result.get(f'{db_col}_count', 0)
+                if value is not None and count > 0:
+                    schroders_avg[dim] = {
+                        'value': round(float(value), 4),
+                        'confidence': 0,
+                        'confidence_level': 'High' if count >= MIN_REVIEWS_FOR_HIGH_CONFIDENCE else 'Medium' if count >= MIN_REVIEWS_FOR_MEDIUM_CONFIDENCE else 'Low',
+                        'total_evidence': count
+                    }
+                else:
+                    schroders_avg[dim] = {'value': 0, 'confidence': 0, 'confidence_level': 'Low', 'total_evidence': 0}
+        else:
+            for dim in SCHRODERS_DIMENSIONS:
+                schroders_avg[dim] = {'value': 0, 'confidence': 0, 'confidence_level': 'Low', 'total_evidence': 0}
+        
         metrics = {
             'company_name': company_name,
             'total_reviews': review_count,
@@ -606,7 +678,8 @@ def get_company_metrics(company_name, employee_filter='all'):
             'recommend_percentage': recommend_pct,
             'ceo_approval': ceo_avg,
             'hofstede': hofstede_avg,
-            'mit_big_9': mit_avg
+            'mit_big_9': mit_avg,
+            'schroders': schroders_avg
         }
         
         metrics = calculate_relative_confidence(metrics)
@@ -892,7 +965,9 @@ def invalidate_cache(company_name=None):
 @app.route('/', methods=['GET'])
 def index():
     """Serve the main dashboard"""
-    return render_template('index.html')
+    return render_template('index.html',
+                           schroders_dimensions=SCHRODERS_DIMENSIONS,
+                           schroders_dim_info=SCHRODERS_DIM_INFO)
 
 
 @app.route('/api/warm-cache', methods=['POST'])
@@ -1961,11 +2036,21 @@ def get_culture_profile(company_name):
                 'confidence_level': data.get('confidence_level')
             }
         
+        # Schroders: bipolar [-1, +1], same shape as Hofstede
+        schroders_response = {}
+        for dim, data in metrics.get('schroders', {}).items():
+            schroders_response[dim] = {
+                'value': data.get('value'),
+                'confidence': int(data.get('confidence_score', 0)),
+                'confidence_level': data.get('confidence_level')
+            }
+
         return jsonify({
             'success': True,
             'company_name': metrics['company_name'],
             'hofstede': hofstede_response,
             'mit': mit_response,
+            'schroders': schroders_response,
             'metadata': {
                 'review_count': metrics['total_reviews'],
                 'overall_rating': metrics['overall_rating'],
@@ -2225,6 +2310,7 @@ def get_industry_average():
         
         hofstede_avg = {dim: [] for dim in HOFSTEDE_DIMENSIONS}
         mit_avg = {dim: [] for dim in MIT_DIMENSIONS}
+        schroders_avg = {dim: [] for dim in SCHRODERS_DIMENSIONS}
         total_reviews = 0
         all_company_metrics = []
         
@@ -2244,9 +2330,14 @@ def get_industry_average():
                 for dim in MIT_DIMENSIONS:
                     val = metrics.get('mit_big_9', {}).get(dim, {}).get('value', 0)
                     mit_avg[dim].append(val)
+                for dim in SCHRODERS_DIMENSIONS:
+                    val = metrics.get('schroders', {}).get(dim, {}).get('value')
+                    if val is not None:
+                        schroders_avg[dim].append(val)
         
         hofstede_result = {}
         mit_result = {}
+        schroders_result = {}
         
         # Get max evidence values for normalization
         hofstede_max_evidence = {}
@@ -2284,6 +2375,14 @@ def get_industry_average():
                     'confidence_level': 'High' if avg_confidence >= 50 else 'Medium' if avg_confidence >= 25 else 'Low'
                 }
         
+        # Schroders industry average (bipolar -1..+1, like Hofstede)
+        for dim in SCHRODERS_DIMENSIONS:
+            if schroders_avg[dim]:
+                avg_val = mean(schroders_avg[dim])
+                conf_vals = [m.get('schroders', {}).get(dim, {}).get('confidence_score', 0) or 0 for m in all_company_metrics if m.get('schroders', {}).get(dim)]
+                avg_confidence = mean(conf_vals) if conf_vals else 0
+                schroders_result[dim] = {'value': round(avg_val, 3), 'confidence': round(avg_confidence, 1), 'confidence_level': 'High' if avg_confidence >= 50 else 'Medium' if avg_confidence >= 25 else 'Low'}
+        
         # Calculate overall average confidence
         all_hof_conf = [v.get('confidence', 0) for v in hofstede_result.values()]
         all_mit_conf = [v.get('confidence', 0) for v in mit_result.values()]
@@ -2294,6 +2393,7 @@ def get_industry_average():
             'company_name': f'{gics_value} Average' if gics_value else 'Industry Average',
             'hofstede': hofstede_result,
             'mit': mit_result,
+            'schroders': schroders_result,
             'sector': gics_value,
             'metadata': {
                 'review_count': total_reviews,
@@ -2880,7 +2980,8 @@ def get_performance_correlation():
                 culture_data.append({
                     'company': company,
                     'hofstede': metrics.get('hofstede', {}),
-                    'mit': metrics.get('mit_big_9', {})
+                    'mit': metrics.get('mit_big_9', {}),
+                    'schroders': metrics.get('schroders', {})
                 })
             
             perf_metrics = _get_perf_metrics_with_fmp_fallback(company, fmp_perf_map)
@@ -3026,6 +3127,7 @@ def get_company_analysis(company_name):
         
         hofstede_avg = {dim: [] for dim in HOFSTEDE_DIMENSIONS}
         mit_avg = {dim: [] for dim in MIT_DIMENSIONS}
+        schroders_avg = {dim: [] for dim in SCHRODERS_DIMENSIONS}
         
         for name in company_names:
             m = cached_map.get(name)   # cache-only — no live DB fallback
@@ -3036,9 +3138,14 @@ def get_company_analysis(company_name):
                 for dim in MIT_DIMENSIONS:
                     val = m.get('mit_big_9', {}).get(dim, {}).get('value', 0)
                     mit_avg[dim].append(val)
+                for dim in SCHRODERS_DIMENSIONS:
+                    val = m.get('schroders', {}).get(dim, {}).get('value')
+                    if val is not None:
+                        schroders_avg[dim].append(val)
         
         industry_hofstede = {}
         industry_mit = {}
+        industry_schroders = {}
         
         for dim in HOFSTEDE_DIMENSIONS:
             if hofstede_avg[dim]:
@@ -3050,6 +3157,10 @@ def get_company_analysis(company_name):
                 raw_avg = mean(mit_avg[dim])
                 max_val = mit_max_values.get(dim, 1)
                 industry_mit[dim] = round(10 * (raw_avg / max_val), 2) if max_val > 0 else 0
+        
+        for dim in SCHRODERS_DIMENSIONS:
+            if schroders_avg[dim]:
+                industry_schroders[dim] = round(mean(schroders_avg[dim]), 3)
         
         if not performance_analyzer.loaded:
             performance_analyzer.load_data()
@@ -3065,7 +3176,8 @@ def get_company_analysis(company_name):
                 culture_data.append({
                     'company': name,
                     'hofstede': m.get('hofstede', {}),
-                    'mit': m.get('mit_big_9', {})
+                    'mit': m.get('mit_big_9', {}),
+                    'schroders': m.get('schroders', {})
                 })
             perf_metrics = _get_perf_metrics_with_fmp_fallback(name, fmp_perf_map_ca)
             if _has_financial_metrics(perf_metrics):
@@ -3080,9 +3192,11 @@ def get_company_analysis(company_name):
         # Structure: correlations['hofstede'][dim]['composite_score']['correlation']
         hofstede_correlations = {}
         mit_correlations = {}
+        schroders_correlations = {}
         
         hofstede_corr_data = correlations.get('hofstede', {})
         mit_corr_data = correlations.get('mit', {})
+        schroders_corr_data = correlations.get('schroders', {})
         
         for dim in HOFSTEDE_DIMENSIONS:
             dim_data = hofstede_corr_data.get(dim, {}).get('composite_score', {})
@@ -3090,10 +3204,14 @@ def get_company_analysis(company_name):
         for dim in MIT_DIMENSIONS:
             dim_data = mit_corr_data.get(dim, {}).get('composite_score', {})
             mit_correlations[dim] = dim_data.get('correlation', 0) if isinstance(dim_data, dict) else 0
+        for dim in SCHRODERS_DIMENSIONS:
+            dim_data = schroders_corr_data.get(dim, {}).get('composite_score', {})
+            schroders_correlations[dim] = dim_data.get('correlation', 0) if isinstance(dim_data, dict) else 0
         
         # Format company scores
         company_hofstede = {}
         company_mit = {}
+        company_schroders = {}
         
         for dim in HOFSTEDE_DIMENSIONS:
             company_hofstede[dim] = metrics.get('hofstede', {}).get(dim, {}).get('value', 0)
@@ -3102,6 +3220,9 @@ def get_company_analysis(company_name):
             raw_val = metrics.get('mit_big_9', {}).get(dim, {}).get('value', 0)
             max_val = mit_max_values.get(dim, 1)
             company_mit[dim] = round(10 * (raw_val / max_val), 2) if max_val > 0 else 0
+        
+        for dim in SCHRODERS_DIMENSIONS:
+            company_schroders[dim] = metrics.get('schroders', {}).get(dim, {}).get('value')
         
         # Calculate culture scores: Σ(correlation × deviation from industry average)
         # Positive score = culture dimensions positively aligned with performance
@@ -3151,16 +3272,39 @@ def get_company_analysis(company_name):
         
         mit_confidence = (mit_weighted_conf_sum / mit_weight_sum * 100) if mit_weight_sum > 0 else 0
         
-        # Combined score is sum of both (Hofstede is -1 to +1 scale, MIT is 0-10 scale)
-        # Scale Hofstede to match MIT magnitude roughly (multiply by 5)
-        combined_score = (hofstede_score * 5) + mit_score
+        schroders_score = 0.0
+        schroders_weighted_conf_sum = 0.0
+        schroders_weight_sum = 0.0
         
-        # Combined confidence: weighted average of Hofstede and MIT confidences
-        total_weight = hofstede_weight_sum + mit_weight_sum
+        for dim in SCHRODERS_DIMENSIONS:
+            company_val = company_schroders.get(dim)
+            if company_val is None:
+                continue
+            industry_val = industry_schroders.get(dim, 0)
+            correlation = schroders_correlations.get(dim, 0)
+            deviation = company_val - industry_val
+            schroders_score += correlation * deviation
+            
+            conf_score = metrics.get('schroders', {}).get(dim, {}).get('confidence_score', 0) or 0
+            conf_normalized = conf_score / 100.0
+            
+            weight = abs(correlation)
+            schroders_weighted_conf_sum += conf_normalized * weight
+            schroders_weight_sum += weight
+        
+        schroders_confidence = (schroders_weighted_conf_sum / schroders_weight_sum * 100) if schroders_weight_sum > 0 else 0
+        
+        # Combined score sums all three frameworks. Hofstede and Schroders are -1..+1
+        # (scaled ×5 to match MIT's 0-10 magnitude); MIT is already 0-10.
+        combined_score = (hofstede_score * 5) + mit_score + (schroders_score * 5)
+        
+        # Combined confidence: weighted average across all three frameworks
+        total_weight = hofstede_weight_sum + mit_weight_sum + schroders_weight_sum
         if total_weight > 0:
             combined_confidence = (
                 (hofstede_confidence * hofstede_weight_sum) + 
-                (mit_confidence * mit_weight_sum)
+                (mit_confidence * mit_weight_sum) +
+                (schroders_confidence * schroders_weight_sum)
             ) / total_weight
         else:
             combined_confidence = 0
@@ -3171,22 +3315,27 @@ def get_company_analysis(company_name):
             'sector': gics_value,
             'company': {
                 'hofstede': company_hofstede,
-                'mit': company_mit
+                'mit': company_mit,
+                'schroders': company_schroders
             },
             'industry_average': {
                 'hofstede': industry_hofstede,
-                'mit': industry_mit
+                'mit': industry_mit,
+                'schroders': industry_schroders
             },
             'correlations': {
                 'hofstede': hofstede_correlations,
-                'mit': mit_correlations
+                'mit': mit_correlations,
+                'schroders': schroders_correlations
             },
             'culture_scores': {
                 'hofstede': round(hofstede_score, 3),
                 'mit': round(mit_score, 3),
+                'schroders': round(schroders_score, 3),
                 'combined': round(combined_score, 3),
                 'hofstede_confidence': round(hofstede_confidence, 1),
                 'mit_confidence': round(mit_confidence, 1),
+                'schroders_confidence': round(schroders_confidence, 1),
                 'combined_confidence': round(combined_confidence, 1)
             },
             'metadata': {
@@ -3490,6 +3639,15 @@ def get_culture_performance_scatter():
         
         industry_hofstede = {dim: mean(vals) if vals else 0 for dim, vals in hofstede_avg.items()}
         industry_mit = {dim: mean(vals) if vals else 0 for dim, vals in mit_avg.items()}
+        schroders_avg = {dim: [] for dim in SCHRODERS_DIMENSIONS}
+        for name in company_names:
+            m = all_metrics.get(name)
+            if m:
+                for dim in SCHRODERS_DIMENSIONS:
+                    val = m.get('schroders', {}).get(dim, {}).get('value')
+                    if val is not None:
+                        schroders_avg[dim].append(val)
+        industry_schroders = {dim: mean(vals) if vals else 0 for dim, vals in schroders_avg.items()}
         
         # Load FMP performance data once (used in both loops below)
         fmp_perf_map = _load_fmp_perf_map()
@@ -3505,7 +3663,8 @@ def get_culture_performance_scatter():
                 culture_data.append({
                     'company': name,
                     'hofstede': m.get('hofstede', {}),
-                    'mit': m.get('mit_big_9', {})
+                    'mit': m.get('mit_big_9', {}),
+                    'schroders': m.get('schroders', {})
                 })
             perf_metrics = _get_perf_metrics_with_fmp_fallback(name, fmp_perf_map)
             if _has_financial_metrics(perf_metrics):
@@ -3519,9 +3678,11 @@ def get_culture_performance_scatter():
         # Extract correlations
         hofstede_correlations = {}
         mit_correlations = {}
+        schroders_correlations = {}
         
         hofstede_corr_data = correlations.get('hofstede', {})
         mit_corr_data = correlations.get('mit', {})
+        schroders_corr_data = correlations.get('schroders', {})
         
         for dim in HOFSTEDE_DIMENSIONS:
             dim_data = hofstede_corr_data.get(dim, {}).get('composite_score', {})
@@ -3529,6 +3690,9 @@ def get_culture_performance_scatter():
         for dim in MIT_DIMENSIONS:
             dim_data = mit_corr_data.get(dim, {}).get('composite_score', {})
             mit_correlations[dim] = dim_data.get('correlation', 0) if isinstance(dim_data, dict) else 0
+        for dim in SCHRODERS_DIMENSIONS:
+            dim_data = schroders_corr_data.get(dim, {}).get('composite_score', {})
+            schroders_correlations[dim] = dim_data.get('correlation', 0) if isinstance(dim_data, dict) else 0
 
         mit_max_values = get_mit_max_values(company_names)
         companies_data = []
@@ -3611,16 +3775,41 @@ def get_culture_performance_scatter():
             
             mit_confidence = (mit_weighted_conf_sum / mit_weight_sum * 100) if mit_weight_sum > 0 else 0
             
-            # Combined score (scale Hofstede to match MIT magnitude)
-            combined_score = (hofstede_score * 5) + mit_score
+            # Calculate Schroders company score and weighted confidence
+            schroders_score = 0.0
+            schroders_weighted_conf_sum = 0.0
+            schroders_weight_sum = 0.0
             
-            # Combined confidence: weighted average of Hofstede and MIT confidences
+            for dim in SCHRODERS_DIMENSIONS:
+                dim_data = metrics.get('schroders', {}).get(dim, {})
+                company_val = dim_data.get('value')
+                if company_val is None:
+                    continue
+                conf_score = dim_data.get('confidence_score', 0) or 0
+                conf_normalized = conf_score / 100.0
+                
+                industry_val = industry_schroders.get(dim, 0)
+                correlation = schroders_correlations.get(dim, 0)
+                deviation = company_val - industry_val
+                schroders_score += correlation * deviation
+                
+                weight = abs(correlation)
+                schroders_weighted_conf_sum += conf_normalized * weight
+                schroders_weight_sum += weight
+            
+            schroders_confidence = (schroders_weighted_conf_sum / schroders_weight_sum * 100) if schroders_weight_sum > 0 else 0
+            
+            # Combined score (scale Hofstede and Schroders to match MIT magnitude)
+            combined_score = (hofstede_score * 5) + mit_score + (schroders_score * 5)
+            
+            # Combined confidence: weighted average across all three frameworks
             # Weight by total correlation weights from each framework
-            total_weight = hofstede_weight_sum + mit_weight_sum
+            total_weight = hofstede_weight_sum + mit_weight_sum + schroders_weight_sum
             if total_weight > 0:
                 combined_confidence = (
                     (hofstede_confidence * hofstede_weight_sum) + 
-                    (mit_confidence * mit_weight_sum)
+                    (mit_confidence * mit_weight_sum) +
+                    (schroders_confidence * schroders_weight_sum)
                 ) / total_weight
             else:
                 combined_confidence = 0
@@ -3639,12 +3828,15 @@ def get_culture_performance_scatter():
                 'business_model': business_model,
                 'hofstede_score': round(hofstede_score, 3),
                 'mit_score': round(mit_score, 3),
+                'schroders_score': round(schroders_score, 3),
                 'combined_score': round(combined_score, 3),
                 'hofstede_confidence': round(hofstede_confidence, 1),
                 'mit_confidence': round(mit_confidence, 1),
+                'schroders_confidence': round(schroders_confidence, 1),
                 'combined_confidence': round(combined_confidence, 1),
                 'hofstede_confidence_level': get_confidence_level(hofstede_confidence),
                 'mit_confidence_level': get_confidence_level(mit_confidence),
+                'schroders_confidence_level': get_confidence_level(schroders_confidence),
                 'combined_confidence_level': get_confidence_level(combined_confidence),
                 'composite_performance': round(composite_score, 1)
             })
@@ -4437,11 +4629,35 @@ def init_culture_scores_table():
                 integrity_score REAL,
                 performance_score REAL,
                 respect_score REAL,
+                schroders_d01_score REAL,
+                schroders_d02_score REAL,
+                schroders_d03_score REAL,
+                schroders_d04_score REAL,
+                schroders_d05_score REAL,
+                schroders_d06_score REAL,
+                schroders_d07_score REAL,
+                schroders_d08_score REAL,
+                schroders_d09_score REAL,
+                schroders_d10_score REAL,
+                schroders_d11_score REAL,
+                schroders_d12_score REAL,
+                schroders_d13_score REAL,
+                schroders_d14_score REAL,
+                schroders_d15_score REAL,
+                schroders_d16_score REAL,
+                schroders_d17_score REAL,
+                schroders_d18_score REAL,
                 scoring_method VARCHAR(50),
                 confidence_level VARCHAR(20),
                 scored_at TIMESTAMP DEFAULT NOW()
             )
         """)
+        # Add Schroders columns to pre-existing tables (idempotent)
+        for _i in range(1, 19):
+            cursor.execute(
+                f"ALTER TABLE review_culture_scores "
+                f"ADD COLUMN IF NOT EXISTS schroders_d{_i:02d}_score REAL"
+            )
         conn.commit()
         cursor.close()
         conn.close()
