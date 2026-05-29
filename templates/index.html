@@ -1550,10 +1550,11 @@
                 <div style="margin-bottom: 2rem; padding: 1.25rem; background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 10px;">
                     <h3 style="color: #0369a1; margin-bottom: 0.5rem; font-size: 1rem; font-weight: 600;">Culture Score Processing</h3>
                     <p style="color: #0c4a6e; font-size: 0.85rem; margin-bottom: 1rem;">
-                        Processes extracted review text through the Hofstede and MIT Big 9 keyword analysis to generate culture dimension scores. Run this after extraction to ensure all companies have scores.
+                        Processes extracted review text through the Hofstede, MIT Big 9 and Schroders keyword analysis to generate culture dimension scores. "Process Culture Scores" only scores reviews that have no scores yet. To back-fill newly added dimensions (e.g. Schroders) onto reviews scored earlier, use "Re-score everything" — it clears existing scores first, then re-processes every company. Scoring is local keyword matching; no external API calls are made.
                     </p>
                     <div style="display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; margin-bottom: 1rem;">
                         <button id="btnScoreReviews" onclick="startScoringBatch()" style="padding: 0.625rem 1.5rem; background: #0ea5e9; color: white; border: none; border-radius: 8px; font-size: 0.875rem; font-weight: 600; cursor: pointer;">Process Culture Scores</button>
+                        <button id="btnRescoreAll" onclick="startFullRescore()" style="padding: 0.625rem 1.5rem; background: #f97316; color: white; border: none; border-radius: 8px; font-size: 0.875rem; font-weight: 600; cursor: pointer;">Re-score everything (clears old scores first)</button>
                         <button id="btnStopScoring" onclick="stopScoring()" style="padding: 0.625rem 1.5rem; background: #ef4444; color: white; border: none; border-radius: 8px; font-size: 0.875rem; font-weight: 600; cursor: pointer; display: none;">Stop</button>
                         <span id="scoringStatusText" style="color: #0369a1; font-size: 0.875rem;"></span>
                     </div>
@@ -5012,6 +5013,51 @@
 
         function stopScoring() {
             scoringActive = false;
+        }
+
+        async function startFullRescore() {
+            const ok = confirm(
+                'Re-score everything?\n\n' +
+                'This will DELETE all existing culture scores and then re-process every company ' +
+                'from scratch (needed to back-fill the Schroders dimensions onto older reviews).\n\n' +
+                '• No external API calls are made — it only re-reads review text already in the database.\n' +
+                '• This can take a while for the full dataset.\n' +
+                '• While it runs, the dashboard will show partial culture data until each company finishes.\n\n' +
+                'Continue?'
+            );
+            if (!ok) return;
+
+            const rescoreBtn = document.getElementById('btnRescoreAll');
+            const scoreBtn = document.getElementById('btnScoreReviews');
+            const statusEl = document.getElementById('scoringStatusText');
+            rescoreBtn.disabled = true;
+            scoreBtn.disabled = true;
+            rescoreBtn.style.opacity = '0.6';
+            scoreBtn.style.opacity = '0.6';
+            statusEl.textContent = 'Clearing existing scores...';
+
+            try {
+                const r = await fetch('/api/clear-all-scores', { method: 'POST' });
+                const d = await r.json();
+                if (!d.success) {
+                    statusEl.textContent = 'Error clearing scores: ' + (d.error || 'unknown');
+                    rescoreBtn.disabled = false; scoreBtn.disabled = false;
+                    rescoreBtn.style.opacity = '1'; scoreBtn.style.opacity = '1';
+                    return;
+                }
+                statusEl.textContent = (d.message || 'Scores cleared.') + ' Starting re-scoring...';
+            } catch(e) {
+                statusEl.textContent = 'Error clearing scores: ' + e.message;
+                rescoreBtn.disabled = false; scoreBtn.disabled = false;
+                rescoreBtn.style.opacity = '1'; scoreBtn.style.opacity = '1';
+                return;
+            } finally {
+                rescoreBtn.disabled = false; scoreBtn.disabled = false;
+                rescoreBtn.style.opacity = '1'; scoreBtn.style.opacity = '1';
+            }
+
+            // Re-use the existing batch loop to process every (now-unscored) company
+            startScoringBatch();
         }
 
         loadGicsHierarchy();

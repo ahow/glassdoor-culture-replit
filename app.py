@@ -1206,6 +1206,37 @@ def score_unscored_reviews():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+@app.route('/api/clear-all-scores', methods=['POST'])
+def clear_all_scores():
+    """Delete ALL cached culture scores so every review can be re-scored from scratch.
+    Used to back-fill newly added dimensions (e.g. Schroders) onto reviews that were
+    scored before those columns existed. No external API calls — purely a DB reset.
+    After this, the standard 'Process Culture Scores' loop will re-score everything."""
+    try:
+        conn = get_db_connection()
+        if not conn:
+            return jsonify({'success': False, 'error': 'Database connection failed'}), 500
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM review_culture_scores")
+        deleted = cursor.rowcount
+        conn.commit()
+        cursor.close()
+        conn.close()
+        # Wipe derived caches so the dashboard reflects the cleared state
+        invalidate_cache()
+        _mit_max_values_cache.clear()
+        _mit_max_values_by_sector.clear()
+        logger.info(f"Cleared all culture scores: {deleted} rows deleted")
+        return jsonify({
+            'success': True,
+            'deleted': deleted,
+            'message': f'Cleared {deleted:,} scored reviews. Run scoring to re-process all companies.'
+        })
+    except Exception as e:
+        logger.error(f"Error clearing all scores: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 @app.route('/api/data-status', methods=['GET'])
 def data_status():
     """Return extraction progress for reviews, culture scoring, and FMP data."""
