@@ -5525,6 +5525,9 @@
                         document.getElementById('incrementalStatusText').textContent = 'Already running.';
                     } else if (data.status === 'error') {
                         document.getElementById('incrementalStatusText').textContent = 'Error: ' + (data.error || 'unknown');
+                    } else if (data.status === 'queued') {
+                        document.getElementById('incrementalStatusText').textContent = 'Queued — the worker will start shortly…';
+                        setIncrementalRunning(true);
                     } else {
                         setIncrementalRunning(true);
                     }
@@ -5558,7 +5561,7 @@
                     .then(r => r.json())
                     .then(data => {
                         renderIncrementalStatus(data);
-                        if (data.state === 'running' || data.state === 'stopping') {
+                        if (data.state === 'running' || data.state === 'stopping' || data.state === 'queued') {
                             pollIncrementalStatus();
                         }
                     })
@@ -5585,13 +5588,14 @@
             const fillEl    = document.getElementById('incrementalProgressFill');
             const statsEl   = document.getElementById('incrementalStats');
 
-            const isRunning  = state === 'running' || state === 'stopping';
+            const isRunning  = state === 'running' || state === 'stopping' || state === 'queued';
             setIncrementalRunning(isRunning);
             document.getElementById('incrementalProgressBar').style.display =
                 (isRunning || state === 'completed' || state === 'interrupted') ? '' : 'none';
 
             const stateLabels = {
                 idle:        'Idle — not started',
+                queued:      'Queued — worker starting…',
                 running:     'Running…',
                 stopping:    'Stopping after current company…',
                 stopped:     'Stopped by user',

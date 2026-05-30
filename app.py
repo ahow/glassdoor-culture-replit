@@ -4952,5 +4952,25 @@ def _startup_warm_trend_caches():
 
 _threading_module.Thread(target=_startup_warm_trend_caches, daemon=True).start()
 
+
+# Self-heal: if an incremental update was interrupted by a dyno restart, resume
+# it automatically so the user does not have to click "Update All Companies"
+# again. In worker-dyno mode this is skipped — the worker process owns resume.
+def _startup_auto_resume_incremental():
+    import time as _t
+    _t.sleep(20)   # let the app settle and DB connections be ready
+    try:
+        if os.environ.get('USE_WORKER', '').lower() in ('true', '1', 'yes'):
+            return  # the dedicated worker dyno handles resume
+        from extraction_manager import IncrementalUpdateManager
+        mgr = IncrementalUpdateManager.get_instance()
+        res = mgr.auto_resume_if_interrupted()
+        if res.get('status') in ('resumed', 'started'):
+            logger.info(f"Startup: auto-resumed incremental update — {res}")
+    except Exception as e:
+        logger.warning(f"Startup auto-resume of incremental update failed: {e}")
+
+_threading_module.Thread(target=_startup_auto_resume_incremental, daemon=True).start()
+
 if __name__ == '__main__':
     app.run(debug=False, host='0.0.0.0', port=int(os.environ.get('FLASK_PORT', os.environ.get('PORT', 8080))))

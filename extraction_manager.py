@@ -24,6 +24,24 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# ── Worker-process awareness ─────────────────────────────────────────────────
+# USE_WORKER (env) = a dedicated Heroku "worker" dyno is handling long jobs.
+# _IS_WORKER_PROCESS = this very process IS that worker dyno (set at its startup).
+# Together these let the web process delegate long jobs to the worker and avoid
+# clobbering the worker-owned run state when the web dyno itself restarts.
+_IS_WORKER_PROCESS = False
+
+
+def set_worker_process(flag=True):
+    """Called once at the start of the worker dyno process."""
+    global _IS_WORKER_PROCESS
+    _IS_WORKER_PROCESS = flag
+
+
+def _worker_mode_enabled():
+    return os.environ.get('USE_WORKER', '').lower() in ('true', '1', 'yes')
+
+
 OPENWEB_BASE_URL = "https://api.openwebninja.com/realtime-glassdoor-data"
 RAPIDAPI_HOST = "real-time-glassdoor-data.p.rapidapi.com"
 RAPIDAPI_BASE_URL = f"https://{RAPIDAPI_HOST}"
@@ -1017,12 +1035,22 @@ class IncrementalUpdateManager:
     def _reset_stale_running_state(self):
         """If the DB shows 'running' but we have no active thread (e.g. after a
         dyno restart), mark the state as 'interrupted' so the UI reflects
-        reality and the user can resume."""
+        reality and the run can resume."""
         try:
+            # In worker mode, only the worker dyno owns the running state. The
+            # web process restarts often (deploys, idle-sleep) and must NOT flip
+            # a run the worker is actively driving to 'interrupted'.
+            if _worker_mode_enabled() and not _IS_WORKER_PROCESS:
+                return
             state = self._get_state()
             if state == 'running':
                 self._set_state('interrupted', last_error='Interrupted by server restart — click Update All Companies to resume')
                 logger.warning("Incremental update was in 'running' state at startup with no active thread — marked as interrupted")
+            elif state == 'stopping':
+                # A stop was requested but the process died before finalising.
+                # Honour the stop intent rather than wedging forever in 'stopping'.
+                self._set_state('stopped', current_company=None)
+                logger.warning("Incremental update was 'stopping' at startup with no active thread — marked as stopped")
         except Exception as e:
             logger.error(f"Error resetting stale running state: {e}")
 
@@ -1061,6 +1089,30 @@ class IncrementalUpdateManager:
             conn.close()
         except Exception as e:
             logger.error(f"Error setting incremental state: {e}")
+
+    def _claim_for_run(self):
+        """Atomically transition from a resumable state to 'running' so only one
+        executor (a web thread or the worker dyno) can ever start a given run.
+        Prevents duplicate runs / double paid-API spend if two callers race.
+        Returns True if this caller won the claim."""
+        try:
+            conn = get_db_connection()
+            cur = conn.cursor()
+            cur.execute("""
+                UPDATE incremental_update_status
+                SET state = 'running', updated_at = NOW()
+                WHERE id = 1
+                  AND state IN ('idle','queued','interrupted','completed','stopped','error')
+                RETURNING 1
+            """)
+            claimed = cur.fetchone() is not None
+            conn.commit()
+            cur.close()
+            conn.close()
+            return claimed
+        except Exception as e:
+            logger.error(f"Error claiming incremental run: {e}")
+            return False
 
     # ── Public API ───────────────────────────────────────────────────────────
 
@@ -1102,22 +1154,50 @@ class IncrementalUpdateManager:
         except Exception as e:
             return {'state': 'error', 'error': str(e)}
 
-    def start(self):
+    def start(self, _from_worker=False):
         state = self._get_state()
         if state == 'running':
             return {'status': 'already_running'}
 
-        # Determine whether to resume from a previous interrupted run
+        # Worker-mode: the web process only QUEUES the request; the dedicated
+        # worker dyno actually executes it (and survives web-dyno restarts).
+        if _worker_mode_enabled() and not _from_worker:
+            if state in ('interrupted', 'queued'):
+                # Preserve any resume context; just (re)signal intent.
+                self._set_state('queued', last_error=None)
+            else:
+                self._set_state(
+                    'queued',
+                    started_at=datetime.now(),
+                    total_companies=0,
+                    companies_done=0,
+                    new_reviews_total=0,
+                    current_company=None,
+                    last_error=None,
+                )
+            logger.info("Incremental update queued for worker dyno")
+            return {'status': 'queued'}
+
+        # Atomically claim the run (state -> 'running') so two racing callers
+        # can't both spawn a run. current_company/companies_done are preserved by
+        # the claim, so the resume lookup below still works.
+        if not self._claim_for_run():
+            return {'status': 'already_running'}
+
+        # Determine whether to resume from a previously interrupted/queued run.
+        # We key off current_company: if set, resume from there; otherwise the
+        # request is fresh and we process every company.
         resume_from = None
         resume_done = 0
         resume_new  = 0
-        if state == 'interrupted':
+        if state in ('interrupted', 'queued'):
             try:
                 status = self.get_status()
-                resume_from = status.get('current_company')
-                resume_done = status.get('companies_done', 0)
-                resume_new  = status.get('new_reviews_total', 0)
-                if resume_from:
+                cc = status.get('current_company')
+                if cc:
+                    resume_from = cc
+                    resume_done = status.get('companies_done', 0)
+                    resume_new  = status.get('new_reviews_total', 0)
                     logger.info(f"Resuming incremental update from '{resume_from}' "
                                 f"(already done: {resume_done})")
             except Exception:
@@ -1155,9 +1235,13 @@ class IncrementalUpdateManager:
             cur.close()
             conn.close()
         except Exception as e:
+            # Release the claim so the run isn't left stuck in 'running'.
+            self._set_state('error', last_error=str(e)[:200], current_company=None)
             return {'status': 'error', 'error': str(e)}
 
         if not companies:
+            self._set_state('error', last_error='No companies with known Glassdoor IDs found',
+                            current_company=None)
             return {'status': 'error', 'error': 'No companies with known Glassdoor IDs found'}
 
         # Total is full count (not just remaining) when resuming
@@ -1188,16 +1272,34 @@ class IncrementalUpdateManager:
 
     def stop(self):
         state = self._get_state()
+        # A queued (worker-mode) request that hasn't started yet → cancel outright
+        if state == 'queued':
+            self._set_state('stopped', current_company=None)
+            logger.info("Incremental update cancelled before it started")
+            return {'status': 'stopped'}
         if state not in ('running', 'stopping'):
             return {'status': 'not_running'}
-        # If no live thread exists (e.g. after a dyno restart), mark stopped immediately
-        if self._thread is None or not self._thread.is_alive():
+        # In worker mode the run lives in another process — signal via DB state.
+        # If no live local thread exists (e.g. after a dyno restart), the
+        # worker/loop will pick up 'stopping' and finalise; mark stopped only
+        # when we know nothing is driving it here and we are not in worker mode.
+        if not _worker_mode_enabled() and (self._thread is None or not self._thread.is_alive()):
             self._set_state('stopped', current_company=None)
             logger.info("Incremental update stopped (no active thread)")
             return {'status': 'stopped'}
         self._set_state('stopping')
         logger.info("Incremental update stop requested")
         return {'status': 'stopping'}
+
+    def auto_resume_if_interrupted(self):
+        """Resume an incremental run that was interrupted by a restart.
+        Used by the web dyno's startup hook (non-worker mode) so the job
+        self-heals without a manual click."""
+        state = self._get_state()
+        if state == 'interrupted':
+            logger.info("Auto-resuming interrupted incremental update after restart")
+            return self.start()
+        return {'status': 'noop', 'state': state}
 
     # ── Background worker ────────────────────────────────────────────────────
 

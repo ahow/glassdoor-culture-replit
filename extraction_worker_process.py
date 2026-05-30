@@ -24,6 +24,12 @@ POLL_INTERVAL = 10
 AUTO_RESUME_DELAY = 30
 HEARTBEAT_INTERVAL = 60
 
+# Safety gate: the queue holds thousands of 'pending' companies whose full
+# extraction costs paid API calls. Do NOT auto-start that just because a worker
+# dyno came online — only when explicitly enabled. Explicit "Start extraction"
+# from the dashboard still works (it sets command='running').
+AUTO_EXTRACT_ENABLED = os.environ.get('WORKER_AUTO_EXTRACT', '').lower() in ('true', '1', 'yes')
+
 shutdown_requested = False
 
 
@@ -92,6 +98,38 @@ def has_pending_work():
         return False
 
 
+def get_incremental_state():
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("SELECT state FROM incremental_update_status WHERE id = 1")
+        row = cur.fetchone()
+        cur.close()
+        conn.close()
+        return row[0] if row else 'idle'
+    except Exception as e:
+        logger.error(f"Error reading incremental state: {e}")
+        return 'idle'
+
+
+def run_incremental_update():
+    """Execute (or resume) an incremental update in this worker process and
+    block until it finishes, is stopped, or the worker is shutting down."""
+    from extraction_manager import IncrementalUpdateManager
+    mgr = IncrementalUpdateManager.get_instance()
+    res = mgr.start(_from_worker=True)
+    logger.info(f"Incremental update (worker): {res}")
+    if res.get('status') == 'error':
+        return
+    # The run executes in a daemon thread inside start(); wait for it to settle.
+    while not shutdown_requested:
+        state = get_incremental_state()
+        if state not in ('running', 'stopping'):
+            logger.info(f"Incremental update finished with state '{state}'")
+            break
+        time.sleep(POLL_INTERVAL)
+
+
 def run_extraction(start_sector=None):
     from extraction_manager import ExtractionManager, _set_db_command, init_extraction_control
     init_extraction_control(is_worker=True)
@@ -133,9 +171,14 @@ def main_loop():
     logger.info("Extraction Worker Process started")
     logger.info("=" * 60)
 
-    from extraction_manager import init_extraction_control
+    from extraction_manager import init_extraction_control, set_worker_process, IncrementalUpdateManager
+    set_worker_process(True)
     init_extraction_control(is_worker=True)
+    # Create the singleton now so a stale 'running' incremental state (from a
+    # previous worker crash) is flipped to 'interrupted' and auto-resumed below.
+    IncrementalUpdateManager.get_instance()
 
+    logger.info(f"Incremental auto-extract of pending queue: {'ON' if AUTO_EXTRACT_ENABLED else 'OFF (set WORKER_AUTO_EXTRACT=true to enable)'}")
     logger.info(f"Auto-resume delay: {AUTO_RESUME_DELAY}s, Poll interval: {POLL_INTERVAL}s")
     logger.info(f"Waiting {AUTO_RESUME_DELAY}s before auto-resume check...")
     
@@ -147,6 +190,24 @@ def main_loop():
 
     while not shutdown_requested:
         try:
+            # 1) Incremental updates take priority — this is what the worker
+            #    primarily exists for. 'queued' = user requested via dashboard;
+            #    'interrupted' = a restart cut a run short, so resume it.
+            inc_state = get_incremental_state()
+            if inc_state in ('queued', 'interrupted'):
+                logger.info(f"Incremental update is '{inc_state}' - worker executing/resuming")
+                run_incremental_update()
+                continue
+            if inc_state in ('running', 'stopping'):
+                # A run is active in this process; just wait for it.
+                for i in range(POLL_INTERVAL):
+                    if shutdown_requested:
+                        break
+                    time.sleep(1)
+                continue
+
+            # 2) Sector extraction (paid). Only auto-resume pending queue work
+            #    when explicitly enabled; otherwise wait for an explicit command.
             ctrl = get_db_command()
             command = ctrl['command']
 
@@ -169,8 +230,8 @@ def main_loop():
                     set_db_command('idle')
 
             elif command == 'idle':
-                if has_pending_work():
-                    logger.info("Auto-resuming: found pending work while idle")
+                if AUTO_EXTRACT_ENABLED and has_pending_work():
+                    logger.info("Auto-resuming: found pending work while idle (WORKER_AUTO_EXTRACT enabled)")
                     sector = find_resume_sector()
                     if sector:
                         logger.info(f"Auto-resuming extraction from sector: {sector}")
