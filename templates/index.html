@@ -4933,6 +4933,10 @@
         // ── Culture Scoring ──────────────────────────────────────────────────────
         let scoringActive = false;
         let scoringTotalCompanies = 0;
+        // Identifies the current scoring run. Incremented on every start/stop so that
+        // any timer/callback scheduled by a previous run becomes a no-op (prevents
+        // overlapping loops if the user stops and restarts during a retry backoff).
+        let scoringRunId = 0;
 
         async function loadScoringStatus() {
             try {
@@ -4958,6 +4962,7 @@
 
         async function startScoringBatch() {
             scoringActive = true;
+            const myRunId = ++scoringRunId;
             document.getElementById('btnScoreReviews').style.display = 'none';
             document.getElementById('btnStopScoring').style.display = 'inline-block';
             document.getElementById('scoringProgressBar').style.display = 'block';
@@ -4965,23 +4970,56 @@
             const statusEl = document.getElementById('scoringStatusText');
             const progressFill = document.getElementById('scoringProgressFill');
 
+            // Scoring is a long loop over millions of reviews. A single batch can
+            // occasionally fail transiently (Heroku 30s router timeout on a huge
+            // company, a brief dyno restart, an HTML error page that isn't JSON).
+            // Don't abort the whole run on one hiccup — retry with backoff so the
+            // loop self-heals and only gives up after many consecutive failures.
+            const MAX_CONSECUTIVE_ERRORS = 12;
+            let consecutiveErrors = 0;
+
+            function showStopped(msg) {
+                scoringActive = false;
+                statusEl.textContent = msg;
+                document.getElementById('btnScoreReviews').style.display = 'inline-block';
+                document.getElementById('btnStopScoring').style.display = 'none';
+            }
+
+            function retryAfterError(reason) {
+                if (myRunId !== scoringRunId) return;  // superseded by a newer run
+                consecutiveErrors++;
+                if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
+                    showStopped('Stopped after repeated errors: ' + reason +
+                                '. Click "Process Culture Scores" to resume.');
+                    return;
+                }
+                // Exponential-ish backoff, capped at 15s, to let the server recover.
+                const delay = Math.min(2000 * consecutiveErrors, 15000);
+                statusEl.textContent = `Server hiccup (${reason}) — retrying ` +
+                    `${consecutiveErrors}/${MAX_CONSECUTIVE_ERRORS} in ${Math.round(delay/1000)}s…`;
+                setTimeout(runBatch, delay);
+            }
+
             async function runBatch() {
+                if (myRunId !== scoringRunId) return;  // a newer run superseded this one
                 if (!scoringActive) {
-                    statusEl.textContent = 'Stopped.';
-                    document.getElementById('btnScoreReviews').style.display = 'inline-block';
-                    document.getElementById('btnStopScoring').style.display = 'none';
+                    showStopped('Stopped.');
                     return;
                 }
                 try {
                     const r = await fetch('/api/score-reviews', { method: 'POST' });
-                    const d = await r.json();
-                    if (!d.success) {
-                        statusEl.textContent = 'Error: ' + (d.error || 'unknown');
-                        scoringActive = false;
-                        document.getElementById('btnScoreReviews').style.display = 'inline-block';
-                        document.getElementById('btnStopScoring').style.display = 'none';
-                        return;
+                    if (!r.ok) { retryAfterError('HTTP ' + r.status); return; }
+                    let d;
+                    try {
+                        d = await r.json();
+                    } catch (parseErr) {
+                        // Got HTML (e.g. a Heroku error page) instead of JSON.
+                        retryAfterError('server busy'); return;
                     }
+                    if (!d.success) { retryAfterError(d.error || 'unknown'); return; }
+
+                    // Success — reset the failure counter.
+                    consecutiveErrors = 0;
                     const remaining = d.remaining || 0;
                     const remainingReviews = d.remaining_reviews || 0;
                     const scored = scoringTotalCompanies - remaining;
@@ -4992,19 +5030,14 @@
                     statusEl.textContent = `Processing ${lastCompany}... ${scored} of ${scoringTotalCompanies} companies scored${reviewsInfo}`;
                     document.getElementById('scoringStats').textContent = statusEl.textContent;
                     if (remaining === 0 || d.scored_companies === 0) {
-                        scoringActive = false;
-                        statusEl.textContent = `Done — all ${scoringTotalCompanies} companies scored.`;
-                        document.getElementById('btnScoreReviews').style.display = 'inline-block';
-                        document.getElementById('btnStopScoring').style.display = 'none';
+                        showStopped(`Done — all ${scoringTotalCompanies} companies scored.`);
                         loadScoringStatus();
                         return;
                     }
                     setTimeout(runBatch, 300);
                 } catch(e) {
-                    statusEl.textContent = 'Error: ' + e.message;
-                    scoringActive = false;
-                    document.getElementById('btnScoreReviews').style.display = 'inline-block';
-                    document.getElementById('btnStopScoring').style.display = 'none';
+                    // Network error / fetch threw — also transient, so retry.
+                    retryAfterError(e.message || 'network error');
                 }
             }
             await loadScoringStatus();
@@ -5013,6 +5046,12 @@
 
         function stopScoring() {
             scoringActive = false;
+            // Invalidate any pending retry/next-batch timers from the running loop
+            // so they no-op when they fire, then update the UI immediately.
+            scoringRunId++;
+            document.getElementById('scoringStatusText').textContent = 'Stopped.';
+            document.getElementById('btnScoreReviews').style.display = 'inline-block';
+            document.getElementById('btnStopScoring').style.display = 'none';
         }
 
         async function startFullRescore() {
