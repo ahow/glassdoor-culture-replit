@@ -2,3 +2,4 @@
 - [Adding a culture framework](adding-culture-framework.md) — full list of touch-points (scoring, DB cols, write path, aggregation, all API endpoints, correlation, UI) to mirror Hofstede/MIT for a new framework.
 - [Heroku incremental-update resilience](heroku-incremental-update-resilience.md) — long paid background runs must be worker-owned, atomically-claimed, restart-tolerant; never live in the web dyno.
 - [Long prod ops via Heroku one-off dyno](long-prod-ops-via-oneoff-dyno.md) — agent-env background procs get reaped; run hours-long prod backfills on a basic one-off dyno; full scorer must write Schroders too.
+- [Combined culture-score conventions](combined-culture-score-conventions.md) — company/scatter use scaled (h*5)+m+(s*5); correlation endpoints use raw h+m+s; match local convention + guard linregress identical-x & NaN corrs.

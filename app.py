@@ -3237,7 +3237,9 @@ def get_company_analysis(company_name):
             mit_correlations[dim] = dim_data.get('correlation', 0) if isinstance(dim_data, dict) else 0
         for dim in SCHRODERS_DIMENSIONS:
             dim_data = schroders_corr_data.get(dim, {}).get('composite_score', {})
-            schroders_correlations[dim] = dim_data.get('correlation', 0) if isinstance(dim_data, dict) else 0
+            corr = dim_data.get('correlation', 0) if isinstance(dim_data, dict) else 0
+            # NaN/None guard: low-sample dimensions can yield NaN correlations
+            schroders_correlations[dim] = corr if (corr is not None and corr == corr) else 0
         
         # Format company scores
         company_hofstede = {}
@@ -3723,7 +3725,9 @@ def get_culture_performance_scatter():
             mit_correlations[dim] = dim_data.get('correlation', 0) if isinstance(dim_data, dict) else 0
         for dim in SCHRODERS_DIMENSIONS:
             dim_data = schroders_corr_data.get(dim, {}).get('composite_score', {})
-            schroders_correlations[dim] = dim_data.get('correlation', 0) if isinstance(dim_data, dict) else 0
+            corr = dim_data.get('correlation', 0) if isinstance(dim_data, dict) else 0
+            # NaN/None guard: low-sample dimensions can yield NaN correlations
+            schroders_correlations[dim] = corr if (corr is not None and corr == corr) else 0
 
         mit_max_values = get_mit_max_values(company_names)
         companies_data = []
@@ -3933,7 +3937,7 @@ def get_correlation_matrix():
                     all_perf[name] = cs
 
         LEVELS      = ['sector', 'industry', 'sub_industry']
-        SCORE_TYPES = ['combined', 'hofstede', 'mit']
+        SCORE_TYPES = ['schroders', 'combined', 'hofstede', 'mit']
         matrix = {}
 
         for gics_level in LEVELS:
@@ -3969,19 +3973,24 @@ def get_correlation_matrix():
 
                 h_sums = {d: [] for d in HOFSTEDE_DIMENSIONS}
                 m_sums = {d: [] for d in MIT_DIMENSIONS}
+                s_sums = {d: [] for d in SCHRODERS_DIMENSIONS}
                 for c in valid:
                     met = all_metrics[c]
                     for d in HOFSTEDE_DIMENSIONS:
                         h_sums[d].append(met.get('hofstede',  {}).get(d, {}).get('value', 0))
                     for d in MIT_DIMENSIONS:
                         m_sums[d].append(met.get('mit_big_9', {}).get(d, {}).get('value', 0))
+                    for d in SCHRODERS_DIMENSIONS:
+                        s_sums[d].append(met.get('schroders', {}).get(d, {}).get('value') or 0)
                 grp_h_avg = {d: mean(v) if v else 0 for d, v in h_sums.items()}
                 grp_m_avg = {d: mean(v) if v else 0 for d, v in m_sums.items()}
+                grp_s_avg = {d: mean(v) if v else 0 for d, v in s_sums.items()}
 
                 culture_data_g = [
                     {'company': c,
-                     'hofstede': all_metrics[c].get('hofstede',  {}),
-                     'mit':      all_metrics[c].get('mit_big_9', {})}
+                     'hofstede':  all_metrics[c].get('hofstede',  {}),
+                     'mit':       all_metrics[c].get('mit_big_9', {}),
+                     'schroders': all_metrics[c].get('schroders', {})}
                     for c in valid
                 ]
                 performance_data_g = [
@@ -3991,8 +4000,9 @@ def get_correlation_matrix():
                 correlations = performance_analyzer.calculate_correlation(
                     culture_data_g, performance_data_g
                 )
-                hcd = correlations.get('hofstede', {})
-                mcd = correlations.get('mit',      {})
+                hcd = correlations.get('hofstede',  {})
+                mcd = correlations.get('mit',       {})
+                scd = correlations.get('schroders', {})
                 h_corrs = {
                     d: (hcd.get(d, {}).get('composite_score', {}) or {}).get('correlation', 0)
                     for d in HOFSTEDE_DIMENSIONS
@@ -4001,9 +4011,13 @@ def get_correlation_matrix():
                     d: (mcd.get(d, {}).get('composite_score', {}) or {}).get('correlation', 0)
                     for d in MIT_DIMENSIONS
                 }
+                s_corrs = {
+                    d: (scd.get(d, {}).get('composite_score', {}) or {}).get('correlation', 0)
+                    for d in SCHRODERS_DIMENSIONS
+                }
                 group_cache[group_name] = {
-                    'valid': valid, 'h_corrs': h_corrs, 'm_corrs': m_corrs,
-                    'grp_h_avg': grp_h_avg, 'grp_m_avg': grp_m_avg
+                    'valid': valid, 'h_corrs': h_corrs, 'm_corrs': m_corrs, 's_corrs': s_corrs,
+                    'grp_h_avg': grp_h_avg, 'grp_m_avg': grp_m_avg, 'grp_s_avg': grp_s_avg
                 }
 
             matrix[gics_level] = {}
@@ -4016,8 +4030,10 @@ def get_correlation_matrix():
                     valid      = gd['valid']
                     h_corrs    = gd['h_corrs']
                     m_corrs    = gd['m_corrs']
+                    s_corrs    = gd['s_corrs']
                     grp_h_avg  = gd['grp_h_avg']
                     grp_m_avg  = gd['grp_m_avg']
+                    grp_s_avg  = gd['grp_s_avg']
 
                     culture_scores, perf_scores = [], []
                     for c in valid:
@@ -4032,13 +4048,24 @@ def get_correlation_matrix():
                             m_corrs[d] * (met.get('mit_big_9', {}).get(d, {}).get('value', 0) - grp_m_avg[d])
                             for d in MIT_DIMENSIONS
                         )
-                        cs = h_score if score_type == 'hofstede' else (
-                             m_score if score_type == 'mit' else h_score + m_score)
+                        s_score = sum(
+                            s_corrs[d] * ((met.get('schroders', {}).get(d, {}).get('value') or 0) - grp_s_avg[d])
+                            for d in SCHRODERS_DIMENSIONS
+                        )
+                        cs = (s_score if score_type == 'schroders' else
+                              h_score if score_type == 'hofstede' else
+                              m_score if score_type == 'mit' else
+                              h_score + m_score + s_score)
                         culture_scores.append(cs)
                         perf_scores.append(all_perf[c])
 
                     n = len(culture_scores)
                     if n < 5:
+                        continue
+
+                    # Skip groups with no variance (e.g. companies lacking
+                    # Schroders data all score 0) — linregress raises on identical x.
+                    if len(set(culture_scores)) < 2 or len(set(perf_scores)) < 2:
                         continue
 
                     slope, _, r_value, _, _ = scipy_stats.linregress(culture_scores, perf_scores)
@@ -4079,7 +4106,7 @@ def get_correlation_analysis():
 
     try:
         gics_level = request.args.get('gics_level', 'sector')
-        score_type  = request.args.get('score_type', 'combined')  # combined | hofstede | mit
+        score_type  = request.args.get('score_type', 'combined')  # combined | hofstede | mit | schroders
 
         if not performance_analyzer.loaded:
             performance_analyzer.load_data()
@@ -4167,24 +4194,29 @@ def get_correlation_analysis():
             if len(valid) < 5:
                 continue
 
-            # Group-average Hofstede and MIT values
+            # Group-average Hofstede, MIT and Schroders values
             h_sums = {d: [] for d in HOFSTEDE_DIMENSIONS}
             m_sums = {d: [] for d in MIT_DIMENSIONS}
+            s_sums = {d: [] for d in SCHRODERS_DIMENSIONS}
             for c in valid:
                 met = all_metrics[c]
                 for d in HOFSTEDE_DIMENSIONS:
                     h_sums[d].append(met.get('hofstede',  {}).get(d, {}).get('value', 0))
                 for d in MIT_DIMENSIONS:
                     m_sums[d].append(met.get('mit_big_9', {}).get(d, {}).get('value', 0))
+                for d in SCHRODERS_DIMENSIONS:
+                    s_sums[d].append(met.get('schroders', {}).get(d, {}).get('value') or 0)
 
             grp_h_avg = {d: mean(v) if v else 0 for d, v in h_sums.items()}
             grp_m_avg = {d: mean(v) if v else 0 for d, v in m_sums.items()}
+            grp_s_avg = {d: mean(v) if v else 0 for d, v in s_sums.items()}
 
             # Build culture_data / performance_data for calculate_correlation
             culture_data_g = [
                 {'company': c,
-                 'hofstede': all_metrics[c].get('hofstede',  {}),
-                 'mit':      all_metrics[c].get('mit_big_9', {})}
+                 'hofstede':  all_metrics[c].get('hofstede',  {}),
+                 'mit':       all_metrics[c].get('mit_big_9', {}),
+                 'schroders': all_metrics[c].get('schroders', {})}
                 for c in valid
             ]
             performance_data_g = [
@@ -4197,16 +4229,21 @@ def get_correlation_analysis():
             )
 
             # Extract per-dimension correlations vs composite_score
-            hcd = correlations.get('hofstede', {})
-            mcd = correlations.get('mit',      {})
+            hcd = correlations.get('hofstede',  {})
+            mcd = correlations.get('mit',       {})
+            scd = correlations.get('schroders', {})
             h_corrs = {}
             m_corrs = {}
+            s_corrs = {}
             for d in HOFSTEDE_DIMENSIONS:
                 dd = hcd.get(d, {}).get('composite_score', {})
                 h_corrs[d] = dd.get('correlation', 0) if isinstance(dd, dict) else 0
             for d in MIT_DIMENSIONS:
                 dd = mcd.get(d, {}).get('composite_score', {})
                 m_corrs[d] = dd.get('correlation', 0) if isinstance(dd, dict) else 0
+            for d in SCHRODERS_DIMENSIONS:
+                dd = scd.get(d, {}).get('composite_score', {})
+                s_corrs[d] = dd.get('correlation', 0) if isinstance(dd, dict) else 0
 
             # Compute correlation-weighted scores for each company (same as scatter tab)
             culture_scores = []
@@ -4223,18 +4260,29 @@ def get_correlation_analysis():
                     m_corrs[d] * (met.get('mit_big_9', {}).get(d, {}).get('value', 0) - grp_m_avg[d])
                     for d in MIT_DIMENSIONS
                 )
+                s_score = sum(
+                    s_corrs[d] * ((met.get('schroders', {}).get(d, {}).get('value') or 0) - grp_s_avg[d])
+                    for d in SCHRODERS_DIMENSIONS
+                )
                 if score_type == 'hofstede':
                     culture_score = h_score
                 elif score_type == 'mit':
                     culture_score = m_score
+                elif score_type == 'schroders':
+                    culture_score = s_score
                 else:  # combined
-                    culture_score = h_score + m_score
+                    culture_score = h_score + m_score + s_score
 
                 culture_scores.append(culture_score)
                 perf_scores.append(all_perf[c])
 
             n = len(culture_scores)
             if n < 5:
+                continue
+
+            # Skip groups with no variance in culture scores (e.g. companies
+            # lacking Schroders data all score 0) — linregress raises on identical x.
+            if len(set(culture_scores)) < 2 or len(set(perf_scores)) < 2:
                 continue
 
             slope, intercept, r_value, p_value, _ = scipy_stats.linregress(
