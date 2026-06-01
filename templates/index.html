@@ -2365,6 +2365,113 @@
             return info.title || dim;
         }
 
+        // ── Plain-language explanations for each culture dimension (for tooltips) ──
+        const HOFSTEDE_DIM_INFO = {
+            'process_results':        { title: 'Process vs Results',        description: 'Process-oriented cultures focus on how work is done and following routines; results-oriented cultures focus on achieving goals and outcomes.' },
+            'job_employee':           { title: 'Job vs Employee',           description: 'Job-oriented cultures care mainly about getting the work done; employee-oriented cultures also care about their people\u2019s wellbeing.' },
+            'professional_parochial': { title: 'Professional vs Parochial', description: 'In professional cultures people identify with their profession and skills; in parochial cultures they identify mainly with their employer.' },
+            'open_closed':            { title: 'Open vs Closed',            description: 'Open cultures welcome newcomers and share information freely; closed cultures are more secretive and harder to join.' },
+            'tight_loose':            { title: 'Tight vs Loose',            description: 'Tight cultures keep strict control over rules, costs and behaviour; loose cultures are more relaxed and informal.' },
+            'pragmatic_normative':    { title: 'Pragmatic vs Normative',    description: 'Pragmatic cultures are flexible and customer-driven; normative cultures stick firmly to established rules and procedures.' }
+        };
+        const MIT_DIM_INFO = {
+            'agility':              { title: 'Agility',              description: 'How quickly and flexibly the company adapts to change.' },
+            'collaboration':        { title: 'Collaboration',        description: 'How well people work together across teams and functions.' },
+            'customer_orientation': { title: 'Customer Orientation', description: 'How strongly the company focuses on meeting customer needs.' },
+            'diversity':            { title: 'Diversity',            description: 'How much the company values diversity, equity and inclusion.' },
+            'execution':            { title: 'Execution',            description: 'How reliably the company delivers on its commitments and gets things done.' },
+            'innovation':           { title: 'Innovation',           description: 'How much the company encourages new ideas and creativity.' },
+            'integrity':            { title: 'Integrity',            description: 'How honest and ethical the company is in how it operates.' },
+            'performance':          { title: 'Performance',          description: 'How much the company rewards results and high performers.' },
+            'respect':              { title: 'Respect',              description: 'How much employees treat one another with consideration and dignity.' }
+        };
+
+        // ── Shared floating tooltip used to explain dimension labels on hover ──
+        function _getDimTooltipEl() {
+            let el = document.getElementById('dimTooltip');
+            if (!el) {
+                el = document.createElement('div');
+                el.id = 'dimTooltip';
+                el.style.cssText = 'position:fixed;z-index:10000;max-width:300px;background:#1e293b;'
+                    + 'color:#fff;padding:9px 11px;border-radius:8px;font-size:0.78rem;line-height:1.4;'
+                    + 'box-shadow:0 6px 18px rgba(0,0,0,0.28);pointer-events:none;opacity:0;'
+                    + 'transition:opacity 0.12s ease;display:none;';
+                document.body.appendChild(el);
+            }
+            return el;
+        }
+        function showDimTooltip(html, clientX, clientY) {
+            if (!html) { hideDimTooltip(); return; }
+            const el = _getDimTooltipEl();
+            el.innerHTML = html;
+            el.style.display = 'block';
+            el.style.opacity = '1';
+            const pad = 14;
+            const rect = el.getBoundingClientRect();
+            let left = clientX + pad;
+            let top = clientY + pad;
+            if (left + rect.width > window.innerWidth - 8) left = clientX - rect.width - pad;
+            if (top + rect.height > window.innerHeight - 8) top = clientY - rect.height - pad;
+            el.style.left = Math.max(8, left) + 'px';
+            el.style.top = Math.max(8, top) + 'px';
+        }
+        function hideDimTooltip() {
+            const el = document.getElementById('dimTooltip');
+            if (el) { el.style.opacity = '0'; el.style.display = 'none'; }
+        }
+        function dimTooltipHtml(info) {
+            if (!info) return '';
+            return '<strong>' + (info.title || '') + '</strong>'
+                 + (info.description ? '<br><span style="opacity:0.9;">' + info.description + '</span>' : '');
+        }
+
+        // Attach hover tooltips to a bar chart's category-axis tick labels.
+        // axis = 'y' for horizontal bar charts, 'x' for vertical bar charts.
+        // infoByIndex is an array (aligned with the chart's labels) of {title, description}.
+        function attachChartAxisTooltips(chart, axis, infoByIndex) {
+            const canvas = chart && chart.canvas;
+            if (!canvas) return;
+            if (canvas._dimAxisMove) {
+                canvas.removeEventListener('mousemove', canvas._dimAxisMove);
+                canvas.removeEventListener('mouseleave', canvas._dimAxisLeave);
+            }
+            const move = function(e) {
+                const area = chart.chartArea;
+                const scale = chart.scales[axis];
+                if (!area || !scale) { hideDimTooltip(); return; }
+                const rect = canvas.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                const n = (scale.ticks || []).length;
+                let idx = -1, best = Infinity;
+                if (axis === 'y') {
+                    if (x >= area.left) { hideDimTooltip(); canvas.style.cursor = 'default'; return; }
+                    for (let i = 0; i < n; i++) {
+                        const d = Math.abs(scale.getPixelForTick(i) - y);
+                        if (d < best) { best = d; idx = i; }
+                    }
+                    const rowH = n > 1 ? Math.abs(scale.getPixelForTick(1) - scale.getPixelForTick(0)) : (area.bottom - area.top);
+                    if (best > rowH / 2) idx = -1;
+                } else {
+                    if (y <= area.bottom) { hideDimTooltip(); canvas.style.cursor = 'default'; return; }
+                    for (let i = 0; i < n; i++) {
+                        const d = Math.abs(scale.getPixelForTick(i) - x);
+                        if (d < best) { best = d; idx = i; }
+                    }
+                    const colW = n > 1 ? Math.abs(scale.getPixelForTick(1) - scale.getPixelForTick(0)) : (area.right - area.left);
+                    if (best > colW / 2) idx = -1;
+                }
+                if (idx < 0 || !infoByIndex[idx]) { hideDimTooltip(); canvas.style.cursor = 'default'; return; }
+                canvas.style.cursor = 'help';
+                showDimTooltip(dimTooltipHtml(infoByIndex[idx]), e.clientX, e.clientY);
+            };
+            const leave = function() { hideDimTooltip(); canvas.style.cursor = 'default'; };
+            canvas._dimAxisMove = move;
+            canvas._dimAxisLeave = leave;
+            canvas.addEventListener('mousemove', move);
+            canvas.addEventListener('mouseleave', leave);
+        }
+
         function displaySchrodersProfile(profile, comparisonProfile, industryAvgProfile) {
             const canvas = document.getElementById('schrodersChart');
             if (!canvas) {
@@ -2385,6 +2492,7 @@
                 if (window.schrodersChart && typeof window.schrodersChart.destroy === 'function') {
                     window.schrodersChart.destroy();
                 }
+                hideDimTooltip();
                 profileContainer.style.display = 'none';
                 message.style.display = 'block';
                 message.textContent = 'No Schroders dimension scores available for this company yet.';
@@ -2456,6 +2564,11 @@
                                 title: function(items) {
                                     const dim = dims[items[0].dataIndex];
                                     return SCHRODERS_DIM_INFO[dim] ? SCHRODERS_DIM_INFO[dim].title : dim;
+                                },
+                                afterBody: function(items) {
+                                    const dim = dims[items[0].dataIndex];
+                                    const info = SCHRODERS_DIM_INFO[dim];
+                                    return info && info.description ? ['', info.description] : [];
                                 }
                             }
                         }
@@ -2475,6 +2588,9 @@
                     }
                 }
             });
+
+            // Hover explanations on the dimension labels (left axis)
+            attachChartAxisTooltips(window.schrodersChart, 'y', dims.map(dim => SCHRODERS_DIM_INFO[dim] || { title: dim }));
         }
         
         function displayHofstedeProfile(profile, comparisonProfile, industryAvgProfile, hofstedeDims) {
@@ -2598,11 +2714,13 @@
                 const indAvgDotColor = '#f59e0b';  // amber – industry average (always shown)
                 const compDotColor = '#a0aec0';    // gray – optional comparator
                 
+                const dimInfo = HOFSTEDE_DIM_INFO[pair.left] || { title: `${pair.leftLabel} vs ${pair.rightLabel}`, description: '' };
+                const dimDescAttr = (dimInfo.description || '').replace(/"/g, '&quot;');
                 const html = `
                     <div style="margin-bottom: 1.5rem;">
                         <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
-                            <span style="font-weight: 600; font-size: 0.9rem;">${pair.leftLabel}</span>
-                            <span style="font-weight: 600; font-size: 0.9rem;">${pair.rightLabel}</span>
+                            <span class="hofstede-dim-label" data-dim="${pair.left}" style="font-weight: 600; font-size: 0.9rem; cursor: help; border-bottom: 1px dotted #94a3b8;" title="${dimInfo.title}: ${dimDescAttr}">${pair.leftLabel}</span>
+                            <span class="hofstede-dim-label" data-dim="${pair.left}" style="font-weight: 600; font-size: 0.9rem; cursor: help; border-bottom: 1px dotted #94a3b8;" title="${dimInfo.title}: ${dimDescAttr}">${pair.rightLabel}</span>
                         </div>
                         <div style="position: relative; height: 60px; background: linear-gradient(to right, #e8f4f8, #f0f0f0, #f8e8e8); border-radius: 8px; display: flex; align-items: center; overflow: visible; padding: 0 10px;">
                             <div style="position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 2px; height: 100%; background: #ccc;"></div>
@@ -2771,6 +2889,15 @@
                         legend: {
                             display: true,
                             position: 'top'
+                        },
+                        tooltip: {
+                            callbacks: {
+                                afterBody: function(items) {
+                                    const dim = mitDims[items[0].dataIndex];
+                                    const info = dim && MIT_DIM_INFO[dim.key];
+                                    return info && info.description ? ['', info.description] : [];
+                                }
+                            }
                         }
                     },
                     scales: {
@@ -2792,6 +2919,9 @@
                 }
             });
             
+            // Hover explanations on the dimension labels (bottom axis)
+            attachChartAxisTooltips(window.mitChart, 'x', mitDims.map(d => MIT_DIM_INFO[d.key] || { title: d.label }));
+
             // Show the MIT profile container
             document.getElementById('mitProfileContainer').style.display = 'block';
             document.getElementById('mitMessage').style.display = 'none';

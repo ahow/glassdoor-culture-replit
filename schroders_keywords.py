@@ -11,109 +11,127 @@ SCHRODERS_DIM_INFO = {
         "title": "Purpose & Mission Orientation",
         "type": "attribute",
         "left_label": "Weak",
-        "right_label": "Strong"
+        "right_label": "Strong",
+        "description": "How strongly the organisation is driven by a clear sense of purpose and mission. A higher score means a stronger shared sense of why the company exists."
     },
     "d02": {
         "title": "Long-term / Future Orientation",
         "type": "attribute",
         "left_label": "Weak",
-        "right_label": "Strong"
+        "right_label": "Strong",
+        "description": "How much the organisation plans for the long term rather than chasing short-term results. A higher score means more focus on the future."
     },
     "d03": {
-        "title": "Collaborative ↔ Individualistic",
+        "title": "Collaborative vs Individualistic",
         "type": "bipolar",
         "left_label": "Individualistic",
-        "right_label": "Collaborative"
+        "right_label": "Collaborative",
+        "description": "Whether people tend to work together as a team (higher score) or mostly work on their own (lower score)."
     },
     "d04": {
-        "title": "Hierarchical ↔ Egalitarian",
+        "title": "Hierarchical vs Egalitarian",
         "type": "bipolar",
         "left_label": "Egalitarian",
-        "right_label": "Hierarchical"
+        "right_label": "Hierarchical",
+        "description": "Whether decisions flow through clear levels of authority and seniority (higher score) or power and say are shared more equally (lower score)."
     },
     "d05": {
         "title": "Psychological Safety & Openness",
         "type": "attribute",
         "left_label": "Weak",
-        "right_label": "Strong"
+        "right_label": "Strong",
+        "description": "How safe people feel to speak up, share ideas and admit mistakes without fear. A higher score means a more open, trusting environment."
     },
     "d06": {
         "title": "Caring & People-Centricity",
         "type": "attribute",
         "left_label": "Weak",
-        "right_label": "Strong"
+        "right_label": "Strong",
+        "description": "How genuinely the organisation cares about its people and their wellbeing. A higher score means people feel more supported."
     },
     "d07": {
         "title": "Performance & Execution Orientation",
         "type": "attribute",
         "left_label": "Weak",
-        "right_label": "Strong"
+        "right_label": "Strong",
+        "description": "How focused the organisation is on delivering results and getting things done. A higher score means a stronger drive to execute."
     },
     "d08": {
         "title": "Process & Rule Orientation",
         "type": "attribute",
         "left_label": "Weak",
-        "right_label": "Strong"
+        "right_label": "Strong",
+        "description": "How much the organisation relies on defined processes, rules and procedures. A higher score means more structure and formality."
     },
     "d09": {
         "title": "Integrity & Ethical Responsibility",
         "type": "attribute",
         "left_label": "Weak",
-        "right_label": "Strong"
+        "right_label": "Strong",
+        "description": "How strongly the organisation acts honestly and takes ethical responsibility. A higher score means stronger ethics and accountability."
     },
     "d10": {
         "title": "Innovation & Risk Appetite",
         "type": "attribute",
         "left_label": "Weak",
-        "right_label": "Strong"
+        "right_label": "Strong",
+        "description": "How willing the organisation is to try new ideas and take sensible risks. A higher score means a bolder, more inventive culture."
     },
     "d11": {
         "title": "Agility & Adaptability",
         "type": "attribute",
         "left_label": "Weak",
-        "right_label": "Strong"
+        "right_label": "Strong",
+        "description": "How quickly and easily the organisation adapts to change. A higher score means it responds faster to new situations."
     },
     "d12": {
         "title": "Continuous Learning & Development",
         "type": "attribute",
         "left_label": "Weak",
-        "right_label": "Strong"
+        "right_label": "Strong",
+        "description": "How much the organisation invests in helping its people learn and grow. A higher score means more emphasis on development."
     },
     "d13": {
         "title": "Customer / Stakeholder Focus",
         "type": "attribute",
         "left_label": "Weak",
-        "right_label": "Strong"
+        "right_label": "Strong",
+        "description": "How strongly the organisation focuses on the needs of customers and stakeholders. A higher score means a more customer-centric culture."
     },
     "d14": {
         "title": "Competitive Assertiveness",
         "type": "attribute",
         "left_label": "Weak",
-        "right_label": "Strong"
+        "right_label": "Strong",
+        "description": "How competitive and assertive the organisation is in pursuing its goals and winning. A higher score means a more driven, ambitious culture."
     },
     "d15": {
         "title": "Diversity, Equity & Inclusion",
         "type": "attribute",
         "left_label": "Weak",
-        "right_label": "Strong"
+        "right_label": "Strong",
+        "description": "How much the organisation values and supports a diverse and inclusive workforce. A higher score means a stronger commitment to inclusion."
     },
     "d16": {
-        "title": "Professional ↔ Parochial Identity",
+        "title": "Profession-Focused vs Company-Focused",
         "type": "bipolar",
-        "left_label": "Parochial Identity",
-        "right_label": "Professional"
+        "left_label": "Company-Focused",
+        "right_label": "Profession-Focused",
+        "description": "Whether people identify mainly with their profession and craft (higher score) or with the company they work for (lower score)."
     },
     "d17": {
-        "title": "Internally ↔ Externally Driven",
+        "title": "Internally Driven vs Externally Driven",
         "type": "bipolar",
         "left_label": "Externally Driven",
-        "right_label": "Internally"
+        "right_label": "Internally Driven",
+        "description": "Whether the organisation follows its own internal standards and beliefs (higher score) or is guided mainly by outside customer and market expectations (lower score)."
     },
     "d18": {
-        "title": "Tight ↔ Loose Social Norms",
+        "title": "Strong vs Loose Social Norms",
         "type": "bipolar",
         "left_label": "Loose Social Norms",
-        "right_label": "Tight"
+        "right_label": "Strong Social Norms",
+        "description": "Whether the workplace has strong, clearly enforced rules of behaviour (higher score) or a more relaxed, flexible atmosphere (lower score)."
     }
 }
 
