@@ -36,3 +36,9 @@ id = "dF9c1vGU1ozLlmNsAVL80"
 uri = "file://METHODOLOGY.md"
 type = "text"
 title = "Methodology & Technical Specification (all keywords included)"
+
+[[outputs]]
+id = "pp8FK3NYCF9zwQ385Xy6c"
+uri = "file://schroders_scores.csv"
+type = "table"
+title = "Schroders dimension scores by company"
