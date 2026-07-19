@@ -30,3 +30,9 @@ id = "ZjUUq_7qjatvoxad7-jHh"
 uri = "file://keyword_expansion_output/Culture_Analytics_Keywords.xlsx"
 type = "table"
 title = "Culture Analytics — Full Keyword Dictionary (16 sheets, 3,691 terms)"
+
+[[outputs]]
+id = "dF9c1vGU1ozLlmNsAVL80"
+uri = "file://METHODOLOGY.md"
+type = "text"
+title = "Methodology & Technical Specification (all keywords included)"
