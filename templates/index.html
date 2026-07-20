@@ -946,6 +946,16 @@
             <div id="schrodersProfileTab" class="tab-content">
                 <div class="chart-container">
                     <h3>Select Company</h3>
+                    <div style="margin-bottom: 1rem; display: flex; align-items: center; gap: 0.75rem;">
+                        <span style="font-size: 0.85rem; color: #64748b; font-weight: 600;">Framework version:</span>
+                        <div style="display: inline-flex; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden;">
+                            <button id="schrodersV1Btn" data-testid="button-framework-v1" onclick="setSchrodersFramework('v1')"
+                                    style="padding: 0.35rem 0.9rem; border: none; cursor: pointer; font-size: 0.82rem; background: #8b5cf6; color: #fff;">v1 (18 dimensions)</button>
+                            <button id="schrodersV2Btn" data-testid="button-framework-v2" onclick="setSchrodersFramework('v2')"
+                                    style="padding: 0.35rem 0.9rem; border: none; cursor: pointer; font-size: 0.82rem; background: #f1f5f9; color: #475569;">v2 (12 bipolar)</button>
+                        </div>
+                        <span id="schrodersV2Badge" style="display:none; font-size: 0.72rem; color: #7c3aed; background: #ede9fe; padding: 0.2rem 0.55rem; border-radius: 999px;">v2 — regex + negation engine, bipolar −1…+1</span>
+                    </div>
                     <div class="controls-grid">
                         <div class="control-group">
                             <label for="schrodersCompanySelect">Company:</label>
@@ -968,6 +978,17 @@
                         <p style="color: #7f8c8d; font-size: 0.9rem; margin-bottom: 1.5rem;">Eighteen dimensions scored 0-10. A higher score means the company shows more of that attribute.</p>
                         <div style="position: relative; height: 680px;">
                             <canvas id="schrodersChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="schrodersV2Container" style="display: none;">
+                    <div class="chart-container">
+                        <h3>Schroders v2 — Bipolar Culture Dimensions</h3>
+                        <p style="color: #7f8c8d; font-size: 0.9rem; margin-bottom: 0.5rem;">Twelve bipolar dimensions scored −1 to +1. Zero means balanced; negative leans toward the left pole, positive toward the right pole.</p>
+                        <p id="schrodersV2Confidence" data-testid="text-v2-confidence" style="font-size: 0.8rem; color: #94a3b8; margin-bottom: 1rem;"></p>
+                        <div style="position: relative; height: 560px;">
+                            <canvas id="schrodersV2Chart"></canvas>
                         </div>
                     </div>
                 </div>
@@ -2472,7 +2493,171 @@
             canvas.addEventListener('mouseleave', leave);
         }
 
+        // ── Schroders v2 (12 bipolar dimensions) ────────────────────────────
+        const SCHRODERS_V2_DIM_INFO = {{ schroders_v2_dim_info | tojson }};
+        const SCHRODERS_V2_DIMENSIONS = {{ schroders_v2_dimensions | tojson }};
+        window.schrodersFrameworkActive = 'v1';
+
+        // Load the server-side toggle once at startup
+        fetch('/api/v2/framework-toggle')
+            .then(r => r.json())
+            .then(d => { if (d.success && d.active) setSchrodersFramework(d.active, true); })
+            .catch(() => {});
+
+        function setSchrodersFramework(version, skipSave) {
+            window.schrodersFrameworkActive = version;
+            const v1Btn = document.getElementById('schrodersV1Btn');
+            const v2Btn = document.getElementById('schrodersV2Btn');
+            const badge = document.getElementById('schrodersV2Badge');
+            const active = 'padding: 0.35rem 0.9rem; border: none; cursor: pointer; font-size: 0.82rem; background: #8b5cf6; color: #fff;';
+            const idle   = 'padding: 0.35rem 0.9rem; border: none; cursor: pointer; font-size: 0.82rem; background: #f1f5f9; color: #475569;';
+            if (v1Btn && v2Btn) {
+                v1Btn.style.cssText = version === 'v1' ? active : idle;
+                v2Btn.style.cssText = version === 'v2' ? active : idle;
+            }
+            if (badge) badge.style.display = version === 'v2' ? 'inline' : 'none';
+            if (!skipSave) {
+                fetch('/api/v2/framework-toggle', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ value: version })
+                }).catch(() => {});
+            }
+            // Re-render whichever company is selected
+            const sel = document.getElementById('schrodersCompanySelect');
+            if (sel && sel.value) loadCultureProfile('schroders');
+            else {
+                const v1c = document.getElementById('schrodersProfileContainer');
+                const v2c = document.getElementById('schrodersV2Container');
+                if (v1c) v1c.style.display = 'none';
+                if (v2c) v2c.style.display = 'none';
+            }
+        }
+
+        function loadSchrodersV2Profile(companyName) {
+            const v1c = document.getElementById('schrodersProfileContainer');
+            const v2c = document.getElementById('schrodersV2Container');
+            const message = document.getElementById('schrodersMessage');
+            if (v1c) v1c.style.display = 'none';
+            fetch('/api/v2/culture-scores/' + encodeURIComponent(companyName))
+                .then(r => r.json())
+                .then(d => {
+                    if (!d.success || !d.company || d.company.hidden) {
+                        if (v2c) v2c.style.display = 'none';
+                        message.style.display = 'block';
+                        message.textContent = d.company && d.company.hidden
+                            ? 'Fewer than 5 reviews — v2 scores are hidden for reliability.'
+                            : 'No v2 scores available for this company yet.';
+                        return;
+                    }
+                    displaySchrodersV2Profile(d.company);
+                })
+                .catch(() => {
+                    if (v2c) v2c.style.display = 'none';
+                    message.style.display = 'block';
+                    message.textContent = 'Could not load v2 scores.';
+                });
+        }
+
+        function displaySchrodersV2Profile(company) {
+            const canvas = document.getElementById('schrodersV2Chart');
+            const v2c = document.getElementById('schrodersV2Container');
+            const message = document.getElementById('schrodersMessage');
+            if (!canvas || !v2c) return;
+            v2c.style.display = 'block';
+            message.style.display = 'none';
+
+            const lowConf = company.low_confidence;
+            const confEl = document.getElementById('schrodersV2Confidence');
+            if (confEl) {
+                confEl.textContent = company.review_count + ' reviews · ' + company.confidence + ' confidence'
+                    + (lowConf ? ' — scores shown greyed out: fewer than 20 reviews, treat with caution' : '');
+                confEl.style.color = lowConf ? '#f59e0b' : '#94a3b8';
+            }
+
+            const dims = SCHRODERS_V2_DIMENSIONS.filter(b =>
+                company.dimensions[b] && company.dimensions[b].score !== null && company.dimensions[b].score !== undefined);
+            const labels = dims.map(b => {
+                const info = SCHRODERS_V2_DIM_INFO[b] || {};
+                return (info.left_label || b) + ' \u2194 ' + (info.right_label || '');
+            });
+            const vals = dims.map(b => company.dimensions[b].score);
+            // Diverging colours centred on 0: red (left pole) ↔ blue (right pole).
+            // Companies with <20 reviews render neutral grey (low confidence).
+            const colors = vals.map(v => {
+                if (lowConf) return 'rgba(148, 163, 184, 0.55)';
+                return v >= 0 ? 'rgba(37, 99, 235, 0.8)' : 'rgba(220, 38, 38, 0.8)';
+            });
+
+            if (window.schrodersV2ChartObj && typeof window.schrodersV2ChartObj.destroy === 'function') {
+                window.schrodersV2ChartObj.destroy();
+            }
+            window.schrodersV2ChartObj = new Chart(canvas.getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: company.company,
+                        data: vals,
+                        backgroundColor: colors,
+                        borderWidth: 0,
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                title: function(items) {
+                                    const b = dims[items[0].dataIndex];
+                                    const info = SCHRODERS_V2_DIM_INFO[b] || {};
+                                    return info.title || b;
+                                },
+                                label: function(item) {
+                                    const b = dims[item.dataIndex];
+                                    const info = SCHRODERS_V2_DIM_INFO[b] || {};
+                                    const v = item.raw;
+                                    const pole = v >= 0 ? info.right_label : info.left_label;
+                                    return 'Score ' + Number(v).toFixed(2) + ' — leans ' + (pole || '');
+                                },
+                                afterBody: function(items) {
+                                    const b = dims[items[0].dataIndex];
+                                    const info = SCHRODERS_V2_DIM_INFO[b] || {};
+                                    const ev = company.dimensions[b].evidence;
+                                    const lines = info.description ? ['', info.description] : [];
+                                    lines.push('', 'Evidence: ' + ev + ' scored reviews');
+                                    return lines;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            min: -1, max: 1,
+                            ticks: { stepSize: 0.5 },
+                            grid: { color: function(c) { return c.tick && c.tick.value === 0 ? '#64748b' : '#e2e8f0'; } },
+                            title: { display: true, text: '\u2190 left pole   ·   Score (\u22121 to +1)   ·   right pole \u2192' }
+                        },
+                        y: { grid: { display: false }, ticks: { font: { size: 11 } } }
+                    }
+                }
+            });
+            attachChartAxisTooltips(window.schrodersV2ChartObj, 'y',
+                dims.map(b => SCHRODERS_V2_DIM_INFO[b] || { title: b }));
+        }
+
         function displaySchrodersProfile(profile, comparisonProfile, industryAvgProfile) {
+            if (window.schrodersFrameworkActive === 'v2') {
+                loadSchrodersV2Profile(profile.company_name ||
+                    (document.getElementById('schrodersCompanySelect') || {}).value || '');
+                return;
+            }
+            const v2c = document.getElementById('schrodersV2Container');
+            if (v2c) v2c.style.display = 'none';
             const canvas = document.getElementById('schrodersChart');
             if (!canvas) {
                 console.error('Canvas not found: schrodersChart');

@@ -1,0 +1,98 @@
+{
+  "b01_positive": {
+    "mean_overlap": 0.865,
+    "std": 0.059
+  },
+  "b01_negative": {
+    "mean_overlap": 0.893,
+    "std": 0.102
+  },
+  "b02_positive": {
+    "mean_overlap": 0.905,
+    "std": 0.017
+  },
+  "b02_negative": {
+    "mean_overlap": 0.87,
+    "std": 0.065
+  },
+  "b03_positive": {
+    "mean_overlap": 0.67,
+    "std": 0.215
+  },
+  "b03_negative": {
+    "mean_overlap": 0.872,
+    "std": 0.116
+  },
+  "b04_positive": {
+    "mean_overlap": 0.823,
+    "std": 0.096
+  },
+  "b04_negative": {
+    "mean_overlap": 0.853,
+    "std": 0.127
+  },
+  "b05_positive": {
+    "mean_overlap": 0.665,
+    "std": 0.101
+  },
+  "b05_negative": {
+    "mean_overlap": 0.872,
+    "std": 0.076
+  },
+  "b06_positive": {
+    "mean_overlap": 0.763,
+    "std": 0.132
+  },
+  "b06_negative": {
+    "mean_overlap": 0.787,
+    "std": 0.123
+  },
+  "b07_positive": {
+    "mean_overlap": 0.633,
+    "std": 0.134
+  },
+  "b07_negative": {
+    "mean_overlap": 0.778,
+    "std": 0.111
+  },
+  "b08_positive": {
+    "mean_overlap": 0.8,
+    "std": 0.068
+  },
+  "b08_negative": {
+    "mean_overlap": 0.698,
+    "std": 0.078
+  },
+  "b09_positive": {
+    "mean_overlap": 0.755,
+    "std": 0.164
+  },
+  "b09_negative": {
+    "mean_overlap": 0.855,
+    "std": 0.088
+  },
+  "b10_positive": {
+    "mean_overlap": 0.86,
+    "std": 0.078
+  },
+  "b10_negative": {
+    "mean_overlap": 0.725,
+    "std": 0.068
+  },
+  "b11_positive": {
+    "mean_overlap": 0.735,
+    "std": 0.044
+  },
+  "b11_negative": {
+    "mean_overlap": 0.827,
+    "std": 0.206
+  },
+  "b12_positive": {
+    "mean_overlap": 0.942,
+    "std": 0.03
+  },
+  "b12_negative": {
+    "mean_overlap": 0.825,
+    "std": 0.043
+  }
+}

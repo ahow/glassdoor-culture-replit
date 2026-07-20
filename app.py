@@ -8,6 +8,7 @@ import re
 import json
 import logging
 import math
+import numpy as np
 import threading as _threading_module
 import psycopg2
 from psycopg2.extras import RealDictCursor
@@ -962,12 +963,126 @@ def invalidate_cache(company_name=None):
 # ROUTES
 # ============================================================================
 
+try:
+    from schroders_v2_keywords import (
+        SCHRODERS_V2_DIMENSIONS, SCHRODERS_V2_DIM_INFO, DICTIONARY_VERSION as V2_DICTIONARY_VERSION,
+    )
+except Exception:  # pipeline output not present in this environment
+    SCHRODERS_V2_DIMENSIONS, SCHRODERS_V2_DIM_INFO, V2_DICTIONARY_VERSION = [], {}, None
+
+
 @app.route('/', methods=['GET'])
 def index():
     """Serve the main dashboard"""
     return render_template('index.html',
                            schroders_dimensions=SCHRODERS_DIMENSIONS,
-                           schroders_dim_info=SCHRODERS_DIM_INFO)
+                           schroders_dim_info=SCHRODERS_DIM_INFO,
+                           schroders_v2_dimensions=SCHRODERS_V2_DIMENSIONS,
+                           schroders_v2_dim_info=SCHRODERS_V2_DIM_INFO)
+
+
+# ============================================================================
+# Phase 6 — v2 framework API (versioned under /api/v2/)
+# ============================================================================
+
+@app.route('/api/v2/framework-toggle', methods=['GET', 'POST'])
+def v2_framework_toggle():
+    """Get or set which Schroders framework the dashboard shows (v1 or v2)."""
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        # Fail-soft: ensure config table exists even if migration wasn't run
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS app_config (
+                key VARCHAR(100) PRIMARY KEY,
+                value VARCHAR(255),
+                updated_at TIMESTAMP DEFAULT NOW()
+            )
+        """)
+        conn.commit()
+        if request.method == 'POST':
+            val = (request.get_json(silent=True) or {}).get('value')
+            if val not in ('v1', 'v2'):
+                return jsonify({'success': False, 'error': "value must be 'v1' or 'v2'"}), 400
+            cur.execute("""
+                INSERT INTO app_config (key, value) VALUES ('schroders_framework_active', %s)
+                ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW()
+            """, (val,))
+            conn.commit()
+        cur.execute("SELECT value FROM app_config WHERE key = 'schroders_framework_active'")
+        row = cur.fetchone()
+        conn.close()
+        return jsonify({'success': True, 'active': row[0] if row else 'v1'})
+    except Exception as e:
+        logger.error(f"framework-toggle error: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+def _v2_company_row_to_dict(row, colnames):
+    d = dict(zip(colnames, row))
+    n = d.get('review_count') or 0
+    out = {
+        'company': d['company_name'],
+        'review_count': n,
+        'review_count_2018': d.get('review_count_2018') or 0,
+        'confidence': ('high' if n > 50 else 'medium' if n >= 20 else 'low'),
+        'low_confidence': n < 20,
+        'hidden': n < 5,
+        'composite_equalwt': d.get('schroders_v2_composite_equalwt'),
+        'composite_corrwt': d.get('schroders_v2_composite_corrwt'),
+        'dictionary_version': d.get('dictionary_version'),
+        'scoring_engine_version': d.get('scoring_engine_version'),
+        'dimensions': {},
+    }
+    for b in SCHRODERS_V2_DIMENSIONS:
+        out['dimensions'][b] = {
+            'score': None if n < 5 else d.get(f'schroders_v2_{b}_score'),
+            'evidence': d.get(f'schroders_v2_{b}_evidence') or 0,
+            'score_2018': None if n < 5 else d.get(f'schroders_v2_{b}_score_2018'),
+        }
+    return out
+
+
+@app.route('/api/v2/culture-scores', methods=['GET'])
+def v2_culture_scores():
+    """All companies' v2 bipolar culture scores (12 bipoles, -1..+1)."""
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM company_culture_scores_v2 ORDER BY company_name")
+        colnames = [c[0] for c in cur.description]
+        companies = [_v2_company_row_to_dict(r, colnames) for r in cur.fetchall()]
+        conn.close()
+        return jsonify({'success': True,
+                        'dimensions': SCHRODERS_V2_DIMENSIONS,
+                        'dim_info': SCHRODERS_V2_DIM_INFO,
+                        'companies': companies})
+    except Exception as e:
+        logger.error(f"v2 culture-scores error: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/v2/culture-scores/<path:company_name>', methods=['GET'])
+def v2_culture_scores_company(company_name):
+    """One company's v2 bipolar culture scores."""
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM company_culture_scores_v2 WHERE company_name = %s",
+                    (company_name,))
+        row = cur.fetchone()
+        if not row:
+            conn.close()
+            return jsonify({'success': False, 'error': 'Company not found'}), 404
+        colnames = [c[0] for c in cur.description]
+        conn.close()
+        return jsonify({'success': True,
+                        'dimensions': SCHRODERS_V2_DIMENSIONS,
+                        'dim_info': SCHRODERS_V2_DIM_INFO,
+                        'company': _v2_company_row_to_dict(row, colnames)})
+    except Exception as e:
+        logger.error(f"v2 culture-scores company error: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 
 @app.route('/api/warm-cache', methods=['POST'])
@@ -3888,6 +4003,41 @@ def get_culture_performance_scatter():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+def enriched_r2(y, y_pred, n_predictors, n_bootstrap=500):
+    """Phase 4.2 — in-sample R² plus honesty diagnostics:
+    adjusted R² (penalises free parameters) and a bootstrap 95% CI."""
+    y = np.asarray(y, dtype=float)
+    y_pred = np.asarray(y_pred, dtype=float)
+    n = len(y)
+    ss_tot = float(np.sum((y - y.mean()) ** 2))
+    if n < 3 or ss_tot <= 0:
+        return {}
+    ss_res = float(np.sum((y - y_pred) ** 2))
+    r2 = 1 - ss_res / ss_tot
+    adj_r2 = (1 - (1 - r2) * (n - 1) / (n - n_predictors - 1)
+              if n > n_predictors + 1 else None)
+    r2_boot = []
+    rng = np.random.default_rng(0)
+    for _ in range(n_bootstrap):
+        idx = rng.choice(n, n, replace=True)
+        y_b, y_pred_b = y[idx], y_pred[idx]
+        ss_tot_b = float(np.sum((y_b - y_b.mean()) ** 2))
+        if ss_tot_b > 0:
+            r2_boot.append(1 - float(np.sum((y_b - y_pred_b) ** 2)) / ss_tot_b)
+    if r2_boot:
+        ci_low, ci_high = (float(x) for x in np.percentile(r2_boot, [2.5, 97.5]))
+    else:
+        ci_low = ci_high = None
+    return {
+        'r2_in_sample': float(r2),
+        'r2_adjusted': float(adj_r2) if adj_r2 is not None else None,
+        'r2_ci_low': ci_low,
+        'r2_ci_high': ci_high,
+        'n_companies': int(n),
+        'n_predictors': int(n_predictors),
+    }
+
+
 @app.route('/api/correlation-matrix', methods=['GET'])
 def get_correlation_matrix():
     """Returns a 3×3 summary matrix: rows=gics_level, cols=score_type.
@@ -3985,6 +4135,12 @@ def get_correlation_matrix():
                 grp_h_avg = {d: mean(v) if v else 0 for d, v in h_sums.items()}
                 grp_m_avg = {d: mean(v) if v else 0 for d, v in m_sums.items()}
                 grp_s_avg = {d: mean(v) if v else 0 for d, v in s_sums.items()}
+                # Phase 4.3 — self-excluding peer means: totals + n so each
+                # company's deviation is measured against peers excluding itself
+                n_grp = len(valid)
+                grp_h_tot = {d: sum(v) for d, v in h_sums.items()}
+                grp_m_tot = {d: sum(v) for d, v in m_sums.items()}
+                grp_s_tot = {d: sum(v) for d, v in s_sums.items()}
 
                 culture_data_g = [
                     {'company': c,
@@ -4017,7 +4173,9 @@ def get_correlation_matrix():
                 }
                 group_cache[group_name] = {
                     'valid': valid, 'h_corrs': h_corrs, 'm_corrs': m_corrs, 's_corrs': s_corrs,
-                    'grp_h_avg': grp_h_avg, 'grp_m_avg': grp_m_avg, 'grp_s_avg': grp_s_avg
+                    'grp_h_avg': grp_h_avg, 'grp_m_avg': grp_m_avg, 'grp_s_avg': grp_s_avg,
+                    'grp_h_tot': grp_h_tot, 'grp_m_tot': grp_m_tot, 'grp_s_tot': grp_s_tot,
+                    'n_grp': n_grp
                 }
 
             matrix[gics_level] = {}
@@ -4025,6 +4183,11 @@ def get_correlation_matrix():
                 total_n        = 0
                 weighted_r2    = 0.0
                 weighted_slope = 0.0
+                weighted_adj_r2  = 0.0
+                adj_n            = 0
+                weighted_ci_low  = 0.0
+                weighted_ci_high = 0.0
+                ci_n             = 0
 
                 for group_name, gd in group_cache.items():
                     valid      = gd['valid']
@@ -4034,22 +4197,35 @@ def get_correlation_matrix():
                     grp_h_avg  = gd['grp_h_avg']
                     grp_m_avg  = gd['grp_m_avg']
                     grp_s_avg  = gd['grp_s_avg']
+                    grp_h_tot  = gd['grp_h_tot']
+                    grp_m_tot  = gd['grp_m_tot']
+                    grp_s_tot  = gd['grp_s_tot']
+                    n_grp      = gd['n_grp']
 
                     culture_scores, perf_scores = [], []
                     for c in valid:
                         if c not in all_perf:
                             continue
                         met = all_metrics[c]
+                        # Phase 4.3 — deviation vs peer mean EXCLUDING self:
+                        # peer_mean_d = (total_d - own_d) / (n - 1)
+                        def _dev(own, tot, avg):
+                            if n_grp > 1:
+                                return own - (tot - own) / (n_grp - 1)
+                            return own - avg
                         h_score = sum(
-                            h_corrs[d] * (met.get('hofstede',  {}).get(d, {}).get('value', 0) - grp_h_avg[d])
+                            h_corrs[d] * _dev(met.get('hofstede',  {}).get(d, {}).get('value', 0),
+                                              grp_h_tot[d], grp_h_avg[d])
                             for d in HOFSTEDE_DIMENSIONS
                         )
                         m_score = sum(
-                            m_corrs[d] * (met.get('mit_big_9', {}).get(d, {}).get('value', 0) - grp_m_avg[d])
+                            m_corrs[d] * _dev(met.get('mit_big_9', {}).get(d, {}).get('value', 0),
+                                              grp_m_tot[d], grp_m_avg[d])
                             for d in MIT_DIMENSIONS
                         )
                         s_score = sum(
-                            s_corrs[d] * ((met.get('schroders', {}).get(d, {}).get('value') or 0) - grp_s_avg[d])
+                            s_corrs[d] * _dev((met.get('schroders', {}).get(d, {}).get('value') or 0),
+                                              grp_s_tot[d], grp_s_avg[d])
                             for d in SCHRODERS_DIMENSIONS
                         )
                         cs = (s_score if score_type == 'schroders' else
@@ -4068,7 +4244,7 @@ def get_correlation_matrix():
                     if len(set(culture_scores)) < 2 or len(set(perf_scores)) < 2:
                         continue
 
-                    slope, _, r_value, _, _ = scipy_stats.linregress(culture_scores, perf_scores)
+                    slope, intercept, r_value, _, _ = scipy_stats.linregress(culture_scores, perf_scores)
                     r_squared = r_value ** 2
                     import math
                     if math.isnan(r_squared) or math.isnan(slope):
@@ -4076,16 +4252,40 @@ def get_correlation_matrix():
                     weighted_r2    += r_squared    * n
                     weighted_slope += float(slope) * n
                     total_n        += n
+                    # Phase 4.2 — enriched R² diagnostics per group
+                    _npred = (len(SCHRODERS_DIMENSIONS) if score_type == 'schroders' else
+                              len(HOFSTEDE_DIMENSIONS)  if score_type == 'hofstede'  else
+                              len(MIT_DIMENSIONS)       if score_type == 'mit'       else
+                              len(SCHRODERS_DIMENSIONS) + len(HOFSTEDE_DIMENSIONS) + len(MIT_DIMENSIONS))
+                    _y      = np.asarray(perf_scores, dtype=float)
+                    _y_pred = float(slope) * np.asarray(culture_scores, dtype=float) + float(intercept)
+                    _enr = enriched_r2(_y, _y_pred, _npred)
+                    if _enr.get('r2_adjusted') is not None:
+                        weighted_adj_r2 += _enr['r2_adjusted'] * n
+                        adj_n           += n
+                    if _enr.get('r2_ci_low') is not None:
+                        weighted_ci_low  += _enr['r2_ci_low']  * n
+                        weighted_ci_high += _enr['r2_ci_high'] * n
+                        ci_n             += n
 
                 if total_n > 0:
                     r2_val    = weighted_r2    / total_n
                     slope_val = weighted_slope / total_n
                     import math as _math
-                    matrix[gics_level][score_type] = {
+                    cell = {
                         'r_squared': round(r2_val,    3) if not _math.isnan(r2_val)    else None,
                         'slope':     round(slope_val, 3) if not _math.isnan(slope_val) else None,
                         'n':         total_n
                     }
+                    # Phase 4.2 — enriched diagnostics (company-weighted means)
+                    if adj_n > 0 and not _math.isnan(weighted_adj_r2 / adj_n):
+                        cell['r2_adjusted'] = round(weighted_adj_r2 / adj_n, 3)
+                    if ci_n > 0:
+                        lo, hi = weighted_ci_low / ci_n, weighted_ci_high / ci_n
+                        if not (_math.isnan(lo) or _math.isnan(hi)):
+                            cell['r2_ci_low']  = round(lo, 3)
+                            cell['r2_ci_high'] = round(hi, 3)
+                    matrix[gics_level][score_type] = cell
                 else:
                     matrix[gics_level][score_type] = None
 

@@ -6192,3 +6192,103 @@ Score = (pos − neg) / (pos + neg). Weights: High = 1.0, Medium = 0.75, Low = 0
 | tattoos | 0.25 |
 
 *Total Schroders terms: 1824*
+
+---
+
+# Part II — Culture Analytics v2 (12 Bipolar Dimensions)
+
+Version tags: dictionary `2026-08-01-v2`, scoring engine `v2.0-regex-negation`.
+The v2 framework runs alongside v1 (18 dimensions) — a dashboard toggle
+(`schroders_framework_active` in `app_config`) switches between them without a deploy.
+
+## V2.1 Scoring Engine
+
+- **Word-boundary regex matching** replaces v1 substring matching, so "art" no longer
+  matches inside "party".
+- **Negation handling**: a matched phrase preceded within 3 tokens by a negator
+  (not / no / never / hardly / barely / lacks / lacking / without / isn't / doesn't /
+  wasn't / don't / can't / won't / little / few) flips its pole contribution.
+- Each phrase counts at most once per review (presence, not frequency), as in v1.
+- Per-dimension score = (right_pole − left_pole) / (right_pole + left_pole) ∈ [−1, +1],
+  NULL when no terms fire.
+
+## V2.2 The 12 Bipoles
+
+b01 Short-term ↔ Long-term · b02 Cost-focused ↔ Growth-focused ·
+b03 Hierarchical ↔ Egalitarian · b04 Rules-driven ↔ Judgement-driven ·
+b05 Individual ↔ Team performance · b06 Insular ↔ Externally-focused ·
+b07 Risk-averse ↔ Risk-taking · b08 Political ↔ Meritocratic ·
+b09 Toxic ↔ Supportive · b10 Chaotic ↔ Stable · b11 Compliance-minimising ↔
+Integrity-maximising · b12 Homogeneous ↔ Diverse & inclusive.
+
+## V2.3 Automated Dictionary Construction
+
+Dictionaries were built by a resumable offline pipeline (`pipeline/build_dictionaries.py`):
+1. **Phrase mining** — spaCy noun-chunk/adjective mining over the full development corpus
+   (200,551 reviews, 52 financial-services companies) → 20,233 candidate phrases.
+2. **Embedding expansion** — sentence-transformers similarity between candidates and
+   curated seed terms per pole.
+3. **Filtering** — pole-exclusivity margin, global cross-bipole exclusivity, a STOP_TERMS
+   blocklist, and per-pole balance trimming.
+4. **Seed-stability check** — dictionaries rebuilt with 20% of seeds dropped over repeated
+   runs; mean pole overlap is reported per pole (see Sensitivity below).
+
+## V2.4 Aggregation, Composites and Temporal Series
+
+- Company score per bipole = mean of non-NULL per-review scores; evidence = count.
+- `composite_equalwt` = equal-weighted mean across all 12 bipoles (requires all 12 present).
+- `composite_corrwt` = correlation-weighted composite, computed in-app per industry group.
+- **2018 cutoff (Phase 5)**: every bipole also has a `_2018` variant aggregated only from
+  reviews dated 2018 or earlier, enabling pre/post-period comparison and guarding against
+  look-ahead bias in performance analysis.
+
+## V2.5 Enriched R² (Performance Modelling)
+
+The correlation-matrix endpoint reports, alongside the raw in-sample R²:
+- **Adjusted R²** penalising the number of predictors (12 for Schroders v2, 6 Hofstede,
+  9 MIT, 27 combined);
+- **Bootstrap 95% CI** on R² (500 resamples, fixed seed);
+- **Self-excluding peer z-scores**: each company's deviation is measured against the mean
+  of its industry peers *excluding itself* — removing the mechanical self-correlation that
+  inflates small-group fits.
+
+## V2.6 Confidence Display Rules
+
+- Fewer than 5 reviews → v2 scores hidden entirely.
+- Fewer than 20 reviews → scores shown greyed out with a low-confidence warning.
+- 20–50 reviews → medium confidence; more than 50 → high confidence.
+
+## V2.7 Limitations
+
+- **Development corpus is finance-only.** Dictionaries were mined from 52
+  financial-services companies (200,551 reviews). Sector-specific vocabulary
+  (e.g. "AUM", "desk") may not generalise; a re-validation pass is required before
+  applying v2 scores outside financial services. The known-company sanity check
+  (Costco/Netflix-style anchors) could not be run because those companies are not in the
+  development corpus.
+- **Keyword firing rates.** After four tuning iterations, 15/24 poles meet the target
+  firing band; the remainder under-fire marginally (2–5% below target; b11 negative pole
+  fires on only ~1.7% of reviews). Low-firing poles produce noisier scores at low review
+  counts.
+- **Residual pole-purity issues** on b10 (Chaotic↔Stable), b11 (Compliance↔Integrity) and
+  b12 (Homogeneous↔Diverse): a handful of terms retain weak cross-pole correlation.
+- **Bootstrap composite stability (Test F)** fails on the development corpus: max pairwise
+  correlation std = 0.133 (target < 0.05) with only 47 companies ≥ 30 reviews. This is a
+  small-n effect and is expected to improve materially on the full production universe.
+- Keyword-based scoring, even with negation, cannot capture sarcasm, context or
+  comparative statements ("better than my last bank").
+
+## V2.8 Sensitivity Analysis
+
+- **Discriminant validity (dev corpus, 47 companies ≥30 reviews)** — Test A ceiling
+  saturation: all 12 bipoles ≤ 2.1% of companies at |score| > 0.95 (target ≤ 15%), PASS.
+  Test B max pairwise |r| = 0.46 (limit 0.7), PASS. Test C PCA: PC1 explains 21.4% of
+  variance (target ≤ 40%), PASS. Test D max VIF = 2.96 (limit 5), PASS. Test E found no
+  radical sector divergence.
+- **Seed stability** — rebuilding dictionaries with 20% of seed terms removed yields mean
+  pole overlap 0.63–0.91. Three poles fall below 0.7 (b03 positive 0.67, b05 positive
+  0.665, b07 positive 0.633): scores on Hierarchy↔Egalitarian, Individual↔Team and
+  Risk-averse↔Risk-taking are the most sensitive to seed choice and should be interpreted
+  with wider error bands.
+- **Negation window** — the 3-token negation window was chosen over 2/4-token variants;
+  wider windows over-flip legitimate matches in long "pros" sentences.

@@ -1,0 +1,9 @@
+# Pipeline-only dependencies — do NOT add these to the web app's requirements.txt
+sentence-transformers
+spacy
+nltk
+scikit-learn
+numpy
+pandas
+scipy
+psycopg2-binary
