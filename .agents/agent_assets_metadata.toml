@@ -48,3 +48,9 @@ id = "Hph-WNzOYi8ZdZJX34cvC"
 uri = "file://diagnostics_pack_v2_review.zip"
 type = "unspecified"
 title = "Diagnostic pack for the reviewer (term, dimension, review & company level)"
+
+[[outputs]]
+id = "7nE2txFvfk8JABkqmIDAB"
+uri = "file://pipeline_output/schroders_rebuild_validation_report.md"
+type = "text"
+title = "Schroders Rebuild Validation Report"

@@ -509,12 +509,13 @@
             <button class="main-tab-button" onclick="switchMainTab('companies', event)">Companies</button>
             <button class="main-tab-button" onclick="switchMainTab('analysis', event)">Company Analysis</button>
             <button class="main-tab-button" onclick="switchMainTab('trends', event)">Quarterly Trends</button>
-            <button class="main-tab-button" onclick="switchMainTab('hofstede', event)">Hofstede Framework</button>
-            <button class="main-tab-button" onclick="switchMainTab('mit', event)">MIT Framework</button>
             <button class="main-tab-button" onclick="switchMainTab('schroders', event)">Schroders Framework</button>
-            <button class="main-tab-button" onclick="switchMainTab('insights', event)">Performance Insights</button>
-            <button class="main-tab-button" onclick="switchMainTab('culturePerf', event)">Culture vs Performance</button>
-            <button class="main-tab-button" onclick="switchMainTab('corrAnalysis', event)">Correlation Analysis</button>
+            <button class="main-tab-button" onclick="switchMainTab('factor', event)">Culture Factor</button>
+            <!-- Schroders-only rebuild (2026-07-21): Hofstede, MIT, Performance Insights,
+                 Culture vs Performance and Correlation Analysis tabs are inactive
+                 (they are built on the retired Hofstede/MIT frameworks). Restore via
+                 rollback point pre_schroders_sector_relative_rebuild_2026_07_21. -->
+
             <button class="main-tab-button" onclick="switchMainTab('exportData', event)">Export Data</button>
             <button class="main-tab-button" onclick="switchMainTab('dataStatus', event)">Data Status</button>
             <button class="main-tab-button" onclick="switchMainTab('extractionMgr', event)">Extraction Manager</button>
@@ -551,7 +552,7 @@
                         This dashboard analyses employee reviews published on Glassdoor to extract and visualise organisational culture signals for companies in the financial services sector. It covers <strong>2,442 MSCI-listed companies</strong> spanning 11 GICS sectors and 73 industries, plus 14 major unlisted asset managers, giving a universe of institutions from global investment banks and insurers to boutique asset managers and fintech firms.
                     </p>
                     <p style="font-size: 1rem; color: #475569; line-height: 1.8;">
-                        Culture is scored using two well-established academic frameworks — <strong>Hofstede's Organisational Culture model</strong> and the <strong>MIT Sloan "Big 9" framework</strong> — applied consistently across all companies so that direct, apples-to-apples comparisons are possible. Financial performance data from FMP is then linked to each company, enabling the dashboard to test empirically whether stronger culture correlates with better business outcomes.
+                        Culture is scored using the <strong>Schroders v2 framework</strong> — twelve bipolar dimensions scored from −1 to +1 with a data-mined dictionary — applied consistently across all companies so that direct, apples-to-apples comparisons are possible. Dimension scores are shrunk toward sector averages where evidence is thin, and combined into a single sector-relative <strong>Culture Factor</strong> with an explicit reliability tier per company. Intended for internal research use.
                     </p>
                 </div>
 
@@ -568,7 +569,7 @@
                         <div style="background: #f0fdf4; border-radius: 10px; padding: 1.1rem 1.25rem; border-left: 4px solid #22c55e;">
                             <div style="font-weight: 700; color: #15803d; font-size: 0.8rem; letter-spacing: 0.05em; margin-bottom: 0.4rem;">STEP 2</div>
                             <div style="font-weight: 600; color: #1e293b; margin-bottom: 0.35rem;">Keyword Scoring</div>
-                            <p style="color: #475569; font-size: 0.85rem; margin: 0;">Each review is scored against curated keyword dictionaries for every culture dimension. For Hofstede dimensions the score is bipolar (keywords pull the score towards −1 or +1). For MIT dimensions the score is unipolar (keywords accumulate on a 0–10 scale). Scores are computed per review and then averaged to company level.</p>
+                            <p style="color: #475569; font-size: 0.85rem; margin: 0;">Each review is scored against the Schroders v2 mined dictionary using a regex engine with negation handling. Every dimension is bipolar: matched terms pull the score towards −1 or +1. Scores are computed per review, averaged to company level, then shrunk toward the sector average in proportion to how thin the evidence is.</p>
                         </div>
                         <div style="background: #fdf4ff; border-radius: 10px; padding: 1.1rem 1.25rem; border-left: 4px solid #a855f7;">
                             <div style="font-weight: 700; color: #7e22ce; font-size: 0.8rem; letter-spacing: 0.05em; margin-bottom: 0.4rem;">STEP 3</div>
@@ -592,90 +593,17 @@
 
                 <!-- Culture frameworks -->
                 <div class="chart-container" style="margin-bottom: 1.5rem;">
-                    <h2 class="chart-title">The Two Culture Frameworks</h2>
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem;">
-
-                        <!-- Hofstede -->
-                        <div style="background: #f8fafc; border-radius: 10px; padding: 1.25rem; border: 1px solid #e2e8f0;">
-                            <h3 style="color: #3b82f6; margin-bottom: 0.6rem; font-size: 1rem;">Hofstede Organisational Culture Model</h3>
-                            <p style="color: #475569; font-size: 0.875rem; line-height: 1.7; margin-bottom: 0.75rem;">
-                                Developed by Geert Hofstede, this model describes culture along six <em>bipolar</em> dimensions. Each dimension is scored from <strong>−1 to +1</strong>; the sign indicates which pole dominates.
-                            </p>
-                            <table style="width: 100%; font-size: 0.82rem; border-collapse: collapse;">
-                                <tr style="background: #eff6ff;">
-                                    <td style="padding: 0.35rem 0.5rem; font-weight: 600; color: #1e40af; border-radius: 4px 0 0 4px;">Process vs Results</td>
-                                    <td style="padding: 0.35rem 0.5rem; color: #475569;">Routine &amp; risk-avoidance vs outcome focus &amp; effort</td>
-                                </tr>
-                                <tr>
-                                    <td style="padding: 0.35rem 0.5rem; font-weight: 600; color: #1e40af;">Employee vs Job</td>
-                                    <td style="padding: 0.35rem 0.5rem; color: #475569;">People-first culture vs task and deliverable focus</td>
-                                </tr>
-                                <tr style="background: #eff6ff;">
-                                    <td style="padding: 0.35rem 0.5rem; font-weight: 600; color: #1e40af;">Parochial vs Professional</td>
-                                    <td style="padding: 0.35rem 0.5rem; color: #475569;">Identity from employer vs professional standards</td>
-                                </tr>
-                                <tr>
-                                    <td style="padding: 0.35rem 0.5rem; font-weight: 600; color: #1e40af;">Open vs Closed</td>
-                                    <td style="padding: 0.35rem 0.5rem; color: #475569;">Welcoming to outsiders vs secretive &amp; cliquey</td>
-                                </tr>
-                                <tr style="background: #eff6ff;">
-                                    <td style="padding: 0.35rem 0.5rem; font-weight: 600; color: #1e40af;">Loose vs Tight</td>
-                                    <td style="padding: 0.35rem 0.5rem; color: #475569;">Informal norms vs strict rules &amp; compliance</td>
-                                </tr>
-                                <tr>
-                                    <td style="padding: 0.35rem 0.5rem; font-weight: 600; color: #1e40af; border-radius: 0 0 0 4px;">Normative vs Pragmatic</td>
-                                    <td style="padding: 0.35rem 0.5rem; color: #475569;">Ethics-driven vs market &amp; client-driven</td>
-                                </tr>
-                            </table>
-                            <a href="https://www.businessballs.com/organisational-culture/hofstede-model/" target="_blank" rel="noopener noreferrer" style="display: inline-block; margin-top: 0.9rem; color: #3b82f6; font-size: 0.82rem; text-decoration: none; font-weight: 500;">Learn more ↗</a>
-                        </div>
-
-                        <!-- MIT Big 9 -->
-                        <div style="background: #f8fafc; border-radius: 10px; padding: 1.25rem; border: 1px solid #e2e8f0;">
-                            <h3 style="color: #6366f1; margin-bottom: 0.6rem; font-size: 1rem;">MIT Sloan "Big 9" Culture Framework</h3>
-                            <p style="color: #475569; font-size: 0.875rem; line-height: 1.7; margin-bottom: 0.75rem;">
-                                Derived from MIT's Culture 500 research project, this model identifies nine <em>unipolar</em> culture attributes. Each is scored from <strong>0 to 10</strong>; higher is stronger presence of that attribute.
-                            </p>
-                            <table style="width: 100%; font-size: 0.82rem; border-collapse: collapse;">
-                                <tr style="background: #eef2ff;">
-                                    <td style="padding: 0.35rem 0.5rem; font-weight: 600; color: #4338ca;">Agility</td>
-                                    <td style="padding: 0.35rem 0.5rem; color: #475569;">Speed, adaptability and responsiveness to change</td>
-                                </tr>
-                                <tr>
-                                    <td style="padding: 0.35rem 0.5rem; font-weight: 600; color: #4338ca;">Collaboration</td>
-                                    <td style="padding: 0.35rem 0.5rem; color: #475569;">Teamwork, cross-functional cooperation</td>
-                                </tr>
-                                <tr style="background: #eef2ff;">
-                                    <td style="padding: 0.35rem 0.5rem; font-weight: 600; color: #4338ca;">Customer Orientation</td>
-                                    <td style="padding: 0.35rem 0.5rem; color: #475569;">Focus on client needs and service quality</td>
-                                </tr>
-                                <tr>
-                                    <td style="padding: 0.35rem 0.5rem; font-weight: 600; color: #4338ca;">Diversity</td>
-                                    <td style="padding: 0.35rem 0.5rem; color: #475569;">Inclusion of different backgrounds and perspectives</td>
-                                </tr>
-                                <tr style="background: #eef2ff;">
-                                    <td style="padding: 0.35rem 0.5rem; font-weight: 600; color: #4338ca;">Execution</td>
-                                    <td style="padding: 0.35rem 0.5rem; color: #475569;">Operational discipline and delivering results</td>
-                                </tr>
-                                <tr>
-                                    <td style="padding: 0.35rem 0.5rem; font-weight: 600; color: #4338ca;">Innovation</td>
-                                    <td style="padding: 0.35rem 0.5rem; color: #475569;">Creativity, experimentation and new ideas</td>
-                                </tr>
-                                <tr style="background: #eef2ff;">
-                                    <td style="padding: 0.35rem 0.5rem; font-weight: 600; color: #4338ca;">Integrity</td>
-                                    <td style="padding: 0.35rem 0.5rem; color: #475569;">Ethical behaviour, honesty and transparency</td>
-                                </tr>
-                                <tr>
-                                    <td style="padding: 0.35rem 0.5rem; font-weight: 600; color: #4338ca;">Performance</td>
-                                    <td style="padding: 0.35rem 0.5rem; color: #475569;">Meritocracy, accountability and high standards</td>
-                                </tr>
-                                <tr style="background: #eef2ff;">
-                                    <td style="padding: 0.35rem 0.5rem; font-weight: 600; color: #4338ca;">Respect</td>
-                                    <td style="padding: 0.35rem 0.5rem; color: #475569;">Dignity, psychological safety and wellbeing</td>
-                                </tr>
-                            </table>
-                            <a href="https://sloanreview.mit.edu/culture500/" target="_blank" rel="noopener noreferrer" style="display: inline-block; margin-top: 0.9rem; color: #6366f1; font-size: 0.82rem; text-decoration: none; font-weight: 500;">Learn more ↗</a>
-                        </div>
+                    <h2 class="chart-title">The Schroders v2 Culture Framework</h2>
+                    <p style="color: #475569; font-size: 0.875rem; line-height: 1.7; margin-bottom: 0.75rem;">
+                        The only active framework. Twelve <em>bipolar</em> dimensions scored from <strong>−1 to +1</strong> using a dictionary mined from the review corpus itself. The sign indicates which pole dominates; zero means balanced. Earlier Hofstede and MIT frameworks have been retired from active analysis (they remain in the rollback snapshot).
+                    </p>
+                    <div style="background: #f8fafc; border-radius: 10px; padding: 1.25rem; border: 1px solid #e2e8f0;">
+                        <table style="width: 100%; font-size: 0.82rem; border-collapse: collapse;">
+                            <tr style="background: #ede9fe;"><td style="padding: 0.35rem 0.5rem; font-weight: 600; color: #6d28d9;">Evidence tiers (A–D)</td><td style="padding: 0.35rem 0.5rem; color: #475569;">Every company × dimension score carries a tier based on how many reviews actually scored that dimension and how concentrated the evidence is.</td></tr>
+                            <tr><td style="padding: 0.35rem 0.5rem; font-weight: 600; color: #6d28d9;">Sector-relative shrinkage</td><td style="padding: 0.35rem 0.5rem; color: #475569;">Thin evidence is pulled toward the sector average, so small-sample companies can't dominate rankings on noise.</td></tr>
+                            <tr style="background: #ede9fe;"><td style="padding: 0.35rem 0.5rem; font-weight: 600; color: #6d28d9;">Culture Factor</td><td style="padding: 0.35rem 0.5rem; color: #475569;">A single sector-relative score per company, combined with ridge-model weights fit against a composite financial-performance target within each peer group.</td></tr>
+                            <tr><td style="padding: 0.35rem 0.5rem; font-weight: 600; color: #6d28d9;">Reliability tiers</td><td style="padding: 0.35rem 0.5rem; color: #475569;">High / Medium / Low / Insufficient — reflecting evidence depth and bootstrap rank stability. Low and Insufficient scores are indicative only.</td></tr>
+                        </table>
                     </div>
                 </div>
 
@@ -695,7 +623,7 @@
                             <div style="display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.5rem;">
                                 <span style="background: #dbeafe; color: #1e40af; font-size: 0.75rem; font-weight: 700; padding: 0.2rem 0.55rem; border-radius: 20px;">Company Analysis</span>
                             </div>
-                            <p style="color: #475569; font-size: 0.85rem; line-height: 1.65; margin: 0;">Side-by-side radar charts showing a selected company's Hofstede and MIT Big 9 profiles simultaneously, with optional overlay of the sector or industry average. Good for a quick top-level culture summary of a single firm.</p>
+                            <p style="color: #475569; font-size: 0.85rem; line-height: 1.65; margin: 0;">Deep dive into a selected company's Schroders v2 culture profile with optional overlay of the sector or industry average. Good for a quick top-level culture summary of a single firm.</p>
                         </div>
 
                         <div style="border: 1px solid #e2e8f0; border-radius: 10px; padding: 1rem 1.25rem;">
@@ -705,39 +633,18 @@
                             <p style="color: #475569; font-size: 0.85rem; line-height: 1.65; margin: 0;">Time-series line chart of any Glassdoor rating dimension (overall, culture, work-life balance, compensation, career opportunities, management, diversity, CEO approval, business outlook, recommendation rate) for a chosen company, with an optional second company or industry average for comparison.</p>
                         </div>
 
-                        <div style="border: 1px solid #e2e8f0; border-radius: 10px; padding: 1rem 1.25rem;">
+                                                                                                                                                <div style="border: 1px solid #e2e8f0; border-radius: 10px; padding: 1rem 1.25rem;">
                             <div style="display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.5rem;">
-                                <span style="background: #ede9fe; color: #6d28d9; font-size: 0.75rem; font-weight: 700; padding: 0.2rem 0.55rem; border-radius: 20px;">Hofstede Framework</span>
+                                <span style="background: #ede9fe; color: #6d28d9; font-size: 0.75rem; font-weight: 700; padding: 0.2rem 0.55rem; border-radius: 20px;">Schroders Framework</span>
                             </div>
-                            <p style="color: #475569; font-size: 0.85rem; line-height: 1.65; margin: 0;">Deep dive into a single company's six Hofstede dimensions, shown as position-on-spectrum sliders. A trend sub-tab shows how each dimension has shifted quarter by quarter. Compare with an optional benchmark company or industry average.</p>
+                            <p style="color: #475569; font-size: 0.85rem; line-height: 1.65; margin: 0;">Deep dive into a single company's twelve Schroders v2 bipolar dimensions, shown as a bar chart from −1 to +1 with evidence counts. Compare with an optional benchmark company.</p>
                         </div>
 
                         <div style="border: 1px solid #e2e8f0; border-radius: 10px; padding: 1rem 1.25rem;">
                             <div style="display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.5rem;">
-                                <span style="background: #ede9fe; color: #6d28d9; font-size: 0.75rem; font-weight: 700; padding: 0.2rem 0.55rem; border-radius: 20px;">MIT Framework</span>
+                                <span style="background: #fef9c3; color: #854d0e; font-size: 0.75rem; font-weight: 700; padding: 0.2rem 0.55rem; border-radius: 20px;">Culture Factor</span>
                             </div>
-                            <p style="color: #475569; font-size: 0.85rem; line-height: 1.65; margin: 0;">Equivalent deep dive for the nine MIT Big 9 dimensions, with bar charts showing absolute scores and a trend sub-tab for temporal changes. Particularly useful for tracking cultural evolution during mergers, leadership changes or market disruptions.</p>
-                        </div>
-
-                        <div style="border: 1px solid #e2e8f0; border-radius: 10px; padding: 1rem 1.25rem;">
-                            <div style="display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.5rem;">
-                                <span style="background: #fef9c3; color: #854d0e; font-size: 0.75rem; font-weight: 700; padding: 0.2rem 0.55rem; border-radius: 20px;">Performance Insights</span>
-                            </div>
-                            <p style="color: #475569; font-size: 0.85rem; line-height: 1.65; margin: 0;">Correlation heatmap between each of the 15 culture dimensions and four financial performance metrics (ROE, operating margin, TSR, AUM growth). Pearson r values are shown with significance flags. Reveals which culture signals are most predictive of financial outperformance within the selected GICS group.</p>
-                        </div>
-
-                        <div style="border: 1px solid #e2e8f0; border-radius: 10px; padding: 1rem 1.25rem;">
-                            <div style="display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.5rem;">
-                                <span style="background: #fef9c3; color: #854d0e; font-size: 0.75rem; font-weight: 700; padding: 0.2rem 0.55rem; border-radius: 20px;">Culture vs Performance</span>
-                            </div>
-                            <p style="color: #475569; font-size: 0.85rem; line-height: 1.65; margin: 0;">Scatter plot where each dot is a company. The X-axis is its composite culture score (correlation-weighted across all dimensions) and the Y-axis is its composite business performance score (normalised within its GICS peer group). The regression line and R² measure how tightly culture tracks performance within the current filter.</p>
-                        </div>
-
-                        <div style="border: 1px solid #e2e8f0; border-radius: 10px; padding: 1rem 1.25rem;">
-                            <div style="display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.5rem;">
-                                <span style="background: #fef9c3; color: #854d0e; font-size: 0.75rem; font-weight: 700; padding: 0.2rem 0.55rem; border-radius: 20px;">Correlation Analysis</span>
-                            </div>
-                            <p style="color: #475569; font-size: 0.85rem; line-height: 1.65; margin: 0;">Two views of the culture-performance relationship broken down by group. A <strong>3×3 summary matrix</strong> shows company-count-weighted average R² and slope across all grouping levels (Sector / Industry / Sub-Industry) and score types (Combined / Hofstede / MIT). A <strong>scatter plot</strong> then shows the individual groups — dot position encodes R² (Y) and slope (X), dot size encodes company count, colour encodes statistical significance.</p>
+                            <p style="color: #475569; font-size: 0.85rem; line-height: 1.65; margin: 0;">Sector-relative Culture Factor rankings with reliability tiers and bootstrap stability, plus per-dimension evidence detail (raw vs shrunk scores, evidence tiers A–D, coverage and concentration warnings).</p>
                         </div>
 
                         <div style="border: 1px solid #e2e8f0; border-radius: 10px; padding: 1rem 1.25rem;">
@@ -947,14 +854,8 @@
                 <div class="chart-container">
                     <h3>Select Company</h3>
                     <div style="margin-bottom: 1rem; display: flex; align-items: center; gap: 0.75rem;">
-                        <span style="font-size: 0.85rem; color: #64748b; font-weight: 600;">Framework version:</span>
-                        <div style="display: inline-flex; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden;">
-                            <button id="schrodersV1Btn" data-testid="button-framework-v1" onclick="setSchrodersFramework('v1')"
-                                    style="padding: 0.35rem 0.9rem; border: none; cursor: pointer; font-size: 0.82rem; background: #8b5cf6; color: #fff;">v1 (18 dimensions)</button>
-                            <button id="schrodersV2Btn" data-testid="button-framework-v2" onclick="setSchrodersFramework('v2')"
-                                    style="padding: 0.35rem 0.9rem; border: none; cursor: pointer; font-size: 0.82rem; background: #f1f5f9; color: #475569;">v2 (12 bipolar)</button>
-                        </div>
-                        <span id="schrodersV2Badge" style="display:none; font-size: 0.72rem; color: #7c3aed; background: #ede9fe; padding: 0.2rem 0.55rem; border-radius: 999px;">v2 — regex + negation engine, bipolar −1…+1</span>
+                        <span style="font-size: 0.85rem; color: #64748b; font-weight: 600;">Framework:</span>
+                        <span id="schrodersV2Badge" data-testid="badge-framework-v2" style="font-size: 0.72rem; color: #7c3aed; background: #ede9fe; padding: 0.2rem 0.55rem; border-radius: 999px;">Schroders v2 — 12 bipolar dimensions, mined dictionary (only active framework)</span>
                     </div>
                     <div class="controls-grid">
                         <div class="control-group">
@@ -995,6 +896,68 @@
 
                 <div id="schrodersMessage" style="text-align: center; color: #7f8c8d; padding: 3rem;">
                     Select a company to view its complete culture profile
+                </div>
+            </div>
+        </div>
+
+        <!-- Culture Factor tab: sector-relative factor scores, evidence tiers, stability -->
+        <div id="factorTab" class="tab-content hidden-tab" style="display: none;">
+            <div class="chart-container">
+                <h2 class="chart-title">Culture Factor — Sector-Relative Scores</h2>
+                <p style="color: #64748b; font-size: 0.88rem; margin-bottom: 1rem;">
+                    Each company's 12 Schroders v2 dimensions are shrunk toward its sector average
+                    (less evidence &rarr; more shrinkage), then combined into a single factor score using
+                    a ridge model fit against a composite financial-performance target within each peer group.
+                    Percentiles are relative to sector peers only. <strong>Reliability tier</strong> reflects
+                    evidence depth and bootstrap rank stability &mdash; treat Low / Insufficient rows as
+                    indicative only. Intended for internal research, not client-facing use.
+                </p>
+                <div style="overflow-x: auto;">
+                    <table id="factorScoresTable" data-testid="table-factor-scores" style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
+                        <thead>
+                            <tr style="background: #f1f5f9; text-align: left;">
+                                <th style="padding: 0.5rem 0.6rem;">Company</th>
+                                <th style="padding: 0.5rem 0.6rem;">Peer group</th>
+                                <th style="padding: 0.5rem 0.6rem;">Model used</th>
+                                <th style="padding: 0.5rem 0.6rem;">Sector z</th>
+                                <th style="padding: 0.5rem 0.6rem;">Sector %ile</th>
+                                <th style="padding: 0.5rem 0.6rem;">Reliability</th>
+                                <th style="padding: 0.5rem 0.6rem;">%ile SD (bootstrap)</th>
+                                <th style="padding: 0.5rem 0.6rem;">Tier A/B dims</th>
+                            </tr>
+                        </thead>
+                        <tbody id="factorScoresBody"></tbody>
+                    </table>
+                </div>
+                <p id="factorScoresMessage" style="text-align:center; color:#7f8c8d; padding:1.5rem;">Loading factor scores…</p>
+            </div>
+
+            <div class="chart-container">
+                <h2 class="chart-title">Dimension Evidence Detail</h2>
+                <p style="color: #64748b; font-size: 0.88rem; margin-bottom: 0.8rem;">
+                    Raw vs shrunk score per dimension, with evidence tier (A = deep evidence &rarr; D = thin),
+                    coverage, and concentration warnings. Click a company above or pick one here.
+                </p>
+                <select id="evidenceCompanySelect" data-testid="select-evidence-company" onchange="loadEvidenceDetail(this.value)"
+                        style="padding: 0.4rem 0.6rem; border: 1px solid #cbd5e1; border-radius: 6px; margin-bottom: 1rem;">
+                    <option value="">Select a company…</option>
+                </select>
+                <div style="overflow-x: auto;">
+                    <table id="evidenceTable" data-testid="table-evidence" style="width: 100%; border-collapse: collapse; font-size: 0.85rem; display: none;">
+                        <thead>
+                            <tr style="background: #f1f5f9; text-align: left;">
+                                <th style="padding: 0.5rem 0.6rem;">Dimension</th>
+                                <th style="padding: 0.5rem 0.6rem;">Tier</th>
+                                <th style="padding: 0.5rem 0.6rem;">Scored reviews</th>
+                                <th style="padding: 0.5rem 0.6rem;">Coverage</th>
+                                <th style="padding: 0.5rem 0.6rem;">Raw score</th>
+                                <th style="padding: 0.5rem 0.6rem;">Shrunk score</th>
+                                <th style="padding: 0.5rem 0.6rem;">Shrink weight</th>
+                                <th style="padding: 0.5rem 0.6rem;">Concentration</th>
+                            </tr>
+                        </thead>
+                        <tbody id="evidenceBody"></tbody>
+                    </table>
                 </div>
             </div>
         </div>
@@ -1953,7 +1916,7 @@
             console.log('switchMainTab called with tab:', tab);
             
             // Hide all tabs using both inline styles AND CSS class
-            const tabs = ['overviewTab', 'companiesTab', 'analysisTab', 'trendsTab', 'hofstedeTab', 'mitTab', 'schrodersTab', 'insightsTab', 'culturePerfTab', 'corrAnalysisTab', 'exportDataTab', 'dataStatusTab', 'extractionMgrTab'];
+            const tabs = ['overviewTab', 'companiesTab', 'analysisTab', 'trendsTab', 'hofstedeTab', 'mitTab', 'schrodersTab', 'factorTab', 'insightsTab', 'culturePerfTab', 'corrAnalysisTab', 'exportDataTab', 'dataStatusTab', 'extractionMgrTab'];
             tabs.forEach(tabId => {
                 const el = document.getElementById(tabId);
                 if (el) {
@@ -1976,6 +1939,7 @@
                 'hofstede': 'hofstedeTab',
                 'mit': 'mitTab',
                 'schroders': 'schrodersTab',
+                'factor': 'factorTab',
                 'insights': 'insightsTab',
                 'culturePerf': 'culturePerfTab',
                 'corrAnalysis': 'corrAnalysisTab',
@@ -2005,6 +1969,8 @@
                 loadCultureCompanies('mit');
             } else if (tab === 'schroders') {
                 loadCultureCompanies('schroders');
+            } else if (tab === 'factor') {
+                loadFactorScores();
             } else if (tab === 'insights') {
                 loadPerformanceInsights();
             } else if (tab === 'culturePerf') {
@@ -2496,42 +2462,121 @@
         // ── Schroders v2 (12 bipolar dimensions) ────────────────────────────
         const SCHRODERS_V2_DIM_INFO = {{ schroders_v2_dim_info | tojson }};
         const SCHRODERS_V2_DIMENSIONS = {{ schroders_v2_dimensions | tojson }};
-        window.schrodersFrameworkActive = 'v1';
-
-        // Load the server-side toggle once at startup
-        fetch('/api/v2/framework-toggle')
-            .then(r => r.json())
-            .then(d => { if (d.success && d.active) setSchrodersFramework(d.active, true); })
-            .catch(() => {});
+        // Schroders-only rebuild (2026-07-21): v2 is the only active framework.
+        window.schrodersFrameworkActive = 'v2';
 
         function setSchrodersFramework(version, skipSave) {
-            window.schrodersFrameworkActive = version;
-            const v1Btn = document.getElementById('schrodersV1Btn');
-            const v2Btn = document.getElementById('schrodersV2Btn');
-            const badge = document.getElementById('schrodersV2Badge');
-            const active = 'padding: 0.35rem 0.9rem; border: none; cursor: pointer; font-size: 0.82rem; background: #8b5cf6; color: #fff;';
-            const idle   = 'padding: 0.35rem 0.9rem; border: none; cursor: pointer; font-size: 0.82rem; background: #f1f5f9; color: #475569;';
-            if (v1Btn && v2Btn) {
-                v1Btn.style.cssText = version === 'v1' ? active : idle;
-                v2Btn.style.cssText = version === 'v2' ? active : idle;
-            }
-            if (badge) badge.style.display = version === 'v2' ? 'inline' : 'none';
-            if (!skipSave) {
-                fetch('/api/v2/framework-toggle', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ value: version })
-                }).catch(() => {});
-            }
-            // Re-render whichever company is selected
+            // v2 is forced; kept for compatibility with existing callers.
+            window.schrodersFrameworkActive = 'v2';
             const sel = document.getElementById('schrodersCompanySelect');
             if (sel && sel.value) loadCultureProfile('schroders');
-            else {
-                const v1c = document.getElementById('schrodersProfileContainer');
-                const v2c = document.getElementById('schrodersV2Container');
-                if (v1c) v1c.style.display = 'none';
-                if (v2c) v2c.style.display = 'none';
-            }
+        }
+
+        // ── Culture Factor tab ───────────────────────────────────────────────
+        let factorScoresLoaded = false;
+
+        function _td(text, style) {
+            const td = document.createElement('td');
+            td.style.cssText = 'padding: 0.45rem 0.6rem;' + (style || '');
+            td.textContent = text;
+            return td;
+        }
+
+        function loadFactorScores() {
+            if (factorScoresLoaded) return;
+            const body = document.getElementById('factorScoresBody');
+            const msg = document.getElementById('factorScoresMessage');
+            fetch('/api/v2/factor-scores')
+                .then(r => r.json())
+                .then(d => {
+                    if (!d.success || !d.companies || !d.companies.length) {
+                        msg.textContent = 'No factor scores available yet.';
+                        return;
+                    }
+                    factorScoresLoaded = true;
+                    msg.style.display = 'none';
+                    const tierColor = { 'High': '#16a34a', 'Medium': '#d97706', 'Low': '#dc2626', 'Insufficient': '#94a3b8' };
+                    const sel = document.getElementById('evidenceCompanySelect');
+                    body.textContent = '';
+                    d.companies.forEach((c, i) => {
+                        if (sel) {
+                            const opt = document.createElement('option');
+                            opt.value = c.company_name;
+                            opt.textContent = c.company_name;
+                            sel.appendChild(opt);
+                        }
+                        const tr = document.createElement('tr');
+                        tr.setAttribute('data-testid', 'row-factor-' + i);
+                        tr.style.cssText = 'border-bottom: 1px solid #e2e8f0; cursor: pointer;';
+                        tr.addEventListener('click', () => {
+                            if (sel) sel.value = c.company_name;
+                            loadEvidenceDetail(c.company_name);
+                        });
+                        const z = c.schroders_factor_sector_z;
+                        const p = c.schroders_factor_sector_pctile;
+                        const sd = c.bootstrap_pctile_sd;
+                        const tier = c.schroders_factor_reliability_tier || 'Insufficient';
+                        tr.appendChild(_td(c.company_name, 'font-weight: 600;'));
+                        tr.appendChild(_td(c.peer_bucket || ''));
+                        tr.appendChild(_td(c.sector_model_level_used || ''));
+                        tr.appendChild(_td(z == null ? '—' : Number(z).toFixed(2)));
+                        tr.appendChild(_td(p == null ? '—' : Number(p).toFixed(0) + '%'));
+                        const tierTd = document.createElement('td');
+                        tierTd.style.cssText = 'padding: 0.45rem 0.6rem;';
+                        const span = document.createElement('span');
+                        span.style.cssText = 'font-weight: 600; color: ' + (tierColor[tier] || '#64748b') + ';';
+                        span.textContent = tier;
+                        tierTd.appendChild(span);
+                        tr.appendChild(tierTd);
+                        tr.appendChild(_td(sd == null ? '—' : '±' + Number(sd).toFixed(1)));
+                        tr.appendChild(_td(c.n_dims_tier_ab != null ? c.n_dims_tier_ab + ' / 12' : '—'));
+                        body.appendChild(tr);
+                    });
+                })
+                .catch(() => { msg.textContent = 'Failed to load factor scores.'; });
+        }
+
+        function loadEvidenceDetail(companyName) {
+            const table = document.getElementById('evidenceTable');
+            const body = document.getElementById('evidenceBody');
+            if (!companyName) { table.style.display = 'none'; return; }
+            fetch('/api/v2/evidence/' + encodeURIComponent(companyName))
+                .then(r => r.json())
+                .then(d => {
+                    if (!d.success || !d.dimensions) { table.style.display = 'none'; return; }
+                    const tierBg = { 'A': '#dcfce7', 'B': '#fef9c3', 'C': '#fee2e2', 'D': '#f1f5f9' };
+                    body.textContent = '';
+                    d.dimensions.forEach(dim => {
+                        const info = (d.dim_info && d.dim_info[dim.dimension]) || {};
+                        const name = info.name || dim.dimension;
+                        const cov = dim.share_reviews_scored_dimension;
+                        const conc = dim.top_5_reviews_contribution_share;
+                        const concFlag = conc != null && Number(conc) > 0.30;
+                        const tr = document.createElement('tr');
+                        tr.style.cssText = 'border-bottom: 1px solid #e2e8f0;';
+                        tr.appendChild(_td(name));
+                        const tierTd = document.createElement('td');
+                        tierTd.style.cssText = 'padding: 0.45rem 0.6rem;';
+                        const badge = document.createElement('span');
+                        badge.style.cssText = 'padding: 0.1rem 0.5rem; border-radius: 6px; font-weight: 700; background: ' + (tierBg[dim.evidence_tier_dimension] || '#f1f5f9') + ';';
+                        badge.textContent = dim.evidence_tier_dimension || '—';
+                        tierTd.appendChild(badge);
+                        tr.appendChild(tierTd);
+                        tr.appendChild(_td(dim.n_scored_reviews_dimension == null ? '—' : String(dim.n_scored_reviews_dimension)));
+                        tr.appendChild(_td(cov == null ? '—' : (Number(cov) * 100).toFixed(1) + '%'));
+                        tr.appendChild(_td(dim.mean_dimension_score_raw == null ? '—' : Number(dim.mean_dimension_score_raw).toFixed(3)));
+                        tr.appendChild(_td(dim.mean_dimension_score_shrunk == null ? '—' : Number(dim.mean_dimension_score_shrunk).toFixed(3), 'font-weight: 600;'));
+                        tr.appendChild(_td(dim.shrinkage_weight_dimension == null ? '—' : (Number(dim.shrinkage_weight_dimension) * 100).toFixed(0) + '% own'));
+                        if (concFlag) {
+                            tr.appendChild(_td('⚠ top-5 reviews ' + (Number(conc) * 100).toFixed(0) + '%', 'color: #dc2626; font-weight: 600;'));
+                        } else {
+                            tr.appendChild(_td('OK'));
+                        }
+                        body.appendChild(tr);
+                    });
+                    table.style.display = 'table';
+                })
+                .catch(() => { table.style.display = 'none'; });
         }
 
         function loadSchrodersV2Profile(companyName) {

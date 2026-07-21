@@ -1,0 +1,716 @@
+Developer brief
+Please implement the following changes to the culture-scoring and factor-construction pipeline. Before starting, create a full rollback point so we can revert quickly if the new framework underperforms.
+
+1) Create rollback point first
+Create a saved point before making any changes.
+
+Requirements:
+
+Save a complete snapshot of:
+
+Current codebase.
+
+Current dictionaries.
+
+Current database tables / outputs used by the dashboard.
+
+Current company-level and review-level scores.
+
+Current factor outputs that use the existing Schroders / Hofstede / MIT setup.
+
+Tag or label the saved point clearly, for example:
+
+pre_schroders_sector_relative_rebuild_2026_07_21
+
+Confirm that rollback can restore:
+
+Current code.
+
+Current scoring outputs.
+
+Current dashboard state.
+
+Please provide:
+
+The exact name/path/tag of the saved point.
+
+The exact rollback steps.
+
+An estimate of rollback time.
+
+This is mandatory because we want freedom to simplify the framework aggressively while preserving an easy fallback.
+
+2) Remove non-Schroders frameworks from active analysis
+For the next version, remove Hofstede and MIT frameworks from the active analysis pipeline.
+
+Requirements:
+
+Do not delete their source files permanently if they are part of the rollback snapshot.
+
+Remove them from:
+
+Active scoring runs.
+
+Dashboard outputs.
+
+Aggregation logic.
+
+Model-training inputs.
+
+Client-facing / research-facing summary views.
+
+The active framework going forward should be Schroders only.
+
+3) Keep mined Schroders dictionary as production base
+Use the mined Schroders dictionary as the production scoring dictionary for this rebuild, not the expert dictionary.
+
+Reason:
+
+The mined dictionary has much stronger review coverage and materially lower multicollinearity than the expert dictionary.
+
+The mined dictionary shows review hit rates of 5.484% to 27.363% across dimensions, versus 0.058% to 1.231% for the expert dictionary.
+
+The mined dictionary VIFs are 1.22 to 2.67, versus up to 12.02 for the expert dictionary.
+
+Bootstrap diagnostics are also materially more stable for mined than expert.
+
+Requirements:
+
+Keep the expert dictionary archived but inactive.
+
+Ensure all new downstream analysis uses the mined Schroders scores only.
+
+4) Preserve current review-level scoring engine for now
+Keep the current review-level text scoring logic unchanged initially, so that we isolate the redesign to the aggregation / weighting / factor-construction layer.
+
+Current scoring logic to preserve:
+
+Same text assembly.
+
+Same regex matching rules.
+
+Same hyphen handling.
+
+Same negation handling.
+
+Same review-level dimension score formula.
+
+Same term weights for the mined dictionary.
+
+Do not change the review scoring engine in this phase unless we explicitly request it later.
+
+5) Add company-dimension evidence metrics
+For every company × Schroders dimension, compute and store the following:
+
+total_reviews_company
+
+n_scored_reviews_dimension
+
+share_reviews_scored_dimension = n_scored_reviews_dimension / total_reviews_company
+
+mean_dimension_score_raw
+
+std_dimension_score_raw
+
+se_dimension_score_raw
+
+n_positive_reviews_dimension
+
+n_negative_reviews_dimension
+
+top_5_terms_contribution_share
+
+top_5_reviews_contribution_share
+
+Important:
+
+n_scored_reviews_dimension must mean number of reviews where that dimension is non-null / fired.
+
+se_dimension_score_raw should be based on review-level scores contributing to that company-dimension score.
+
+Contribution shares should measure concentration risk, i.e. whether a score is being driven by a very small number of terms or reviews.
+
+6) Introduce company-dimension evidence tiers
+Create evidence tiers for each company × dimension using the mined Schroders scores.
+
+Implement exactly these tiers:
+
+Tier A
+
+n_scored_reviews_dimension >= 50
+
+and total_reviews_company >= 150
+
+Tier B
+
+20 <= n_scored_reviews_dimension < 50
+
+or 50 <= total_reviews_company < 150
+
+Tier C
+
+5 <= n_scored_reviews_dimension < 20
+
+Tier D
+
+n_scored_reviews_dimension < 5
+
+Store:
+
+evidence_tier_dimension
+
+Rules:
+
+Tier D dimensions must be treated as insufficient evidence.
+
+Tier C dimensions may remain available for internal diagnostics, but must not feed the client-grade published dimension ranking unless specifically overridden later.
+
+7) Sector-relative framework only
+All factor construction must now be sector-relative, not global.
+
+Requirements:
+
+Use the company’s sector classification already present in the panel data.
+
+Build all priors, standardisation, ranking and factor outputs within sector.
+
+Do not create cross-sector comparable culture scores.
+
+Every published score should be interpreted as relative to peers in the same sector.
+
+If sector sample sizes are too small, implement a fallback hierarchy:
+
+Subindustry, if sample size is sufficient.
+
+Industry, if subindustry is too small.
+
+Sector, if industry is too small.
+
+Please make this hierarchy configurable.
+
+8) Build sector-relative shrinkage
+Implement sector-relative shrinkage at the company × dimension level.
+
+For each sector 
+𝑠
+s and dimension 
+𝑗
+j:
+
+Calculate the sector prior mean:
+
+sector_dim_mean
+
+Optionally also calculate:
+
+sector_dim_std
+
+sector_dim_n_companies
+
+For each company 
+𝑖
+i, dimension 
+𝑗
+j, compute:
+
+observed company-dimension score: score_raw_ij
+
+scored review count: n_scored_ij
+
+Then compute shrinkage weight:
+
+𝑤
+𝑖
+𝑗
+=
+𝑛
+𝑖
+𝑗
+𝑛
+𝑖
+𝑗
++
+𝑘
+𝑗
+w 
+ij
+​
+ = 
+n 
+ij
+​
+ +k 
+j
+​
+ 
+n 
+ij
+​
+ 
+​
+ 
+and shrunk score:
+
+𝑠
+𝑐
+𝑜
+𝑟
+𝑒
+_
+𝑠
+ℎ
+𝑟
+𝑢
+𝑛
+𝑘
+𝑖
+𝑗
+=
+𝑤
+𝑖
+𝑗
+⋅
+𝑠
+𝑐
+𝑜
+𝑟
+𝑒
+_
+𝑟
+𝑎
+𝑤
+𝑖
+𝑗
++
+(
+1
+−
+𝑤
+𝑖
+𝑗
+)
+⋅
+𝑠
+𝑒
+𝑐
+𝑡
+𝑜
+𝑟
+_
+𝑑
+𝑖
+𝑚
+_
+𝑚
+𝑒
+𝑎
+𝑛
+𝑗
+score_shrunk 
+ij
+​
+ =w 
+ij
+​
+ ⋅score_raw 
+ij
+​
+ +(1−w 
+ij
+​
+ )⋅sector_dim_mean 
+j
+​
+ 
+Implementation requirements:
+
+Use dimension-specific shrinkage constants k_j.
+
+Start with default k_j = 50 for all dimensions.
+
+Make k_j configurable via a settings file or table.
+
+Store:
+
+shrinkage_k_dimension
+
+shrinkage_weight_dimension
+
+mean_dimension_score_shrunk
+
+Rules:
+
+Tier D dimensions should not receive a published shrunk score; store as null for publication fields.
+
+Tier C can have shrunk scores computed for internal use.
+
+9) Build sector-specific financial-performance weighting model
+Use the current composite financial performance target already in place:
+
+earnings growth
+
+TSR
+
+ROE
+
+Do not change the target definition in this phase.
+
+Objective:
+
+Estimate, within each sector (or fallback classification level), which Schroders culture dimensions are most associated with better financial performance.
+
+Use those relationships to derive sector-specific weights for the culture dimensions.
+
+Implementation requirements:
+
+Use only the Schroders mined dimensions as predictors.
+
+Use the shrunk company-dimension scores as predictors, not the raw scores.
+
+Use only company-dimension inputs that are Tier A or Tier B for published model estimation.
+
+If a company has too many missing/insufficient dimensions, exclude it from sector model estimation.
+
+Modeling requirements:
+
+Start with a regularized linear model, preferably ridge regression, because it is more stable under correlated predictors and preserves all dimensions rather than dropping them arbitrarily.
+
+Standardize predictors within each sector before model fitting.
+
+Cross-validate the regularization parameter within sector where feasible.
+
+If sector sample size is too small for a stable sector-only model, shrink sector coefficients toward broader-group coefficients:
+
+subindustry toward industry
+
+industry toward sector
+
+sector toward global Schroders prior
+
+Make this hierarchical fallback explicit in code and logs.
+
+Store for each sector / classification bucket:
+
+sector_model_level_used (subindustry / industry / sector / global fallback)
+
+n_companies_model
+
+predictor_standardization_params
+
+ridge_alpha_selected
+
+dimension_weight_final
+
+model_r2_in_sample
+
+cross_validated_performance_metric
+
+coefficient_stability_metric if feasible
+
+10) Create single sector-relative culture factor score
+For each company, create a single sector-relative Schroders culture factor score using the sector-specific learned weights.
+
+Implementation:
+
+Multiply the company’s shrunk dimension scores by the final sector-specific dimension weights.
+
+Sum across included dimensions.
+
+Standardize the final score within sector.
+
+Output:
+
+raw weighted sum
+
+within-sector z-score
+
+within-sector percentile rank
+
+Store:
+
+schroders_factor_raw
+
+schroders_factor_sector_z
+
+schroders_factor_sector_pctile
+
+Important:
+
+These scores are not intended to be compared across sectors.
+
+All ranking logic should therefore operate within the relevant peer group only.
+
+11) Add reliability tiers for publication
+Create a publication-grade reliability label for each company’s final factor score.
+
+Use these labels:
+
+High
+
+Medium
+
+Low
+
+Insufficient
+
+Initial rules:
+
+High
+
+At least 8 dimensions at Tier A or B.
+
+No severe concentration issue.
+
+Company included in a sector model with adequate peer count.
+
+Final score non-null.
+
+Medium
+
+At least 6 dimensions at Tier A or B.
+
+No severe concentration issue.
+
+Final score non-null.
+
+Low
+
+Final score exists, but evidence is thinner than above or concentration is elevated.
+
+Insufficient
+
+Final score cannot be robustly estimated.
+
+Too few dimensions with Tier A/B evidence, or sector peer set too small.
+
+Please store:
+
+schroders_factor_reliability_tier
+
+12) Add concentration risk checks
+Implement concentration controls so that a company score is not driven by a tiny amount of text.
+
+At minimum, compute:
+
+share of dimension score driven by top 5 contributing terms
+
+share driven by top 5 contributing reviews
+
+Initial publication rule:
+
+If either concentration share exceeds 30% on too many dimensions, downgrade reliability by one tier.
+
+Make exact downgrade rule configurable.
+
+13) Add overlap / multicollinearity gates
+Before finalizing the active dimension set for the factor model, run overlap diagnostics on the mined Schroders dimensions.
+
+Requirements:
+
+Compute pairwise correlations across company-level dimension scores.
+
+Compute VIFs within each sector model.
+
+Flag dimensions for review if:
+
+absolute pairwise correlation > 0.75
+
+or VIF > 4
+
+Treat VIF > 5 as strong warning and VIF > 10 as failure requiring remediation; common rules of thumb treat values above 5 as concerning and above 10 as serious multicollinearity.
+
+If a dimension breaches thresholds:
+
+do not automatically delete it;
+
+instead create a diagnostics table with:
+
+offending dimension
+
+correlated counterpart(s)
+
+correlation value
+
+VIF
+
+suggested action: keep / merge-review / downweight / exclude-from-model
+
+We want a governed workflow, not automatic silent deletion.
+
+14) Add bootstrap stability diagnostics
+Because this is intended as an investment signal, add stability diagnostics around the final sector-relative factor.
+
+At minimum:
+
+Bootstrap companies within each sector.
+
+Refit sector weighting model repeatedly.
+
+Recompute company sector-relative factor ranks.
+
+Store:
+
+mean rank
+
+rank standard deviation
+
+percentile-rank standard deviation
+
+inclusion frequency in top quintile / bottom quintile
+
+Initial publication guidance:
+
+High reliability should require relatively stable ranks.
+
+Low stability should downgrade publication tier even if raw evidence counts look acceptable.
+
+15) Outputs required
+Please create the following new output tables/files:
+
+schroders_company_dimension_evidence
+
+company
+
+sector / industry / subindustry
+
+dimension
+
+total reviews
+
+scored reviews
+
+evidence tier
+
+raw score
+
+shrunk score
+
+shrinkage weight
+
+concentration metrics
+
+schroders_sector_model_weights
+
+peer bucket
+
+level used
+
+n companies
+
+regularization settings
+
+final dimension weights
+
+model diagnostics
+
+schroders_company_factor_scores
+
+company
+
+peer bucket
+
+raw weighted factor
+
+sector z-score
+
+sector percentile
+
+reliability tier
+
+rank stability metrics
+
+schroders_overlap_diagnostics
+
+dimension
+
+pairwise correlation issues
+
+VIF
+
+suggested action
+
+schroders_rebuild_validation_report
+
+comparison of old vs new Schroders outputs
+
+coverage
+
+stability
+
+overlap diagnostics
+
+distribution changes
+
+peer-ranking changes
+
+summary of pass/fail against framework gates
+
+16) Dashboard / interface changes
+Update the active dashboard or analysis view so that:
+
+Hofstede and MIT are removed from the active view.
+
+The visible production signal is the new sector-relative Schroders factor.
+
+Company displays include:
+
+sector-relative score
+
+sector percentile rank
+
+reliability tier
+
+review count / scored-review evidence summary
+
+Dimension drill-down shows:
+
+raw and shrunk dimension scores
+
+evidence tier
+
+concentration and stability indicators
+
+17) Governance and logging
+Please log the following clearly for each run:
+
+dictionary version used
+
+saved point identifier
+
+peer-bucket classification level used
+
+number of companies included/excluded
+
+reasons for exclusion
+
+shrinkage settings
+
+model hyperparameters
+
+overlap flags
+
+bootstrap settings
+
+18) Delivery back to me
+Please provide back:
+
+confirmation that the saved point was created successfully;
+
+exact rollback instructions;
+
+summary of implemented changes;
+
+list of any assumptions or deviations;
+
+any sectors where sample size is too small for stable estimation;
+
+your recommendation on whether the rebuilt Schroders factor is ready for:
+
+internal research only,
+
+limited pilot client use,
+
+broader production use.
+
+Why these instructions are justified
+The mined Schroders dictionary is the right production base because it has far better empirical coverage and lower redundancy than the expert dictionary. The expert dictionary is too sparse for robust company-level inference, while the mined dictionary already reaches non-zero coverage for nearly all companies on nearly all dimensions. Your current aggregation method is “mean of mentions,” which makes low-review or low-hit companies especially vulnerable to unstable estimates, so adding evidence tiers and shrinkage is essential before using the factor externally. The bootstrap diagnostics also show that stability is not automatic, so rank-stability checks should be a formal part of the rebuilt framework.

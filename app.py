@@ -1000,19 +1000,20 @@ def v2_framework_toggle():
             )
         """)
         conn.commit()
+        # Schroders-only rebuild (2026-07-21): v2 is the only active framework.
+        # v1 / Hofstede / MIT remain in the rollback snapshot but are inactive.
         if request.method == 'POST':
             val = (request.get_json(silent=True) or {}).get('value')
-            if val not in ('v1', 'v2'):
-                return jsonify({'success': False, 'error': "value must be 'v1' or 'v2'"}), 400
+            if val != 'v2':
+                return jsonify({'success': False,
+                                'error': "Only 'v2' is active in the Schroders-only rebuild"}), 400
             cur.execute("""
-                INSERT INTO app_config (key, value) VALUES ('schroders_framework_active', %s)
+                INSERT INTO app_config (key, value) VALUES ('schroders_framework_active', 'v2')
                 ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW()
-            """, (val,))
+            """)
             conn.commit()
-        cur.execute("SELECT value FROM app_config WHERE key = 'schroders_framework_active'")
-        row = cur.fetchone()
         conn.close()
-        return jsonify({'success': True, 'active': row[0] if row else 'v1'})
+        return jsonify({'success': True, 'active': 'v2'})
     except Exception as e:
         logger.error(f"framework-toggle error: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
@@ -1082,6 +1083,102 @@ def v2_culture_scores_company(company_name):
                         'company': _v2_company_row_to_dict(row, colnames)})
     except Exception as e:
         logger.error(f"v2 culture-scores company error: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/v2/factor-scores', methods=['GET'])
+def v2_factor_scores():
+    """Sector-relative Schroders factor scores with reliability + stability."""
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT company_name, peer_bucket, classification_level,
+                   sector_model_level_used, n_dims_tier_ab,
+                   n_dims_concentration_flagged, schroders_factor_raw,
+                   schroders_factor_sector_z, schroders_factor_sector_pctile,
+                   schroders_factor_reliability_tier, bootstrap_mean_rank,
+                   bootstrap_rank_sd, bootstrap_pctile_sd,
+                   top_quintile_frequency, bottom_quintile_frequency
+            FROM schroders_company_factor_scores
+            ORDER BY peer_bucket, schroders_factor_sector_pctile DESC""")
+        cols = [c[0] for c in cur.description]
+        rows = [dict(zip(cols, r)) for r in cur.fetchall()]
+        conn.close()
+        return jsonify({'success': True, 'companies': rows})
+    except Exception as e:
+        logger.error(f"factor-scores error: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/v2/evidence/<path:company_name>', methods=['GET'])
+def v2_evidence(company_name):
+    """Per-dimension evidence metrics, tiers, raw vs shrunk scores."""
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT dimension, total_reviews_company, n_scored_reviews_dimension,
+                   share_reviews_scored_dimension, mean_dimension_score_raw,
+                   std_dimension_score_raw, se_dimension_score_raw,
+                   n_positive_reviews_dimension, n_negative_reviews_dimension,
+                   top_5_terms_contribution_share, top_5_reviews_contribution_share,
+                   evidence_tier_dimension, shrinkage_k_dimension,
+                   shrinkage_weight_dimension, sector_dim_mean,
+                   mean_dimension_score_shrunk
+            FROM schroders_company_dimension_evidence
+            WHERE company_name = %s ORDER BY dimension""", (company_name,))
+        cols = [c[0] for c in cur.description]
+        rows = [dict(zip(cols, r)) for r in cur.fetchall()]
+        conn.close()
+        if not rows:
+            return jsonify({'success': False, 'error': 'Company not found'}), 404
+        return jsonify({'success': True, 'company': company_name,
+                        'dim_info': SCHRODERS_V2_DIM_INFO, 'dimensions': rows})
+    except Exception as e:
+        logger.error(f"v2 evidence error: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/v2/model-weights', methods=['GET'])
+def v2_model_weights():
+    """Sector model weights + diagnostics."""
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT peer_bucket, classification_level, sector_model_level_used,
+                   n_companies_model, ridge_alpha_selected, model_r2_in_sample,
+                   cross_validated_r2, dimension, dimension_weight_final,
+                   coefficient_stability_sd
+            FROM schroders_sector_model_weights
+            ORDER BY peer_bucket, dimension""")
+        cols = [c[0] for c in cur.description]
+        rows = [dict(zip(cols, r)) for r in cur.fetchall()]
+        conn.close()
+        return jsonify({'success': True, 'weights': rows})
+    except Exception as e:
+        logger.error(f"model-weights error: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/v2/overlap-diagnostics', methods=['GET'])
+def v2_overlap_diagnostics():
+    """Multicollinearity gate results (governed review workflow, no auto-deletes)."""
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT peer_bucket, dimension, correlated_counterparts,
+                   max_abs_correlation, vif, flag, suggested_action
+            FROM schroders_overlap_diagnostics
+            ORDER BY peer_bucket, dimension""")
+        cols = [c[0] for c in cur.description]
+        rows = [dict(zip(cols, r)) for r in cur.fetchall()]
+        conn.close()
+        return jsonify({'success': True, 'diagnostics': rows})
+    except Exception as e:
+        logger.error(f"overlap-diagnostics error: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 

@@ -1,0 +1,85 @@
+{
+  "run_at": "2026-07-21T19:48:46.165102+00:00",
+  "dictionary_version": "2026-08-01-v2",
+  "scoring_engine_version": "v2.0-regex-negation",
+  "snapshot_tag": "pre_schroders_sector_relative_rebuild_2026_07_21",
+  "classification_level_used": "gics_sector",
+  "bucket_model_levels": {
+    "Asset Management/Other": "global_fallback",
+    "Financials": "gics_sector"
+  },
+  "n_companies_total": 53,
+  "n_companies_in_global_model": 23,
+  "excluded_from_estimation": {
+    "Ageas": "no performance target",
+    "Agricultural Bank of China": "no performance target",
+    "Allianz Group": "no performance target",
+    "BNP Paribas": "no performance target",
+    "BNY Investments": "no performance target",
+    "CVC Capital Partners": "no performance target",
+    "Capital Group": "no performance target",
+    "Dimensional Fund Advisors": "no performance target",
+    "Equitable Holdings": "no performance target",
+    "Eurazeo": "no performance target",
+    "Fidelity International": "no performance target",
+    "Fidelity Investments": "no performance target",
+    "Goldman Sachs Group": "no performance target",
+    "HDFC Asset Management": "no performance target",
+    "J.P. Morgan Chase": "no performance target",
+    "Julius Baer": "no performance target",
+    "Legal & General Group": "no performance target",
+    "Morgan Stanley Inv. Mgmt.": "no performance target",
+    "Natixis Investment Managers": "no performance target",
+    "Northern Trust": "no performance target",
+    "Nuveen": "no performance target",
+    "PIMCO": "no performance target",
+    "Partners Group": "no performance target",
+    "Robeco": "no performance target",
+    "Sofina": "no performance target",
+    "State Street": "no performance target",
+    "UBS Group": "no performance target",
+    "Vanguard Group": "no performance target",
+    "Wellington Management": "no performance target",
+    "Wellington Mgmt.": "no performance target"
+  },
+  "shrinkage_k": {
+    "b01": 50,
+    "b02": 50,
+    "b03": 50,
+    "b04": 50,
+    "b05": 50,
+    "b06": 50,
+    "b07": 50,
+    "b08": 50,
+    "b09": 50,
+    "b10": 50,
+    "b11": 50,
+    "b12": 50
+  },
+  "ridge_alpha_by_bucket": {
+    "Asset Management/Other": 30.0,
+    "Financials": 30.0
+  },
+  "concentration_rule": {
+    "review_share_threshold": 0.3,
+    "term_share_threshold": 0.8,
+    "max_flagged_dims": 3
+  },
+  "overlap_flags": {
+    "Asset Management/Other/b01": "REVIEW",
+    "Asset Management/Other/b02": "REVIEW",
+    "Asset Management/Other/b04": "REVIEW",
+    "Asset Management/Other/b06": "STRONG_WARNING",
+    "Asset Management/Other/b09": "STRONG_WARNING",
+    "Asset Management/Other/b10": "STRONG_WARNING",
+    "Asset Management/Other/b11": "STRONG_WARNING",
+    "Asset Management/Other/b12": "STRONG_WARNING"
+  },
+  "bootstrap_reps": 200,
+  "reliability_distribution": {
+    "High": 12,
+    "Medium": 23,
+    "Low": 12,
+    "Insufficient": 6
+  }
+}

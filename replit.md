@@ -2,8 +2,11 @@
 
 ## Overview
 
-This is a full-stack web application that analyzes employee reviews from Glassdoor to extract and visualize organizational culture insights for financial services companies. The system uses two culture analysis frameworks:
+This is a full-stack web application that analyzes employee reviews from Glassdoor to extract and visualize organizational culture insights for financial services companies.
 
+**Active framework (since 2026-07-21 Schroders-only rebuild): Schroders v2** — 12 bipolar dimensions (−1 to +1) scored with a mined dictionary, plus sector-relative shrinkage, evidence tiers (A–D), a ridge-model Culture Factor per company, and reliability tiers (High/Medium/Low/Insufficient). New API endpoints: `/api/v2/factor-scores`, `/api/v2/evidence/<company>`, `/api/v2/model-weights`, `/api/v2/overlap-diagnostics`. Pipeline: `pipeline/factor_build.py`; validation report: `pipeline_output/schroders_rebuild_validation_report.md`.
+
+**Retired frameworks** (hidden in UI, code retained; restore via `snapshots/pre_schroders_sector_relative_rebuild_2026_07_21/ROLLBACK.md`):
 1. **Hofstede Framework** - 6 bipolar dimensions measuring organizational culture on a -1 to +1 scale
 2. **MIT Big 9 Framework** - 9 unipolar dimensions measuring culture attributes on a 0-10 scale
 
