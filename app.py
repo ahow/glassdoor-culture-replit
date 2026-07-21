@@ -322,6 +322,40 @@ def get_companies_for_sector(sector=None, gics_level='sector', gics_value=None):
         return []
 
 
+_v2_scored_companies_cache = {'names': None, 'loaded_at': 0}
+
+
+def get_v2_scored_companies():
+    """Set of company names that have Schroders v2 scores (5-min cache).
+
+    The dashboard only shows the validated v2 universe; companies with raw
+    reviews but no v2 scores are excluded from company lists/dropdowns.
+    """
+    import time as _time
+    cache = _v2_scored_companies_cache
+    if cache['names'] is not None and _time.time() - cache['loaded_at'] < 300:
+        return cache['names']
+    conn = get_db_connection()
+    if not conn:
+        return cache['names'] or set()
+    try:
+        cursor = conn.cursor()
+        cursor.execute("SELECT company_name FROM company_culture_scores_v2")
+        names = {row[0] for row in cursor.fetchall()}
+        cursor.close()
+        conn.close()
+        cache['names'] = names
+        cache['loaded_at'] = _time.time()
+        return names
+    except Exception as e:
+        logger.error(f"Error loading v2 scored companies: {e}")
+        try:
+            conn.close()
+        except:
+            pass
+        return cache['names'] or set()
+
+
 def get_company_sector(company_name):
     """Look up GICS sector for a company using cached map."""
     global _company_sector_map_loaded
@@ -2158,6 +2192,9 @@ def get_companies():
     try:
         gics_level, gics_value = get_gics_filter_params()
         company_names = get_companies_for_sector(gics_level=gics_level, gics_value=gics_value)
+        scored = get_v2_scored_companies()
+        if scored:
+            company_names = [c for c in company_names if c in scored]
         
         cached_metrics_map = {}
         conn = get_db_connection()
@@ -2823,6 +2860,9 @@ def get_companies_list():
     try:
         gics_level, gics_value = get_gics_filter_params()
         companies = get_companies_for_sector(gics_level=gics_level, gics_value=gics_value)
+        scored = get_v2_scored_companies()
+        if scored:
+            companies = [c for c in companies if c in scored]
         
         return jsonify({
             'success': True,
