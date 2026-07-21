@@ -1,0 +1,46 @@
+[psu +1]
+What to request
+Ask the developer for a structured diagnostic pack at three levels: term, dimension, and company/document. Without that, we can describe solutions conceptually, but we cannot properly diagnose why overlap and correlation are happening.[bookdown +1]
+1) Term-level diagnostics
+Request, for every term in every pole/dimension:
+•	Term text, stem/normalized form, n-gram length, assigned pole/dimension.
+•	Raw frequency: total matches in the 200,551-review corpus.
+•	Document frequency: number and % of reviews containing the term.
+•	Company frequency: number and % of companies with at least one hit.
+•	Sector frequency: presence by sector.
+•	Co-occurrence counts: which other terms and dimensions it most often appears with.
+•	Distinctiveness stats: e.g. lift / PMI / log-odds versus other dimensions.
+•	Whether the term is exact-match only, fuzzy, regex, or normalized phrase match.
+•	Example review snippets for the top 20–50 most important terms per dimension.
+This is essential because the framework’s first problem is likely a mixture of low-usage phrases and non-distinct high-frequency generic words. Coverage tells us whether a term is alive in the corpus; co-occurrence and distinctiveness tell us whether it is actually measuring a unique construct rather than re-describing the same culture signal in multiple poles.[youtube +1]
+2) Dimension-level diagnostics
+Request, for each pole/dimension:
+•	Number of terms.
+•	Number and % of reviews with at least one hit.
+•	Mean, median, p90 and max matches per review.
+•	Number and % of companies with non-zero score.
+•	Score distribution before and after any normalization.
+•	Pairwise correlation matrix across all poles.
+•	VIF for each pole in the downstream model.
+•	PCA / explained-variance output.
+•	Cronbach-style internal consistency is optional, but cluster coherence or average intra-dimension term correlation would be useful.
+•	Bootstrap stability by dimension and by company rank.
+These are the minimum scoring-level diagnostics needed to test whether dimensions are sparse, redundant, or unstable. High pairwise correlation and high VIF indicate duplicated information; VIF above roughly 5–10 is commonly treated as concerning, and your prior result of 192 is far beyond any tolerable threshold.[sthda +2]
+3) Document- and company-level outputs
+Request:
+•	Review-level scores for each dimension, including raw hit counts and normalized scores.
+•	Company-level aggregated scores, including number of reviews contributing to each score.
+•	Review count per company and sector.
+•	Time stamps so we can test stability across periods.
+•	A panel showing company scores under the mined dictionary and expert dictionary side by side.
+•	If possible, reviewer metadata slices already used internally, such as current/former employee, geography, tenure, and job family.
+This lets us separate “bad measurement” from “thin data.” Some instability may come from sparse review counts at firm level rather than the dictionary alone, so we need to know the effective sample supporting each company score.[semanticscholar +1]
+Specific questions for the developer
+You can send this almost verbatim:
+1.	Please export a term-level table for every dictionary term with: dimension, normalized term, original term, term length, corpus match count, document frequency, company frequency, sector frequency, top co-occurring dimensions, distinctiveness metric, and example matched snippets.
+2.	Please export a dimension-level summary with: coverage (% reviews hit), score distribution, % companies with non-zero score, pairwise correlations, VIFs, PCA loadings / explained variance, and bootstrap stability metrics.
+3.	Please export review-level and company-level scoring outputs for both the mined dictionary and the expert dictionary, using the same normalization.
+4.	Please provide the exact scoring logic: preprocessing, tokenization, stemming/lemmatization, hyphen handling, negation handling, phrase matching rules, weighting, and company aggregation method.
+5.	Please list terms that appear in more than one pole, plus near-duplicates across poles after normalization.
+6.	Please provide the top 100 terms by contribution to each pole and the top 100 terms by cross-pole co-occurrence.
+7.	Please provide sector-by-sector and time-slice diagnostics so we can test whether overlap is universal or concentrated in certain industries or periods.

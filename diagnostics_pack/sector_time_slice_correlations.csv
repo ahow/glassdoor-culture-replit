@@ -1,0 +1,11 @@
+dictionary,slice_type,slice_value,n_companies,max_abs_pairwise_r,mean_abs_pairwise_r
+mined,sector,Asset Management/Other,14,0.707,0.242
+mined,sector,Financials,35,0.698,0.21
+mined,period,pre-2019,44,0.52,0.172
+mined,period,2019-2022,48,0.67,0.187
+mined,period,2023+,48,0.469,0.165
+expert,sector,Asset Management/Other,4,insufficient,
+expert,sector,Financials,10,0.779,0.327
+expert,period,pre-2019,8,0.789,0.343
+expert,period,2019-2022,7,0.91,0.365
+expert,period,2023+,5,0.942,0.443

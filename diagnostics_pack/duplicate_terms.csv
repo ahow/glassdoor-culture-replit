@@ -1,0 +1,23 @@
+dictionary,normalized_term,appears_in
+mined,budget cuts,b01/negative; b02/negative
+mined,competitive pay,b08/positive; b08/positive
+mined,cost cutting,b02/negative; b02/negative
+mined,decision making,b04/positive; b04/positive
+mined,diversity,b12/positive; b12/positive
+mined,flexibility,b04/positive; b04/positive
+mined,high turnover,b08/negative; b09/negative
+mined,internal competition,b05/negative; b06/negative
+mined,internal politics,b06/negative; b08/negative
+mined,long term,b01/positive; b01/positive
+mined,long term employees,b01/positive; b01/positive
+mined,long term focus,b01/positive; b01/positive
+mined,long term success,b01/positive; b01/positive
+mined,micromanagement,b03/negative; b03/negative
+mined,mid level management,b03/negative; b03/negative
+mined,politics,b08/negative; b08/negative
+mined,promotions,b08/positive; b08/positive; b08/positive
+mined,red tape,b04/negative; b04/negative
+mined,stable management,b09/positive; b10/positive
+mined,supportive colleagues,b05/positive; b09/positive
+mined,supportive team,b05/positive; b09/positive
+mined,the long term,b01/positive; b01/positive

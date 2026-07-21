@@ -1,0 +1,5 @@
+dictionary,metric,value,note
+mined,max_pairwise_r_std,0.2143,"49 complete companies, 200 reps"
+mined,mean_pairwise_r_std,0.1407,
+expert,max_pairwise_r_std,0.4504,"14 complete companies, 200 reps"
+expert,mean_pairwise_r_std,0.2644,
