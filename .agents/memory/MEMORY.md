@@ -5,3 +5,4 @@
 - [Combined culture-score conventions](combined-culture-score-conventions.md) — company/scatter use scaled (h*5)+m+(s*5); correlation endpoints use raw h+m+s; match local convention + guard linregress identical-x & NaN corrs.
 - [Culture v2 pipeline](culture-v2-pipeline.md) — resumable offline pipeline scripts, pipeline-only deps stay out of root requirements.txt, dev-corpus validation caveats, app_config framework toggle.
 - [Schroders-only rebuild state](schroders-only-rebuild.md) — v2 is the sole active framework; Hofstede/MIT hidden not deleted; factor scores internal-only; render DB text via textContent, never innerHTML.
+- [Heroku deploy from agent](heroku-deploy-from-agent.md) — git push is blocked; ship via Builds API source-blob; fetch prod DB URL from config-vars (secret rotates); v2 dashboards read only aggregate tables.
