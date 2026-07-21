@@ -33,7 +33,7 @@ NEGATION_MARKERS = {
 def compile_phrase(phrase: str) -> re.Pattern:
     """Compile a keyword phrase to a word-boundary regex.
     Multi-word phrases match with flexible whitespace/hyphen between tokens."""
-    tokens = phrase.lower().split()
+    tokens = [t for t in re.split(r'[\s\-]+', phrase.lower()) if t]
     pattern = r'\b' + r'[\s\-]+'.join(re.escape(t) for t in tokens) + r'\b'
     return re.compile(pattern, re.IGNORECASE)
 
