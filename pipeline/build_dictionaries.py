@@ -35,7 +35,7 @@ from pipeline.schroders_v2_seeds import (  # noqa: E402
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'pipeline_output')
 os.makedirs(OUT, exist_ok=True)
 
-DICTIONARY_VERSION = '2026-08-01-v2'
+DICTIONARY_VERSION = '2026-07-22-v3-generalised'
 MODEL_NAME = 'sentence-transformers/all-MiniLM-L6-v2'
 
 GENERIC_STOP_PHRASES = {

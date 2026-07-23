@@ -1,0 +1,27 @@
+Check 2 — Firing rate on 10000 random reviews (target 5-40%):
+  b01 negative: 3.7% FAIL
+  b01 positive: 4.0% FAIL
+  b02 negative: 4.1% FAIL
+  b02 positive: 3.4% FAIL
+  b03 negative: 2.7% FAIL
+  b03 positive: 2.9% FAIL
+  b04 negative: 7.8% PASS
+  b04 positive: 4.1% FAIL
+  b05 negative: 2.4% FAIL
+  b05 positive: 8.2% PASS
+  b06 negative: 5.4% PASS
+  b06 positive: 10.4% PASS
+  b07 negative: 3.0% FAIL
+  b07 positive: 9.7% PASS
+  b08 negative: 5.9% PASS
+  b08 positive: 4.8% FAIL
+  b09 negative: 3.0% FAIL
+  b09 positive: 5.8% PASS
+  b10 negative: 2.7% FAIL
+  b10 positive: 3.5% FAIL
+  b11 negative: 3.7% FAIL
+  b11 positive: 4.3% FAIL
+  b12 negative: 6.5% PASS
+  b12 positive: 2.3% FAIL
+
+Summary: {'firing_rate': 'FAIL'}

@@ -1,0 +1,627 @@
+{
+ "version_from": "2026-07-22-v3-generalised",
+ "version_to": "2026-07-22-v3.1-generalised-clean",
+ "removed": [
+  {
+   "dim": "b01",
+   "pole": "positive",
+   "term": "no long-term vision",
+   "rule": "R2-negator"
+  },
+  {
+   "dim": "b01",
+   "pole": "positive",
+   "term": "no long-term strategy",
+   "rule": "R2-negator"
+  },
+  {
+   "dim": "b01",
+   "pole": "positive",
+   "term": "not long term",
+   "rule": "R2-negator"
+  },
+  {
+   "dim": "b01",
+   "pole": "negative",
+   "term": "no long term plan",
+   "rule": "R2-negator"
+  },
+  {
+   "dim": "b02",
+   "pole": "positive",
+   "term": "no growth mindset",
+   "rule": "R2-negator"
+  },
+  {
+   "dim": "b03",
+   "pole": "positive",
+   "term": "- flat structure",
+   "rule": "R4-dup-in-pole"
+  },
+  {
+   "dim": "b03",
+   "pole": "positive",
+   "term": "no autonomy",
+   "rule": "R2-negator"
+  },
+  {
+   "dim": "b03",
+   "pole": "positive",
+   "term": "no authority",
+   "rule": "R2-negator"
+  },
+  {
+   "dim": "b03",
+   "pole": "negative",
+   "term": "no micromanagement",
+   "rule": "R2-negator"
+  },
+  {
+   "dim": "b03",
+   "pole": "negative",
+   "term": "- micromanagement",
+   "rule": "R4-dup-in-pole"
+  },
+  {
+   "dim": "b03",
+   "pole": "negative",
+   "term": "-micromanagement",
+   "rule": "R4-dup-in-pole"
+  },
+  {
+   "dim": "b03",
+   "pole": "negative",
+   "term": "no chain",
+   "rule": "R2-negator"
+  },
+  {
+   "dim": "b04",
+   "pole": "negative",
+   "term": "\"red tape",
+   "rule": "R4-dup-in-pole"
+  },
+  {
+   "dim": "b04",
+   "pole": "negative",
+   "term": "- red tape",
+   "rule": "R4-dup-in-pole"
+  },
+  {
+   "dim": "b04",
+   "pole": "negative",
+   "term": "no red tape",
+   "rule": "R2-negator"
+  },
+  {
+   "dim": "b05",
+   "pole": "positive",
+   "term": "no team spirit",
+   "rule": "R2-negator"
+  },
+  {
+   "dim": "b05",
+   "pole": "negative",
+   "term": "-swim",
+   "rule": "R4-dup-in-pole"
+  },
+  {
+   "dim": "b05",
+   "pole": "negative",
+   "term": "no training",
+   "rule": "R2-negator"
+  },
+  {
+   "dim": "b06",
+   "pole": "positive",
+   "term": "not customer",
+   "rule": "R2-negator"
+  },
+  {
+   "dim": "b06",
+   "pole": "positive",
+   "term": "not customer centric",
+   "rule": "R2-negator"
+  },
+  {
+   "dim": "b06",
+   "pole": "negative",
+   "term": "- internal politics",
+   "rule": "R4-dup-in-pole"
+  },
+  {
+   "dim": "b06",
+   "pole": "negative",
+   "term": "no growth",
+   "rule": "R2-negator"
+  },
+  {
+   "dim": "b06",
+   "pole": "negative",
+   "term": "no internal politics",
+   "rule": "R2-negator"
+  },
+  {
+   "dim": "b06",
+   "pole": "negative",
+   "term": "not invented here",
+   "rule": "R2-negator"
+  },
+  {
+   "dim": "b06",
+   "pole": "negative",
+   "term": "-internal politics",
+   "rule": "R4-dup-in-pole"
+  },
+  {
+   "dim": "b06",
+   "pole": "negative",
+   "term": "no career growth",
+   "rule": "R2-negator"
+  },
+  {
+   "dim": "b06",
+   "pole": "negative",
+   "term": "no recognition",
+   "rule": "R2-negator"
+  },
+  {
+   "dim": "b06",
+   "pole": "negative",
+   "term": "no scope",
+   "rule": "R2-negator"
+  },
+  {
+   "dim": "b07",
+   "pole": "negative",
+   "term": "never takes risks",
+   "rule": "R2-negator"
+  },
+  {
+   "dim": "b08",
+   "pole": "positive",
+   "term": "no meritocracy",
+   "rule": "R2-negator"
+  },
+  {
+   "dim": "b08",
+   "pole": "positive",
+   "term": "not a meritocracy",
+   "rule": "R2-negator"
+  },
+  {
+   "dim": "b08",
+   "pole": "positive",
+   "term": "not merit",
+   "rule": "R2-negator"
+  },
+  {
+   "dim": "b08",
+   "pole": "positive",
+   "term": "\"meritocracy",
+   "rule": "R4-dup-in-pole"
+  },
+  {
+   "dim": "b08",
+   "pole": "positive",
+   "term": "- meritocracy",
+   "rule": "R4-dup-in-pole"
+  },
+  {
+   "dim": "b08",
+   "pole": "positive",
+   "term": "-competitive pay",
+   "rule": "R4-dup-in-pole"
+  },
+  {
+   "dim": "b08",
+   "pole": "negative",
+   "term": "no office politics",
+   "rule": "R2-negator"
+  },
+  {
+   "dim": "b08",
+   "pole": "negative",
+   "term": "not what",
+   "rule": "R2-negator"
+  },
+  {
+   "dim": "b08",
+   "pole": "negative",
+   "term": "its",
+   "rule": "R3-short"
+  },
+  {
+   "dim": "b08",
+   "pole": "negative",
+   "term": "- office politics",
+   "rule": "R4-dup-in-pole"
+  },
+  {
+   "dim": "b08",
+   "pole": "negative",
+   "term": "-favoritism",
+   "rule": "R4-dup-in-pole"
+  },
+  {
+   "dim": "b08",
+   "pole": "negative",
+   "term": "no favoritism",
+   "rule": "R2-negator"
+  },
+  {
+   "dim": "b08",
+   "pole": "negative",
+   "term": "- nepotism",
+   "rule": "R4-dup-in-pole"
+  },
+  {
+   "dim": "b08",
+   "pole": "negative",
+   "term": "- favoritism",
+   "rule": "R4-dup-in-pole"
+  },
+  {
+   "dim": "b09",
+   "pole": "positive",
+   "term": "-supportive team",
+   "rule": "R4-dup-in-pole"
+  },
+  {
+   "dim": "b09",
+   "pole": "positive",
+   "term": "- supportive team",
+   "rule": "R4-dup-in-pole"
+  },
+  {
+   "dim": "b09",
+   "pole": "negative",
+   "term": "no communication",
+   "rule": "R2-negator"
+  },
+  {
+   "dim": "b09",
+   "pole": "negative",
+   "term": "- toxic environment",
+   "rule": "R4-dup-in-pole"
+  },
+  {
+   "dim": "b09",
+   "pole": "negative",
+   "term": "-toxic environment",
+   "rule": "R4-dup-in-pole"
+  },
+  {
+   "dim": "b09",
+   "pole": "negative",
+   "term": "no opportunity",
+   "rule": "R2-negator"
+  },
+  {
+   "dim": "b09",
+   "pole": "negative",
+   "term": "- toxic culture",
+   "rule": "R4-dup-in-pole"
+  },
+  {
+   "dim": "b09",
+   "pole": "negative",
+   "term": "no room",
+   "rule": "R2-negator"
+  },
+  {
+   "dim": "b09",
+   "pole": "negative",
+   "term": "-toxic culture",
+   "rule": "R4-dup-in-pole"
+  },
+  {
+   "dim": "b09",
+   "pole": "negative",
+   "term": "no support",
+   "rule": "R2-negator"
+  },
+  {
+   "dim": "b10",
+   "pole": "positive",
+   "term": "- stable company",
+   "rule": "R4-dup-in-pole"
+  },
+  {
+   "dim": "b10",
+   "pole": "positive",
+   "term": "-stable company",
+   "rule": "R4-dup-in-pole"
+  },
+  {
+   "dim": "b10",
+   "pole": "positive",
+   "term": ", stable company",
+   "rule": "R4-dup-in-pole"
+  },
+  {
+   "dim": "b10",
+   "pole": "positive",
+   "term": "no consistent strategy",
+   "rule": "R2-negator"
+  },
+  {
+   "dim": "b10",
+   "pole": "positive",
+   "term": ".. stable company",
+   "rule": "R4-dup-in-pole"
+  },
+  {
+   "dim": "b10",
+   "pole": "positive",
+   "term": "not stable company",
+   "rule": "R2-negator"
+  },
+  {
+   "dim": "b10",
+   "pole": "negative",
+   "term": "no clear direction",
+   "rule": "R2-negator"
+  },
+  {
+   "dim": "b10",
+   "pole": "negative",
+   "term": "bit",
+   "rule": "R3-short"
+  },
+  {
+   "dim": "b10",
+   "pole": "negative",
+   "term": "no direction",
+   "rule": "R2-negator"
+  },
+  {
+   "dim": "b10",
+   "pole": "negative",
+   "term": "-constant restructuring",
+   "rule": "R4-dup-in-pole"
+  },
+  {
+   "dim": "b10",
+   "pole": "negative",
+   "term": "- constant restructuring",
+   "rule": "R4-dup-in-pole"
+  },
+  {
+   "dim": "b11",
+   "pole": "positive",
+   "term": "no integrity",
+   "rule": "R2-negator"
+  },
+  {
+   "dim": "b11",
+   "pole": "positive",
+   "term": "no accountability",
+   "rule": "R2-negator"
+  },
+  {
+   "dim": "b12",
+   "pole": "negative",
+   "term": "no glass ceiling",
+   "rule": "R2-negator"
+  },
+  {
+   "dim": "b12",
+   "pole": "negative",
+   "term": "lack of diversity",
+   "rule": "R2-negator"
+  },
+  {
+   "dim": "b12",
+   "pole": "negative",
+   "term": "not inclusive",
+   "rule": "R2-negator"
+  },
+  {
+   "dim": "b12",
+   "pole": "negative",
+   "term": "no women in leadership",
+   "rule": "R2-negator"
+  },
+  {
+   "dim": "b12",
+   "pole": "negative",
+   "term": "- lack",
+   "rule": "R4-dup-in-pole"
+  },
+  {
+   "dim": "b12",
+   "pole": "negative",
+   "term": "no work culture",
+   "rule": "R2-negator"
+  },
+  {
+   "dim": "b12",
+   "pole": "negative",
+   "term": "no company culture",
+   "rule": "R2-negator"
+  }
+ ],
+ "renamed": [
+  {
+   "dim": "b03",
+   "pole": "positive",
+   "from": "- flat structure",
+   "to": "flat structure"
+  },
+  {
+   "dim": "b03",
+   "pole": "negative",
+   "from": "- micromanagement",
+   "to": "micromanagement"
+  },
+  {
+   "dim": "b03",
+   "pole": "negative",
+   "from": "-micromanagement",
+   "to": "micromanagement"
+  },
+  {
+   "dim": "b04",
+   "pole": "negative",
+   "from": "\"red tape",
+   "to": "red tape"
+  },
+  {
+   "dim": "b04",
+   "pole": "negative",
+   "from": "- red tape",
+   "to": "red tape"
+  },
+  {
+   "dim": "b05",
+   "pole": "negative",
+   "from": "-swim",
+   "to": "swim"
+  },
+  {
+   "dim": "b06",
+   "pole": "negative",
+   "from": "- internal politics",
+   "to": "internal politics"
+  },
+  {
+   "dim": "b06",
+   "pole": "negative",
+   "from": "-internal politics",
+   "to": "internal politics"
+  },
+  {
+   "dim": "b08",
+   "pole": "positive",
+   "from": "\"meritocracy",
+   "to": "meritocracy"
+  },
+  {
+   "dim": "b08",
+   "pole": "positive",
+   "from": "- meritocracy",
+   "to": "meritocracy"
+  },
+  {
+   "dim": "b08",
+   "pole": "positive",
+   "from": "- promotions",
+   "to": "promotions"
+  },
+  {
+   "dim": "b08",
+   "pole": "positive",
+   "from": "-competitive pay",
+   "to": "competitive pay"
+  },
+  {
+   "dim": "b08",
+   "pole": "negative",
+   "from": "- office politics",
+   "to": "office politics"
+  },
+  {
+   "dim": "b08",
+   "pole": "negative",
+   "from": "-favoritism",
+   "to": "favoritism"
+  },
+  {
+   "dim": "b08",
+   "pole": "negative",
+   "from": "- nepotism",
+   "to": "nepotism"
+  },
+  {
+   "dim": "b08",
+   "pole": "negative",
+   "from": "- favoritism",
+   "to": "favoritism"
+  },
+  {
+   "dim": "b09",
+   "pole": "positive",
+   "from": "-supportive team",
+   "to": "supportive team"
+  },
+  {
+   "dim": "b09",
+   "pole": "positive",
+   "from": "- supportive team",
+   "to": "supportive team"
+  },
+  {
+   "dim": "b09",
+   "pole": "negative",
+   "from": "- toxic environment",
+   "to": "toxic environment"
+  },
+  {
+   "dim": "b09",
+   "pole": "negative",
+   "from": "-toxic environment",
+   "to": "toxic environment"
+  },
+  {
+   "dim": "b09",
+   "pole": "negative",
+   "from": "- toxic culture",
+   "to": "toxic culture"
+  },
+  {
+   "dim": "b09",
+   "pole": "negative",
+   "from": "-toxic culture",
+   "to": "toxic culture"
+  },
+  {
+   "dim": "b10",
+   "pole": "positive",
+   "from": "- stable company",
+   "to": "stable company"
+  },
+  {
+   "dim": "b10",
+   "pole": "positive",
+   "from": "-stable company",
+   "to": "stable company"
+  },
+  {
+   "dim": "b10",
+   "pole": "positive",
+   "from": ", stable company",
+   "to": "stable company"
+  },
+  {
+   "dim": "b10",
+   "pole": "positive",
+   "from": ".. stable company",
+   "to": "stable company"
+  },
+  {
+   "dim": "b10",
+   "pole": "negative",
+   "from": "-constant restructuring",
+   "to": "constant restructuring"
+  },
+  {
+   "dim": "b10",
+   "pole": "negative",
+   "from": "- constant restructuring",
+   "to": "constant restructuring"
+  },
+  {
+   "dim": "b12",
+   "pole": "negative",
+   "from": "-lack",
+   "to": "lack"
+  },
+  {
+   "dim": "b12",
+   "pole": "negative",
+   "from": "- lack",
+   "to": "lack"
+  }
+ ],
+ "kept": 1752
+}

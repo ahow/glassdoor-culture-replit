@@ -32,16 +32,48 @@ KNOWN_COMPANIES = {
 
 
 def fetch_reviews(where='', params=(), limit=10000):
+    """Fetch review texts with a PERSISTED sample so old/new dictionary runs
+    are reproducible. The first call for a given (where, params, limit) key
+    draws a random sample and stores the review ids in
+    pipeline_output/validation_sample_ids.json; later calls reuse those ids.
+    """
+    import hashlib
+    import json as _json
     import psycopg2
+    key = hashlib.sha1(repr((where, params, limit)).encode()).hexdigest()[:12]
+    store_path = os.path.join(os.path.dirname(os.path.dirname(
+        os.path.abspath(__file__))), 'pipeline_output/validation_sample_ids.json')
+    store = {}
+    if os.path.exists(store_path):
+        with open(store_path) as f:
+            store = _json.load(f)
     conn = psycopg2.connect(os.environ['DATABASE_URL'])
     cur = conn.cursor()
+    text_expr = ("COALESCE(summary,'') || '. ' || COALESCE(pros,'') || '. ' || "
+                 "COALESCE(cons,'') || '. ' || COALESCE(advice_to_management,'')")
+    if key in store:
+        ids = store[key]['ids']
+        cur.execute(f"SELECT {text_expr} FROM reviews WHERE id = ANY(%s)", (ids,))
+        rows = [r[0] for r in cur.fetchall() if r[0] and r[0].strip()]
+        conn.close()
+        if ids and len(rows) < 0.9 * len(ids):
+            raise RuntimeError(
+                f"Persisted validation sample degraded: {len(rows)}/{len(ids)} "
+                f"review ids found for key {key}. You are probably connected to a "
+                "different database than the one the sample was drawn from. "
+                "Point DATABASE_URL at the original corpus or delete "
+                "pipeline_output/validation_sample_ids.json to redraw.")
+        return rows
     cur.execute(
-        "SELECT COALESCE(summary,'') || '. ' || COALESCE(pros,'') || '. ' || "
-        "COALESCE(cons,'') || '. ' || COALESCE(advice_to_management,'') "
-        f"FROM reviews {where} ORDER BY random() LIMIT %s", params + (limit,))
-    rows = [r[0] for r in cur.fetchall() if r[0] and r[0].strip()]
+        f"SELECT id, {text_expr} FROM reviews {where} "
+        "ORDER BY random() LIMIT %s", params + (limit,))
+    pairs = cur.fetchall()
+    store[key] = {'where': where, 'params': list(params), 'limit': limit,
+                  'ids': [p[0] for p in pairs]}
+    with open(store_path, 'w') as f:
+        _json.dump(store, f)
     conn.close()
-    return rows
+    return [p[1] for p in pairs if p[1] and p[1].strip()]
 
 
 def check1_balance():
@@ -111,6 +143,7 @@ def check4_known_companies():
     print("Check 4 — Known-company sanity test:")
     results = {}
     ok = True
+    n_tested = 0
     for company, expected in KNOWN_COMPANIES.items():
         texts = fetch_reviews("WHERE company_name = %s", (company,), limit=2000)
         if len(texts) < 50:
@@ -134,9 +167,14 @@ def check4_known_companies():
                 continue
             passed = (m > 0) == (sign > 0)
             ok &= passed
+            n_tested += 1
             print(f"  {company} {dim}: mean {m:+.3f}, expected "
                   f"{'positive' if sign > 0 else 'negative'} "
                   f"{'PASS' if passed else 'FAIL'}")
+    if n_tested < 5:
+        print(f"  INCONCLUSIVE: only {n_tested} anchor assertions evaluated "
+              "(need >= 5); treating as FAIL")
+        return False
     return ok
 
 

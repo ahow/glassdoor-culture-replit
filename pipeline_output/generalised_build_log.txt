@@ -1,0 +1,97 @@
+=== embed started Wed Jul 22 11:22:06 PM UTC 2026 ===
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+Loading weights:   0%|          | 0/103 [00:00<?, ?it/s]Loading weights:  28%|██▊       | 29/103 [00:00<00:00, 89.68it/s]Loading weights:  48%|████▊     | 49/103 [00:00<00:00, 114.53it/s]Loading weights:  61%|██████    | 63/103 [00:00<00:00, 64.11it/s] Loading weights: 100%|██████████| 103/103 [00:00<00:00, 108.08it/s]
+[1mBertModel LOAD REPORT[0m from: sentence-transformers/all-MiniLM-L6-v2
+Key                     | Status     |  | 
+------------------------+------------+--+-
+embeddings.position_ids | UNEXPECTED |  | 
+
+Notes:
+- UNEXPECTED:	can be ignored when loading from different task/architecture; not ok if you expect identical arch.
+Batches:   0%|          | 0/82 [00:00<?, ?it/s]Batches:   1%|          | 1/82 [00:01<02:33,  1.89s/it]Batches:   2%|▏         | 2/82 [00:02<01:50,  1.38s/it]Batches:   4%|▎         | 3/82 [00:03<01:35,  1.21s/it]Batches:   5%|▍         | 4/82 [00:04<01:28,  1.13s/it]Batches:   6%|▌         | 5/82 [00:05<01:22,  1.08s/it]Batches:   7%|▋         | 6/82 [00:06<01:19,  1.05s/it]Batches:   9%|▊         | 7/82 [00:07<01:17,  1.04s/it]Batches:  10%|▉         | 8/82 [00:08<01:15,  1.03s/it]Batches:  11%|█         | 9/82 [00:09<01:16,  1.04s/it]Batches:  12%|█▏        | 10/82 [00:11<01:14,  1.03s/it]Batches:  13%|█▎        | 11/82 [00:11<01:12,  1.02s/it]Batches:  15%|█▍        | 12/82 [00:13<01:12,  1.03s/it]Batches:  16%|█▌        | 13/82 [00:14<01:12,  1.06s/it]Batches:  17%|█▋        | 14/82 [00:15<01:09,  1.02s/it]Batches:  18%|█▊        | 15/82 [00:16<01:08,  1.02s/it]Batches:  20%|█▉        | 16/82 [00:17<01:07,  1.03s/it]Batches:  21%|██        | 17/82 [00:18<01:06,  1.02s/it]Batches:  22%|██▏       | 18/82 [00:19<01:04,  1.01s/it]Batches:  23%|██▎       | 19/82 [00:20<01:03,  1.00s/it]Batches:  24%|██▍       | 20/82 [00:21<01:01,  1.01it/s]Batches:  26%|██▌       | 21/82 [00:22<01:00,  1.01it/s]Batches:  27%|██▋       | 22/82 [00:23<00:59,  1.00it/s]Batches:  28%|██▊       | 23/82 [00:24<00:58,  1.01it/s]Batches:  29%|██▉       | 24/82 [00:25<00:57,  1.01it/s]Batches:  30%|███       | 25/82 [00:26<00:56,  1.01it/s]Batches:  32%|███▏      | 26/82 [00:27<00:55,  1.01it/s]Batches:  33%|███▎      | 27/82 [00:28<00:53,  1.02it/s]Batches:  34%|███▍      | 28/82 [00:29<00:53,  1.01it/s]Batches:  35%|███▌      | 29/82 [00:29<00:51,  1.02it/s]Batches:  37%|███▋      | 30/82 [00:30<00:51,  1.02it/s]Batches:  38%|███▊      | 31/82 [00:32<00:50,  1.00it/s]Batches:  39%|███▉      | 32/82 [00:32<00:49,  1.01it/s]Batches:  40%|████      | 33/82 [00:33<00:48,  1.00it/s]Batches:  41%|████▏     | 34/82 [00:34<00:47,  1.00it/s]Batches:  43%|████▎     | 35/82 [00:35<00:46,  1.02it/s]Batches:  44%|████▍     | 36/82 [00:36<00:45,  1.01it/s]Batches:  45%|████▌     | 37/82 [00:37<00:44,  1.01it/s]Batches:  46%|████▋     | 38/82 [00:38<00:43,  1.00it/s]Batches:  48%|████▊     | 39/82 [00:39<00:43,  1.00s/it]Batches:  49%|████▉     | 40/82 [00:40<00:41,  1.00it/s]Batches:  50%|█████     | 41/82 [00:41<00:40,  1.02it/s]Batches:  51%|█████     | 42/82 [00:42<00:39,  1.02it/s]Batches:  52%|█████▏    | 43/82 [00:43<00:38,  1.02it/s]Batches:  54%|█████▎    | 44/82 [00:44<00:37,  1.02it/s]Batches:  55%|█████▍    | 45/82 [00:45<00:36,  1.02it/s]Batches:  56%|█████▌    | 46/82 [00:46<00:35,  1.02it/s]Batches:  57%|█████▋    | 47/82 [00:47<00:34,  1.01it/s]Batches:  59%|█████▊    | 48/82 [00:48<00:33,  1.01it/s]Batches:  60%|█████▉    | 49/82 [00:49<00:32,  1.00it/s]Batches:  61%|██████    | 50/82 [00:50<00:31,  1.01it/s]Batches:  62%|██████▏   | 51/82 [00:51<00:30,  1.01it/s]Batches:  63%|██████▎   | 52/82 [00:52<00:29,  1.03it/s]Batches:  65%|██████▍   | 53/82 [00:53<00:28,  1.02it/s]Batches:  66%|██████▌   | 54/82 [00:54<00:27,  1.02it/s]Batches:  67%|██████▋   | 55/82 [00:55<00:26,  1.02it/s]Batches:  68%|██████▊   | 56/82 [00:56<00:25,  1.02it/s]Batches:  70%|██████▉   | 57/82 [00:57<00:24,  1.03it/s]Batches:  71%|███████   | 58/82 [00:58<00:23,  1.02it/s]Batches:  72%|███████▏  | 59/82 [00:59<00:22,  1.03it/s]Batches:  73%|███████▎  | 60/82 [01:00<00:21,  1.03it/s]Batches:  74%|███████▍  | 61/82 [01:01<00:20,  1.03it/s]Batches:  76%|███████▌  | 62/82 [01:02<00:19,  1.03it/s]Batches:  77%|███████▋  | 63/82 [01:03<00:18,  1.02it/s]Batches:  78%|███████▊  | 64/82 [01:04<00:17,  1.00it/s]Batches:  79%|███████▉  | 65/82 [01:05<00:17,  1.01s/it]Batches:  80%|████████  | 66/82 [01:06<00:15,  1.00it/s]Batches:  82%|████████▏ | 67/82 [01:07<00:14,  1.00it/s]Batches:  83%|████████▎ | 68/82 [01:08<00:13,  1.00it/s]Batches:  84%|████████▍ | 69/82 [01:09<00:12,  1.01it/s]Batches:  85%|████████▌ | 70/82 [01:10<00:11,  1.01it/s]Batches:  87%|████████▋ | 71/82 [01:11<00:10,  1.01it/s]Batches:  88%|████████▊ | 72/82 [01:12<00:09,  1.01it/s]Batches:  89%|████████▉ | 73/82 [01:13<00:08,  1.01it/s]Batches:  90%|█████████ | 74/82 [01:14<00:07,  1.01it/s]Batches:  91%|█████████▏| 75/82 [01:15<00:06,  1.02it/s]Batches:  93%|█████████▎| 76/82 [01:16<00:05,  1.05it/s]Batches:  94%|█████████▍| 77/82 [01:17<00:04,  1.03it/s]Batches:  95%|█████████▌| 78/82 [01:18<00:03,  1.03it/s]Batches:  96%|█████████▋| 79/82 [01:19<00:02,  1.02it/s]Batches:  98%|█████████▊| 80/82 [01:20<00:01,  1.04it/s]Batches:  99%|█████████▉| 81/82 [01:21<00:00,  1.04it/s]Batches: 100%|██████████| 82/82 [01:21<00:00,  1.09it/s]Batches: 100%|██████████| 82/82 [01:21<00:00,  1.00it/s]
+Embedded 20764 candidate phrases
+=== embed done Wed Jul 22 11:24:00 PM UTC 2026 ===
+=== build started Wed Jul 22 11:24:00 PM UTC 2026 ===
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+Loading weights:   0%|          | 0/103 [00:00<?, ?it/s]Loading weights: 100%|██████████| 103/103 [00:00<00:00, 2787.70it/s]
+[1mBertModel LOAD REPORT[0m from: sentence-transformers/all-MiniLM-L6-v2
+Key                     | Status     |  | 
+------------------------+------------+--+-
+embeddings.position_ids | UNEXPECTED |  | 
+
+Notes:
+- UNEXPECTED:	can be ignored when loading from different task/architecture; not ok if you expect identical arch.
+  b01 positive: 80 terms (A=300, B=93)
+  b01 negative: 80 terms (A=300, B=89)
+  b02 positive: 80 terms (A=300, B=21)
+  b02 negative: 80 terms (A=300, B=100)
+  b03 positive: 80 terms (A=300, B=100)
+  b03 negative: 80 terms (A=300, B=100)
+  b04 positive: 80 terms (A=300, B=25)
+  b04 negative: 80 terms (A=300, B=100)
+  b05 positive: 80 terms (A=300, B=100)
+  b05 negative: 80 terms (A=300, B=59)
+  b06 positive: 80 terms (A=300, B=100)
+  b06 negative: 80 terms (A=300, B=100)
+  b07 positive: 80 terms (A=300, B=20)
+  b07 negative: 80 terms (A=300, B=100)
+  b08 positive: 80 terms (A=300, B=42)
+  b08 negative: 80 terms (A=300, B=100)
+  b09 positive: 80 terms (A=300, B=100)
+  b09 negative: 80 terms (A=300, B=100)
+  b10 positive: 80 terms (A=300, B=100)
+  b10 negative: 80 terms (A=300, B=100)
+  b11 positive: 80 terms (A=300, B=100)
+  b11 negative: 80 terms (A=300, B=100)
+  b12 positive: 80 terms (A=300, B=100)
+  b12 negative: 80 terms (A=300, B=99)
+Wrote /home/runner/workspace/pipeline/../schroders_v2_keywords.py
+  b01: 68 pos / 76 neg (ratio 0.89)
+  b02: 78 pos / 79 neg (ratio 0.99)
+  b03: 74 pos / 76 neg (ratio 0.97)
+  b04: 72 pos / 80 neg (ratio 0.90)
+  b05: 74 pos / 78 neg (ratio 0.95)
+  b06: 80 pos / 76 neg (ratio 1.05)
+  b07: 75 pos / 78 neg (ratio 0.96)
+  b08: 80 pos / 71 neg (ratio 1.13)
+  b09: 76 pos / 78 neg (ratio 0.97)
+  b10: 71 pos / 80 neg (ratio 0.89)
+  b11: 74 pos / 74 neg (ratio 1.00)
+  b12: 80 pos / 77 neg (ratio 1.04)
+=== build done Wed Jul 22 11:25:21 PM UTC 2026 ===
+=== stability started Wed Jul 22 11:25:21 PM UTC 2026 ===
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+Loading weights:   0%|          | 0/103 [00:00<?, ?it/s]Loading weights: 100%|██████████| 103/103 [00:00<00:00, 2811.05it/s]
+[1mBertModel LOAD REPORT[0m from: sentence-transformers/all-MiniLM-L6-v2
+Key                     | Status     |  | 
+------------------------+------------+--+-
+embeddings.position_ids | UNEXPECTED |  | 
+
+Notes:
+- UNEXPECTED:	can be ignored when loading from different task/architecture; not ok if you expect identical arch.
+Seed-stability bootstrap (hold out 2 seeds per iteration):
+  b01 positive: 0.87 +/- 0.04
+  b01 negative: 0.80 +/- 0.11 (borderline)
+  b02 positive: 0.93 +/- 0.07
+  b02 negative: 0.95 +/- 0.03
+  b03 positive: 0.69 +/- 0.18 <-- UNSTABLE (<0.7)
+  b03 negative: 0.84 +/- 0.07
+  b04 positive: 0.72 +/- 0.11 (borderline)
+  b04 negative: 0.76 +/- 0.17 (borderline)
+  b05 positive: 0.76 +/- 0.10 (borderline)
+  b05 negative: 0.71 +/- 0.03 (borderline)
+  b06 positive: 0.93 +/- 0.02
+  b06 negative: 0.72 +/- 0.24 (borderline)
+  b07 positive: 0.77 +/- 0.13 (borderline)
+  b07 negative: 0.82 +/- 0.09
+  b08 positive: 0.88 +/- 0.11
+  b08 negative: 0.78 +/- 0.19 (borderline)
+  b09 positive: 0.79 +/- 0.13 (borderline)
+  b09 negative: 0.64 +/- 0.16 <-- UNSTABLE (<0.7)
+  b10 positive: 0.88 +/- 0.05
+  b10 negative: 0.79 +/- 0.12 (borderline)
+  b11 positive: 0.84 +/- 0.08
+  b11 negative: 0.84 +/- 0.09
+  b12 positive: 0.93 +/- 0.06
+  b12 negative: 0.62 +/- 0.30 <-- UNSTABLE (<0.7)
+=== ALL STAGES DONE Wed Jul 22 11:26:27 PM UTC 2026 ===

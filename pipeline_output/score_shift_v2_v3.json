@@ -1,0 +1,332 @@
+{
+ "companies": [
+  {
+   "company": "Eurazeo",
+   "reviews": 34,
+   "mean_abs_shift": 0.406,
+   "max_abs_shift": 1.0
+  },
+  {
+   "company": "PIMCO",
+   "reviews": 30,
+   "mean_abs_shift": 0.378,
+   "max_abs_shift": 2.0
+  },
+  {
+   "company": "CVC Capital Partners",
+   "reviews": 79,
+   "mean_abs_shift": 0.344,
+   "max_abs_shift": 0.971
+  },
+  {
+   "company": "Agricultural Bank of China",
+   "reviews": 60,
+   "mean_abs_shift": 0.324,
+   "max_abs_shift": 1.0
+  },
+  {
+   "company": "HDFC Asset Management",
+   "reviews": 340,
+   "mean_abs_shift": 0.264,
+   "max_abs_shift": 0.589
+  },
+  {
+   "company": "BNP Paribas",
+   "reviews": 80,
+   "mean_abs_shift": 0.259,
+   "max_abs_shift": 0.954
+  },
+  {
+   "company": "AXA Group",
+   "reviews": 248,
+   "mean_abs_shift": 0.256,
+   "max_abs_shift": 0.77
+  },
+  {
+   "company": "Blackstone",
+   "reviews": 996,
+   "mean_abs_shift": 0.25,
+   "max_abs_shift": 0.571
+  },
+  {
+   "company": "Carlyle Group",
+   "reviews": 386,
+   "mean_abs_shift": 0.247,
+   "max_abs_shift": 0.691
+  },
+  {
+   "company": "Vanguard Group",
+   "reviews": 136,
+   "mean_abs_shift": 0.245,
+   "max_abs_shift": 0.637
+  },
+  {
+   "company": "Goldman Sachs Group",
+   "reviews": 23333,
+   "mean_abs_shift": 0.239,
+   "max_abs_shift": 0.571
+  },
+  {
+   "company": "3i Group",
+   "reviews": 67,
+   "mean_abs_shift": 0.237,
+   "max_abs_shift": 0.637
+  },
+  {
+   "company": "Admiral Group",
+   "reviews": 530,
+   "mean_abs_shift": 0.213,
+   "max_abs_shift": 0.656
+  },
+  {
+   "company": "Federated Hermes",
+   "reviews": 185,
+   "mean_abs_shift": 0.212,
+   "max_abs_shift": 0.889
+  },
+  {
+   "company": "Amundi",
+   "reviews": 493,
+   "mean_abs_shift": 0.196,
+   "max_abs_shift": 0.48
+  },
+  {
+   "company": "Apollo Global Management",
+   "reviews": 495,
+   "mean_abs_shift": 0.196,
+   "max_abs_shift": 0.384
+  },
+  {
+   "company": "Fidelity Investments",
+   "reviews": 10079,
+   "mean_abs_shift": 0.196,
+   "max_abs_shift": 0.404
+  },
+  {
+   "company": "KKR",
+   "reviews": 570,
+   "mean_abs_shift": 0.194,
+   "max_abs_shift": 0.537
+  },
+  {
+   "company": "Morgan Stanley Inv. Mgmt.",
+   "reviews": 23938,
+   "mean_abs_shift": 0.192,
+   "max_abs_shift": 0.37
+  },
+  {
+   "company": "Natixis Investment Managers",
+   "reviews": 1740,
+   "mean_abs_shift": 0.19,
+   "max_abs_shift": 0.555
+  },
+  {
+   "company": "Ameriprise Financial",
+   "reviews": 3978,
+   "mean_abs_shift": 0.188,
+   "max_abs_shift": 0.426
+  },
+  {
+   "company": "Northern Trust",
+   "reviews": 13565,
+   "mean_abs_shift": 0.182,
+   "max_abs_shift": 0.453
+  },
+  {
+   "company": "Affirm",
+   "reviews": 634,
+   "mean_abs_shift": 0.175,
+   "max_abs_shift": 0.493
+  },
+  {
+   "company": "J.P. Morgan Chase",
+   "reviews": 16659,
+   "mean_abs_shift": 0.175,
+   "max_abs_shift": 0.35
+  },
+  {
+   "company": "Brookfield",
+   "reviews": 562,
+   "mean_abs_shift": 0.173,
+   "max_abs_shift": 0.494
+  },
+  {
+   "company": "Absa",
+   "reviews": 1419,
+   "mean_abs_shift": 0.172,
+   "max_abs_shift": 0.349
+  },
+  {
+   "company": "Ares Management",
+   "reviews": 508,
+   "mean_abs_shift": 0.169,
+   "max_abs_shift": 0.42
+  },
+  {
+   "company": "Invesco",
+   "reviews": 2202,
+   "mean_abs_shift": 0.169,
+   "max_abs_shift": 0.362
+  },
+  {
+   "company": "Nuveen",
+   "reviews": 458,
+   "mean_abs_shift": 0.169,
+   "max_abs_shift": 0.512
+  },
+  {
+   "company": "Fidelity International",
+   "reviews": 3014,
+   "mean_abs_shift": 0.166,
+   "max_abs_shift": 0.517
+  },
+  {
+   "company": "BlackRock",
+   "reviews": 14824,
+   "mean_abs_shift": 0.164,
+   "max_abs_shift": 0.361
+  },
+  {
+   "company": "ABN AMRO",
+   "reviews": 1264,
+   "mean_abs_shift": 0.162,
+   "max_abs_shift": 0.456
+  },
+  {
+   "company": "UBS Group",
+   "reviews": 17379,
+   "mean_abs_shift": 0.161,
+   "max_abs_shift": 0.305
+  },
+  {
+   "company": "Allianz Group",
+   "reviews": 7664,
+   "mean_abs_shift": 0.157,
+   "max_abs_shift": 0.441
+  },
+  {
+   "company": "Capital Group",
+   "reviews": 2581,
+   "mean_abs_shift": 0.155,
+   "max_abs_shift": 0.443
+  },
+  {
+   "company": "Aflac",
+   "reviews": 4855,
+   "mean_abs_shift": 0.154,
+   "max_abs_shift": 0.311
+  },
+  {
+   "company": "Franklin Templeton",
+   "reviews": 2342,
+   "mean_abs_shift": 0.151,
+   "max_abs_shift": 0.326
+  },
+  {
+   "company": "Partners Group",
+   "reviews": 518,
+   "mean_abs_shift": 0.149,
+   "max_abs_shift": 0.544
+  },
+  {
+   "company": "State Street",
+   "reviews": 16301,
+   "mean_abs_shift": 0.148,
+   "max_abs_shift": 0.359
+  },
+  {
+   "company": "Legal & General Group",
+   "reviews": 1261,
+   "mean_abs_shift": 0.146,
+   "max_abs_shift": 0.525
+  },
+  {
+   "company": "BNY Investments",
+   "reviews": 15059,
+   "mean_abs_shift": 0.145,
+   "max_abs_shift": 0.364
+  },
+  {
+   "company": "Dimensional Fund Advisors",
+   "reviews": 530,
+   "mean_abs_shift": 0.144,
+   "max_abs_shift": 0.44
+  },
+  {
+   "company": "Equitable Holdings",
+   "reviews": 946,
+   "mean_abs_shift": 0.137,
+   "max_abs_shift": 0.362
+  },
+  {
+   "company": "Ageas",
+   "reviews": 377,
+   "mean_abs_shift": 0.134,
+   "max_abs_shift": 0.407
+  },
+  {
+   "company": "T. Rowe Price",
+   "reviews": 2229,
+   "mean_abs_shift": 0.133,
+   "max_abs_shift": 0.304
+  },
+  {
+   "company": "AllianceBernstein",
+   "reviews": 1391,
+   "mean_abs_shift": 0.125,
+   "max_abs_shift": 0.254
+  },
+  {
+   "company": "Julius Baer",
+   "reviews": 819,
+   "mean_abs_shift": 0.122,
+   "max_abs_shift": 0.256
+  },
+  {
+   "company": "Wellington Management",
+   "reviews": 1021,
+   "mean_abs_shift": 0.121,
+   "max_abs_shift": 0.268
+  },
+  {
+   "company": "M&G plc",
+   "reviews": 935,
+   "mean_abs_shift": 0.12,
+   "max_abs_shift": 0.593
+  },
+  {
+   "company": "Schroders",
+   "reviews": 1418,
+   "mean_abs_shift": 0.103,
+   "max_abs_shift": 0.335
+  },
+  {
+   "company": "Sofina",
+   "reviews": 17,
+   "mean_abs_shift": 0.067,
+   "max_abs_shift": 0.468
+  },
+  {
+   "company": "Robeco",
+   "reviews": 2,
+   "mean_abs_shift": 0.0,
+   "max_abs_shift": 0.0
+  }
+ ],
+ "per_dim_mean_abs_shift": {
+  "b01": 0.105,
+  "b02": 0.289,
+  "b03": 0.254,
+  "b04": 0.277,
+  "b05": 0.189,
+  "b06": 0.101,
+  "b07": 0.153,
+  "b08": 0.148,
+  "b09": 0.242,
+  "b10": 0.207,
+  "b11": 0.167,
+  "b12": 0.136
+ },
+ "sign_flips_gt_0.1": 90,
+ "cells": 604
+}

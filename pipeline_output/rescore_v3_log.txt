@@ -1,0 +1,23 @@
+=== rescore started Wed Jul 22 11:46:52 PM UTC 2026 ===
+Done: 25551 reviews scored this run.
+Done: 0 reviews scored this run.
+=== scoring done Wed Jul 22 11:49:15 PM UTC 2026; aggregating ===
+Aggregated 52 companies into company_culture_scores_v2
+=== aggregate done Wed Jul 22 11:49:16 PM UTC 2026; factor build ===
+evidence rows: 636
+peer classification level used: gics_sector
+{
+  "classification_level_used": "gics_sector",
+  "n_companies_in_global_model": 22,
+  "reliability_distribution": {
+    "High": 12,
+    "Medium": 21,
+    "Low": 13,
+    "Insufficient": 7
+  },
+  "ridge_alpha_by_bucket": {
+    "Asset Management/Other": 30.0,
+    "Financials": 30.0
+  }
+}
+=== FACTOR BUILD DONE Wed Jul 22 11:49:18 PM UTC 2026 ===

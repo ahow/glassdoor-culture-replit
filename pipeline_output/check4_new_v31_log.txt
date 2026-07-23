@@ -1,0 +1,21 @@
+Check 4 — Known-company sanity test:
+  Costco Wholesale b09: mean -0.260, expected positive FAIL
+  Costco Wholesale b02: mean -0.299, expected negative PASS
+  Costco Wholesale b06: mean +0.402, expected positive PASS
+  Costco Wholesale b10: mean -0.260, expected positive FAIL
+  Goldman Sachs: only 0 reviews in this corpus — SKIP
+  Salesforce b01: mean -0.119, expected positive FAIL
+  Salesforce b02: mean -0.025, expected positive FAIL
+  Salesforce b12: mean -0.434, expected positive FAIL
+  Salesforce b06: mean +0.302, expected positive PASS
+  Wells Fargo b11: mean -0.294, expected negative PASS
+  Wells Fargo b03: mean -0.087, expected negative PASS
+  Wells Fargo b10: mean +0.181, expected negative FAIL
+  McDonald's b04: mean -0.701, expected negative PASS
+  McDonald's b03: mean +0.143, expected negative FAIL
+  McDonald's b02: mean -0.304, expected negative PASS
+  Microsoft b01: mean +0.055, expected positive PASS
+  Microsoft b09: mean +0.561, expected positive PASS
+  Microsoft b12: mean -0.334, expected positive FAIL
+
+Summary: {'known_companies': 'FAIL'}

@@ -1,0 +1,78 @@
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+Check 3 — Semantic separation of pole centroids:
+Loading weights:   0%|          | 0/103 [00:00<?, ?it/s]Loading weights: 100%|██████████| 103/103 [00:00<00:00, 2940.71it/s]
+[1mBertModel LOAD REPORT[0m from: sentence-transformers/all-MiniLM-L6-v2
+Key                     | Status     |  | 
+------------------------+------------+--+-
+embeddings.position_ids | UNEXPECTED |  | 
+
+Notes:
+- UNEXPECTED:	can be ignored when loading from different task/architecture; not ok if you expect identical arch.
+  ISSUE: b01 pos<->neg similarity 0.67 > 0.5
+  ISSUE: b01 positive ~ b02 positive: 0.65 > 0.6
+  ISSUE: b01 positive ~ b07 positive: 0.69 > 0.6
+  ISSUE: b01 negative ~ b04 positive: 0.62 > 0.6
+  ISSUE: b01 negative ~ b07 positive: 0.62 > 0.6
+  ISSUE: b01 negative ~ b11 negative: 0.60 > 0.6
+  ISSUE: b02 positive ~ b07 positive: 0.64 > 0.6
+  ISSUE: b03 pos<->neg similarity 0.70 > 0.5
+  ISSUE: b03 positive ~ b04 positive: 0.71 > 0.6
+  ISSUE: b03 positive ~ b05 positive: 0.65 > 0.6
+  ISSUE: b03 positive ~ b06 negative: 0.67 > 0.6
+  ISSUE: b03 positive ~ b07 positive: 0.66 > 0.6
+  ISSUE: b03 positive ~ b08 negative: 0.69 > 0.6
+  ISSUE: b03 positive ~ b09 positive: 0.64 > 0.6
+  ISSUE: b03 positive ~ b10 positive: 0.65 > 0.6
+  ISSUE: b03 positive ~ b11 positive: 0.72 > 0.6
+  ISSUE: b03 positive ~ b11 negative: 0.64 > 0.6
+  ISSUE: b03 positive ~ b12 negative: 0.76 > 0.6
+  ISSUE: b03 negative ~ b08 negative: 0.66 > 0.6
+  ISSUE: b03 negative ~ b10 positive: 0.66 > 0.6
+  ISSUE: b03 negative ~ b10 negative: 0.61 > 0.6
+  ISSUE: b03 negative ~ b12 negative: 0.68 > 0.6
+  ISSUE: b04 pos<->neg similarity 0.64 > 0.5
+  ISSUE: b04 positive ~ b06 negative: 0.64 > 0.6
+  ISSUE: b04 positive ~ b07 positive: 0.77 > 0.6
+  ISSUE: b04 positive ~ b07 negative: 0.63 > 0.6
+  ISSUE: b04 positive ~ b08 negative: 0.63 > 0.6
+  ISSUE: b04 positive ~ b10 positive: 0.63 > 0.6
+  ISSUE: b04 positive ~ b10 negative: 0.66 > 0.6
+  ISSUE: b04 positive ~ b11 positive: 0.67 > 0.6
+  ISSUE: b04 positive ~ b11 negative: 0.74 > 0.6
+  ISSUE: b04 negative ~ b11 negative: 0.62 > 0.6
+  ISSUE: b05 pos<->neg similarity 0.57 > 0.5
+  ISSUE: b05 positive ~ b09 positive: 0.65 > 0.6
+  ISSUE: b05 positive ~ b12 negative: 0.66 > 0.6
+  ISSUE: b05 negative ~ b07 positive: 0.65 > 0.6
+  ISSUE: b05 negative ~ b08 positive: 0.67 > 0.6
+  ISSUE: b05 negative ~ b12 negative: 0.63 > 0.6
+  ISSUE: b06 negative ~ b07 positive: 0.68 > 0.6
+  ISSUE: b06 negative ~ b08 negative: 0.62 > 0.6
+  ISSUE: b07 pos<->neg similarity 0.62 > 0.5
+  ISSUE: b07 positive ~ b08 positive: 0.63 > 0.6
+  ISSUE: b07 positive ~ b08 negative: 0.62 > 0.6
+  ISSUE: b07 positive ~ b10 positive: 0.65 > 0.6
+  ISSUE: b07 positive ~ b10 negative: 0.68 > 0.6
+  ISSUE: b07 positive ~ b11 positive: 0.64 > 0.6
+  ISSUE: b07 positive ~ b11 negative: 0.65 > 0.6
+  ISSUE: b07 positive ~ b12 negative: 0.64 > 0.6
+  ISSUE: b07 negative ~ b11 negative: 0.65 > 0.6
+  ISSUE: b08 pos<->neg similarity 0.61 > 0.5
+  ISSUE: b08 negative ~ b09 negative: 0.65 > 0.6
+  ISSUE: b08 negative ~ b11 positive: 0.68 > 0.6
+  ISSUE: b08 negative ~ b11 negative: 0.69 > 0.6
+  ISSUE: b08 negative ~ b12 negative: 0.79 > 0.6
+  ISSUE: b09 pos<->neg similarity 0.55 > 0.5
+  ISSUE: b09 positive ~ b10 positive: 0.68 > 0.6
+  ISSUE: b09 positive ~ b11 positive: 0.63 > 0.6
+  ISSUE: b09 positive ~ b12 negative: 0.65 > 0.6
+  ISSUE: b09 negative ~ b11 positive: 0.61 > 0.6
+  ISSUE: b09 negative ~ b11 negative: 0.69 > 0.6
+  ISSUE: b09 negative ~ b12 negative: 0.63 > 0.6
+  ISSUE: b10 pos<->neg similarity 0.62 > 0.5
+  ISSUE: b10 positive ~ b11 positive: 0.67 > 0.6
+  ISSUE: b11 pos<->neg similarity 0.73 > 0.5
+  ISSUE: b11 positive ~ b12 negative: 0.65 > 0.6
+  ISSUE: b12 pos<->neg similarity 0.63 > 0.5
+
+Summary: {'semantic_separation': 'FAIL'}

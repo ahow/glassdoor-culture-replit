@@ -1,6 +1,6 @@
 {
-  "run_at": "2026-07-21T19:48:46.165102+00:00",
-  "dictionary_version": "2026-08-01-v2",
+  "run_at": "2026-07-23T00:34:39.515809+00:00",
+  "dictionary_version": "2026-07-22-v3.1-generalised-clean",
   "scoring_engine_version": "v2.0-regex-negation",
   "snapshot_tag": "pre_schroders_sector_relative_rebuild_2026_07_21",
   "classification_level_used": "gics_sector",
@@ -9,7 +9,7 @@
     "Financials": "gics_sector"
   },
   "n_companies_total": 53,
-  "n_companies_in_global_model": 23,
+  "n_companies_in_global_model": 22,
   "excluded_from_estimation": {
     "Ageas": "no performance target",
     "Agricultural Bank of China": "no performance target",
@@ -21,6 +21,7 @@
     "Dimensional Fund Advisors": "no performance target",
     "Equitable Holdings": "no performance target",
     "Eurazeo": "no performance target",
+    "Federated Hermes": "only 4 Tier A/B dimensions",
     "Fidelity International": "no performance target",
     "Fidelity Investments": "no performance target",
     "Goldman Sachs Group": "no performance target",
@@ -66,20 +67,24 @@
     "max_flagged_dims": 3
   },
   "overlap_flags": {
-    "Asset Management/Other/b01": "REVIEW",
-    "Asset Management/Other/b02": "REVIEW",
-    "Asset Management/Other/b04": "REVIEW",
-    "Asset Management/Other/b06": "STRONG_WARNING",
+    "Asset Management/Other/b01": "FAIL",
+    "Asset Management/Other/b02": "STRONG_WARNING",
+    "Asset Management/Other/b03": "STRONG_WARNING",
+    "Asset Management/Other/b04": "STRONG_WARNING",
+    "Asset Management/Other/b05": "STRONG_WARNING",
+    "Asset Management/Other/b06": "FAIL",
+    "Asset Management/Other/b07": "FAIL",
+    "Asset Management/Other/b08": "FAIL",
     "Asset Management/Other/b09": "STRONG_WARNING",
     "Asset Management/Other/b10": "STRONG_WARNING",
-    "Asset Management/Other/b11": "STRONG_WARNING",
-    "Asset Management/Other/b12": "STRONG_WARNING"
+    "Asset Management/Other/b11": "FAIL",
+    "Asset Management/Other/b12": "FAIL"
   },
   "bootstrap_reps": 200,
   "reliability_distribution": {
-    "High": 12,
-    "Medium": 23,
-    "Low": 12,
-    "Insufficient": 6
+    "High": 14,
+    "Medium": 21,
+    "Low": 11,
+    "Insufficient": 7
   }
 }
