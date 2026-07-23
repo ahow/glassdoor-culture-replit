@@ -48,3 +48,11 @@ to make `response.json()` throw `Unexpected token '<'` and kill the whole run. T
 guard `r.ok`, wrap `r.json()` in try/catch, treat `!d.success`/network errors as retryable
 with backoff, and use a run-instance id so a stop+restart during backoff can't spawn
 overlapping loops.
+
+## Prod schema can lag dev
+The prod DB never got the v2 schema migration that dev had — always verify required
+columns exist on prod before launching a scoring dyno (the dyno dies instantly with no
+obvious error otherwise). The migration runs DDL + a full-table version-backfill UPDATE
+in ONE transaction, so it blocks readers of that table for minutes on 3.4M rows and the
+new columns stay invisible until commit. Also: dyno commands with nested double quotes
+break bash — use the base64-exec pattern for any inline Python.

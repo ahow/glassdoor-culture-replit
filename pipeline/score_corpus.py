@@ -109,67 +109,67 @@ def score_reviews():
 
 
 def aggregate():
-    """Company-level aggregation incl. 2018-cutoff series (Phase 5)."""
+    """Company-level aggregation incl. 2018-cutoff series (Phase 5).
+
+    Done entirely in SQL so it scales to millions of rows (the previous
+    Python-side version held every score in memory and OOMs on prod).
+    """
     conn = psycopg2.connect(os.environ['DATABASE_URL'])
     cur = conn.cursor()
-    score_cols = ', '.join(
-        f"rcs.schroders_v2_b{i:02d}_score, rcs.schroders_v2_b{i:02d}_evidence"
-        for i in range(1, 13))
+    dims = SCHRODERS_V2_DIMENSIONS
+    select_parts = []
+    insert_cols = ['company_name', 'review_count', 'review_count_2018']
+    for i, d in enumerate(dims):
+        col = f'schroders_v2_b{i + 1:02d}_score'
+        select_parts.append(f"AVG(rcs.{col}) AS {d}_score")
+        select_parts.append(f"COUNT(rcs.{col}) AS {d}_evidence")
+        select_parts.append(
+            f"AVG(rcs.{col}) FILTER (WHERE r.review_datetime IS NOT NULL "
+            f"AND EXTRACT(YEAR FROM r.review_datetime) <= 2018) AS {d}_score_2018")
+        insert_cols += [f'schroders_v2_{d}_score', f'schroders_v2_{d}_evidence',
+                        f'schroders_v2_{d}_score_2018']
+    insert_cols += ['schroders_v2_composite_equalwt', 'schroders_v2_composite_corrwt',
+                    'dictionary_version', 'scoring_engine_version']
     cur.execute(f"""
-        SELECT rcs.company_name, r.review_datetime, {score_cols}
+        SELECT rcs.company_name,
+               COUNT(*) AS review_count,
+               COUNT(*) FILTER (WHERE r.review_datetime IS NOT NULL
+                   AND EXTRACT(YEAR FROM r.review_datetime) <= 2018) AS review_count_2018,
+               {', '.join(select_parts)}
         FROM review_culture_scores rcs
         JOIN reviews r ON r.id = rcs.review_id
         WHERE rcs.dictionary_version = %s
+        GROUP BY rcs.company_name
     """, (DICTIONARY_VERSION,))
-    agg = defaultdict(lambda: {'all': defaultdict(list), 'pre2019': defaultdict(list),
-                               'n': 0, 'n2018': 0})
-    for row in cur:
-        company, dt = row[0], row[1]
-        rec = agg[company]
-        rec['n'] += 1
-        is_pre = dt is not None and dt.year <= 2018
-        if is_pre:
-            rec['n2018'] += 1
-        for i in range(12):
-            s = row[2 + i * 2]
-            if s is not None:
-                rec['all'][i].append(s)
-                if is_pre:
-                    rec['pre2019'][i].append(s)
+    rows = cur.fetchall()
 
     up = conn.cursor()
-    dims = SCHRODERS_V2_DIMENSIONS
-    for company, rec in agg.items():
-        vals = {'company_name': company, 'review_count': rec['n'],
-                'review_count_2018': rec['n2018']}
+    n = 0
+    for row in rows:
+        company, review_count, review_count_2018 = row[0], row[1], row[2]
+        vals = [company, review_count, review_count_2018]
         means = []
-        for i, d in enumerate(dims):
-            xs = rec['all'][i]
-            m = sum(xs) / len(xs) if xs else None
-            vals[f'schroders_v2_{d}_score'] = m
-            vals[f'schroders_v2_{d}_evidence'] = len(xs)
-            xs18 = rec['pre2019'][i]
-            vals[f'schroders_v2_{d}_score_2018'] = (
-                sum(xs18) / len(xs18) if xs18 else None)
-            if m is not None:
-                means.append(m)
-        # Composite 1 — equal-weighted mean of available dimension scores
-        vals['schroders_v2_composite_equalwt'] = (
-            sum(means) / len(means) if len(means) == 12 else None)
-        vals['schroders_v2_composite_corrwt'] = None  # computed by the app per industry group
-        vals['dictionary_version'] = DICTIONARY_VERSION
-        vals['scoring_engine_version'] = SCORING_ENGINE_VERSION
-        cols = list(vals.keys())
+        for i in range(len(dims)):
+            score, evidence, score_2018 = row[3 + i * 3], row[4 + i * 3], row[5 + i * 3]
+            score = float(score) if score is not None else None
+            score_2018 = float(score_2018) if score_2018 is not None else None
+            vals += [score, evidence, score_2018]
+            if score is not None:
+                means.append(score)
+        vals.append(sum(means) / len(means) if len(means) == 12 else None)
+        vals.append(None)  # composite_corrwt computed by the app per industry group
+        vals += [DICTIONARY_VERSION, SCORING_ENGINE_VERSION]
         up.execute(f"""
-            INSERT INTO company_culture_scores_v2 ({', '.join(cols)})
-            VALUES ({', '.join(['%s'] * len(cols))})
+            INSERT INTO company_culture_scores_v2 ({', '.join(insert_cols)})
+            VALUES ({', '.join(['%s'] * len(insert_cols))})
             ON CONFLICT (company_name) DO UPDATE SET
-                {', '.join(f"{c} = EXCLUDED.{c}" for c in cols if c != 'company_name')},
+                {', '.join(f"{c} = EXCLUDED.{c}" for c in insert_cols if c != 'company_name')},
                 updated_at = NOW()
-        """, [vals[c] for c in cols])
+        """, vals)
+        n += 1
     conn.commit()
     conn.close()
-    print(f"Aggregated {len(agg)} companies into company_culture_scores_v2")
+    print(f"Aggregated {n} companies into company_culture_scores_v2")
 
 
 if __name__ == '__main__':
