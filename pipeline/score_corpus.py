@@ -42,10 +42,30 @@ def _arg(name, default=None, cast=str):
 
 
 def load_state():
-    if os.path.exists(STATE):
-        with open(STATE) as f:
-            return json.load(f)
-    return {'last_id': 0}
+    # The DB itself is the authoritative high-water mark: every batch commit
+    # stamps dictionary_version on the rows it upserts, so MAX(review_id) for
+    # the current dictionary version is exactly the last processed id. This is
+    # environment-safe (a stale/checked-in score_state.json from another
+    # environment would otherwise skip or re-do work on ephemeral filesystems
+    # like Heroku dynos). The local file is only a fallback if the DB lookup
+    # fails.
+    try:
+        conn = psycopg2.connect(os.environ['DATABASE_URL'])
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT COALESCE(MAX(review_id), 0) FROM review_culture_scores "
+            "WHERE dictionary_version = %s", (DICTIONARY_VERSION,))
+        last_id = cur.fetchone()[0]
+        conn.close()
+        print(f"Resuming from DB high-water mark id {last_id}", flush=True)
+        return {'last_id': last_id}
+    except Exception as e:
+        print(f"WARNING: DB high-water-mark lookup failed ({e}); "
+              f"falling back to local state file", flush=True)
+        if os.path.exists(STATE):
+            with open(STATE) as f:
+                return json.load(f)
+        return {'last_id': 0}
 
 
 def save_state(s):

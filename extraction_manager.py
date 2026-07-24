@@ -1362,6 +1362,90 @@ class IncrementalUpdateManager:
         logger.info(f"Incremental update completed: {new_reviews_total} new reviews "
                     f"across {companies_done} companies")
 
+        # Automatically re-run the full scoring + calculation chain so the
+        # dashboard is always up to date after each monthly review update.
+        if new_reviews_total > 0:
+            try:
+                self._run_post_update_pipeline()
+            except Exception as e:
+                logger.error(f"Post-update scoring pipeline failed: {e}")
+
+    def _run_post_update_pipeline(self):
+        """After an incremental review update completes, automatically:
+        1. score newly added reviews (legacy Hofstede/MIT/Schroders-v1 columns),
+        2. score them under the Schroders v2 engine (score_corpus reviews),
+        3. rebuild company-level v2 aggregates (score_corpus aggregate),
+        4. rebuild evidence tiers + Culture Factor model (factor_build all),
+        5. refresh the company metrics cache for companies with new reviews.
+        All steps are idempotent, so a restart mid-way loses nothing —
+        re-running the pipeline finishes the remaining work."""
+        import subprocess
+        base = os.path.dirname(os.path.abspath(__file__))
+
+        # -- companies that received new (not-yet-scored) reviews -----------
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT r.company_name, COUNT(*)
+            FROM reviews r
+            LEFT JOIN review_culture_scores rcs ON rcs.review_id = r.id
+            WHERE rcs.review_id IS NULL
+            GROUP BY r.company_name
+        """)
+        updated = {name: cnt for name, cnt in cur.fetchall()}
+        cur.close()
+        conn.close()
+        logger.info(f"Post-update pipeline: {sum(updated.values())} unscored reviews "
+                    f"across {len(updated)} companies")
+
+        # -- 1. legacy per-company scoring (Hofstede / MIT / Schroders v1) --
+        for name, cnt in updated.items():
+            remaining = cnt
+            while remaining > 0:
+                batch = min(remaining, 2000)
+                self._score_company_reviews(name, max_reviews=batch)
+                remaining -= batch
+
+        # -- 2 & 3. Schroders v2 scoring + aggregation -----------------------
+        for args in (['reviews'], ['aggregate']):
+            cmd = [sys.executable, os.path.join(base, 'pipeline', 'score_corpus.py')] + args
+            logger.info(f"Post-update pipeline: running score_corpus {args[0]}…")
+            res = subprocess.run(cmd, cwd=base, capture_output=True, text=True,
+                                 timeout=6 * 3600)
+            if res.returncode != 0:
+                raise RuntimeError(f"score_corpus {args[0]} failed: {res.stderr[-500:]}")
+            logger.info(f"score_corpus {args[0]} done: {res.stdout.strip().splitlines()[-1] if res.stdout.strip() else 'ok'}")
+
+        # -- 4. evidence tiers + Culture Factor model ------------------------
+        logger.info("Post-update pipeline: running factor_build all…")
+        res = subprocess.run(
+            [sys.executable, os.path.join(base, 'pipeline', 'factor_build.py'), 'all'],
+            cwd=base, capture_output=True, text=True, timeout=6 * 3600)
+        if res.returncode != 0:
+            raise RuntimeError(f"factor_build failed: {res.stderr[-500:]}")
+        logger.info("factor_build all done")
+
+        # -- 5. refresh metrics cache for the updated companies --------------
+        try:
+            from app import get_company_metrics, cache_metrics, invalidate_cache
+            refreshed = 0
+            for name in updated:
+                try:
+                    invalidate_cache(name)
+                    m_all = get_company_metrics(name, 'all')
+                    if m_all:
+                        cache_metrics(name, m_all, 'all')
+                    m_cur = get_company_metrics(name, 'current')
+                    if m_cur:
+                        cache_metrics(name, m_cur, 'current')
+                    refreshed += 1
+                except Exception as e:
+                    logger.warning(f"Cache refresh failed for {name}: {e}")
+            logger.info(f"Post-update pipeline finished: cache refreshed for "
+                        f"{refreshed}/{len(updated)} companies")
+        except Exception as e:
+            logger.error(f"Post-update cache refresh failed: {e}")
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Monthly auto-scheduler
