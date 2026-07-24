@@ -19,3 +19,5 @@ To add a new framework (Schroders was the third, after Hofstede and MIT), mirror
 **Why:** During Schroders rollout the perf-correlation endpoint had two payload builders; only one was updated at first, so correlations were empty. Search for ALL `culture_data.append` / framework-key dicts when wiring a new framework.
 
 **Caveat:** Existing scored reviews lack the new columns; `score_unscored` only scores NEW rows. Full population needs delete + re-score per company. See metrics-cache-rescoring.md for the cache rebuild step.
+
+**Dictionary-swap gotcha (2026-07-24):** `schroders_v2_keywords.py` is not just the keyword dictionary — the app also imports `SCHRODERS_V2_DIM_INFO` (chart labels/descriptions) from it, and app.py silently falls back to an EMPTY dimension list if that import fails. Any regenerated/replacement dictionary file must preserve all exported names (`SCHRODERS_V2_DIMENSIONS`, `SCHRODERS_V2_DIM_INFO`, `DICTIONARY_VERSION`), or every v2 chart goes blank with no server error.

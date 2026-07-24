@@ -1845,3 +1845,91 @@ SCHRODERS_V2_KEYWORDS = {
         },
     },
 }
+
+
+SCHRODERS_V2_DIM_INFO = {
+    "b01": {
+        "title": "Short-term ↔ Long-term",
+        "left_label": "Short-term / quarterly",
+        "right_label": "Long-term / patient",
+        "description": "Whether the company chases short-term results (lower score) or plans patiently for the long term (higher score).",
+        "thesis": "Long-term orientation predicts capex quality and R&D productivity."
+    },
+    "b02": {
+        "title": "Cost-focused ↔ Growth-focused",
+        "left_label": "Cost-focused / thrifty",
+        "right_label": "Growth-focused / investing",
+        "description": "Whether the company prioritises cutting costs (lower score) or investing in growth (higher score). Both can be legitimate.",
+        "thesis": "Alignment with value vs growth strategy."
+    },
+    "b03": {
+        "title": "Hierarchical ↔ Egalitarian",
+        "left_label": "Hierarchical / top-down",
+        "right_label": "Egalitarian / distributed",
+        "description": "Whether decisions flow top-down through layers (lower score) or power is shared more equally (higher score).",
+        "thesis": "Egalitarian predicts faster decisions and retention in knowledge industries."
+    },
+    "b04": {
+        "title": "Rules-driven ↔ Judgement-driven",
+        "left_label": "Rules-driven / process",
+        "right_label": "Judgement-driven / adaptive",
+        "description": "Whether work is governed by defined processes and rules (lower score) or by individual judgement and adaptability (higher score).",
+        "thesis": "Rules-driven suits regulated industries; judgement-driven suits volatile ones."
+    },
+    "b05": {
+        "title": "Individual ↔ Team performance",
+        "left_label": "Individual performance",
+        "right_label": "Team performance",
+        "description": "Whether performance is about individual achievement (lower score) or collective teamwork (higher score).",
+        "thesis": "Individual outperformance for sales; team outperformance for engineering."
+    },
+    "b06": {
+        "title": "Insular ↔ Externally-focused",
+        "left_label": "Insular / internally-driven",
+        "right_label": "Externally-focused / market-driven",
+        "description": "Whether the company looks inward at itself (lower score) or outward at customers and markets (higher score).",
+        "thesis": "Externally-focused predicts better response to disruption."
+    },
+    "b07": {
+        "title": "Risk-averse ↔ Risk-taking",
+        "left_label": "Risk-averse",
+        "right_label": "Risk-taking",
+        "description": "Whether the company avoids risk (lower score) or embraces experimentation and bold moves (higher score).",
+        "thesis": "Risk-taking gives growth optionality; risk-aversion gives drawdown protection."
+    },
+    "b08": {
+        "title": "Political ↔ Meritocratic",
+        "left_label": "Political / tenure-based",
+        "right_label": "Meritocratic / performance-based",
+        "description": "Whether advancement depends on politics and tenure (lower score) or on merit and performance (higher score).",
+        "thesis": "Meritocracy predicts talent retention and productivity."
+    },
+    "b09": {
+        "title": "Toxic ↔ Supportive",
+        "left_label": "Toxic / high-turnover",
+        "right_label": "Supportive / low-turnover",
+        "description": "Whether the environment is hostile and burns people out (lower score) or supports and retains them (higher score).",
+        "thesis": "Retention cost and hiring quality."
+    },
+    "b10": {
+        "title": "Chaotic ↔ Stable",
+        "left_label": "Chaotic / strategy churn",
+        "right_label": "Stable / consistent",
+        "description": "Whether direction changes constantly (lower score) or strategy and organisation are consistent (higher score).",
+        "thesis": "Execution quality."
+    },
+    "b11": {
+        "title": "Compliance-minimising ↔ Integrity-maximising",
+        "left_label": "Compliance-minimising",
+        "right_label": "Integrity-maximising",
+        "description": "Whether the company cuts ethical corners (lower score) or holds itself to high standards of integrity (higher score).",
+        "thesis": "Reduced regulatory and reputational tail risk."
+    },
+    "b12": {
+        "title": "Homogeneous ↔ Diverse & inclusive",
+        "left_label": "Homogeneous",
+        "right_label": "Diverse & inclusive",
+        "description": "Whether the workforce and leadership are uniform (lower score) or genuinely diverse and inclusive (higher score).",
+        "thesis": "DEI correlates with decision quality where evidence supports it."
+    }
+}
