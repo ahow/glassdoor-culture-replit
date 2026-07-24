@@ -1847,6 +1847,7 @@
             triggerPrewarm(currentGicsLevel, value);
             await loadData();
             loadCompaniesForTrends();
+            loadCultureCompanies('schroders');
             if (document.getElementById('analysisTab') && document.getElementById('analysisTab').style.display !== 'none') {
                 await loadAnalysisCompanies();
             }
