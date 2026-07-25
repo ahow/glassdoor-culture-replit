@@ -12,7 +12,8 @@ import numpy as np
 import threading as _threading_module
 import psycopg2
 from psycopg2.extras import RealDictCursor
-from flask import Flask, render_template, jsonify, request, Response, send_file
+from flask import Flask, render_template, jsonify, request, Response, send_file, session, redirect
+from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta
 from statistics import mean
 from culture_scoring import score_review_with_dictionary
@@ -25,6 +26,13 @@ logger = logging.getLogger(__name__)
 
 # Initialize Flask app
 app = Flask(__name__, template_folder='templates', static_folder='static')
+app.secret_key = os.environ.get('SESSION_SECRET') or os.environ.get('SECRET_KEY')
+if not app.secret_key:
+    # No static fallback: use a random per-process secret (sessions reset on
+    # restart) so cookies can never be forged with a known default value.
+    logger.warning("SESSION_SECRET not set — using a random per-process secret")
+    app.secret_key = os.urandom(32)
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=14)
 
 # ============================================================================
 # CONFIGURATION
@@ -1005,14 +1013,216 @@ except Exception:  # pipeline output not present in this environment
     SCHRODERS_V2_DIMENSIONS, SCHRODERS_V2_DIM_INFO, V2_DICTIONARY_VERSION = [], {}, None
 
 
+# ============================================================================
+# AUTHENTICATION (email/password, @schroders.com only, admin-managed users)
+# ============================================================================
+
+ALLOWED_EMAIL_DOMAIN = 'schroders.com'
+SEED_ADMIN_EMAIL = 'andy.howard@schroders.com'
+
+
+def init_users_table():
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS app_users (
+                id SERIAL PRIMARY KEY,
+                email VARCHAR(255) UNIQUE NOT NULL,
+                password_hash VARCHAR(512) NOT NULL,
+                is_admin BOOLEAN NOT NULL DEFAULT FALSE,
+                created_at TIMESTAMP DEFAULT NOW()
+            )""")
+        conn.commit()
+        cur.execute("SELECT id FROM app_users WHERE lower(email) = %s", (SEED_ADMIN_EMAIL,))
+        if not cur.fetchone():
+            cur.execute(
+                "INSERT INTO app_users (email, password_hash, is_admin) VALUES (%s, %s, TRUE)",
+                (SEED_ADMIN_EMAIL, generate_password_hash('football')))
+            conn.commit()
+            logger.info("Seeded initial admin user")
+        conn.close()
+    except Exception as e:
+        logger.error(f"init_users_table failed: {e}")
+
+
+def _current_user():
+    uid = session.get('user_id')
+    if not uid:
+        return None
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("SELECT id, email, is_admin FROM app_users WHERE id = %s", (uid,))
+        row = cur.fetchone()
+        conn.close()
+        if not row:
+            return None
+        return {'id': row[0], 'email': row[1], 'is_admin': bool(row[2])}
+    except Exception:
+        return None
+
+
+_PUBLIC_PATHS = ('/login', '/api/auth/login', '/api/auth/register', '/api/auth/me',
+                 '/static/', '/favicon.ico', '/healthz')
+_ADMIN_PATH_PREFIXES = ('/api/extraction', '/api/admin', '/api/data-status',
+                        '/api/score-company', '/api/scoring', '/api/rescore')
+
+
+@app.before_request
+def _require_login():
+    p = request.path
+    if any(p == pp or p.startswith(pp) for pp in _PUBLIC_PATHS):
+        return None
+    user = _current_user()
+    if not user:
+        if p.startswith('/api/'):
+            return jsonify({'success': False, 'error': 'Authentication required'}), 401
+        return redirect('/login')
+    if any(p.startswith(ap) for ap in _ADMIN_PATH_PREFIXES) and not user['is_admin']:
+        return jsonify({'success': False, 'error': 'Admin access required'}), 403
+    request.current_user = user
+    return None
+
+
+@app.route('/login', methods=['GET'])
+def login_page():
+    if _current_user():
+        return redirect('/')
+    return render_template('login.html')
+
+
+@app.route('/api/auth/login', methods=['POST'])
+def auth_login():
+    data = request.get_json() or {}
+    email = (data.get('email') or '').strip().lower()
+    password = data.get('password') or ''
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("SELECT id, password_hash FROM app_users WHERE lower(email) = %s", (email,))
+        row = cur.fetchone()
+        conn.close()
+        if not row or not check_password_hash(row[1], password):
+            return jsonify({'success': False, 'error': 'Invalid email or password'}), 401
+        session.permanent = True
+        session['user_id'] = row[0]
+        return jsonify({'success': True})
+    except Exception as e:
+        logger.error(f"login error: {e}")
+        return jsonify({'success': False, 'error': 'Login failed'}), 500
+
+
+@app.route('/api/auth/register', methods=['POST'])
+def auth_register():
+    data = request.get_json() or {}
+    email = (data.get('email') or '').strip().lower()
+    password = data.get('password') or ''
+    if not re.match(r'^[a-z0-9][a-z0-9._+\-]*@[a-z0-9.\-]+\.[a-z]{2,}$', email):
+        return jsonify({'success': False, 'error': 'Please enter a valid email address'}), 400
+    if not email.endswith('@' + ALLOWED_EMAIL_DOMAIN):
+        return jsonify({'success': False,
+                        'error': 'Registration is limited to @schroders.com email addresses'}), 403
+    if len(password) < 6:
+        return jsonify({'success': False, 'error': 'Password must be at least 6 characters'}), 400
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("SELECT id FROM app_users WHERE lower(email) = %s", (email,))
+        if cur.fetchone():
+            conn.close()
+            return jsonify({'success': False, 'error': 'An account with this email already exists'}), 409
+        cur.execute(
+            "INSERT INTO app_users (email, password_hash, is_admin) VALUES (%s, %s, FALSE) RETURNING id",
+            (email, generate_password_hash(password)))
+        uid = cur.fetchone()[0]
+        conn.commit()
+        conn.close()
+        session.permanent = True
+        session['user_id'] = uid
+        return jsonify({'success': True})
+    except Exception as e:
+        logger.error(f"register error: {e}")
+        return jsonify({'success': False, 'error': 'Registration failed'}), 500
+
+
+@app.route('/logout', methods=['GET', 'POST'])
+def auth_logout():
+    session.clear()
+    return redirect('/login')
+
+
+@app.route('/api/auth/me', methods=['GET'])
+def auth_me():
+    user = _current_user()
+    if not user:
+        return jsonify({'success': False, 'authenticated': False}), 401
+    return jsonify({'success': True, 'authenticated': True,
+                    'email': user['email'], 'is_admin': user['is_admin']})
+
+
+@app.route('/api/admin/users', methods=['GET'])
+def admin_list_users():
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("SELECT id, email, is_admin, created_at FROM app_users ORDER BY email")
+        users = [{'id': r[0], 'email': r[1], 'is_admin': bool(r[2]),
+                  'created_at': r[3].isoformat() if r[3] else None} for r in cur.fetchall()]
+        conn.close()
+        return jsonify({'success': True, 'users': users})
+    except Exception as e:
+        logger.error(f"admin list users error: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/admin/users/<int:user_id>/admin', methods=['POST'])
+def admin_set_admin(user_id):
+    data = request.get_json() or {}
+    make_admin = bool(data.get('is_admin'))
+    me = getattr(request, 'current_user', None)
+    if me and me['id'] == user_id and not make_admin:
+        return jsonify({'success': False, 'error': 'You cannot remove your own admin access'}), 400
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("UPDATE app_users SET is_admin = %s WHERE id = %s", (make_admin, user_id))
+        conn.commit()
+        conn.close()
+        return jsonify({'success': True})
+    except Exception as e:
+        logger.error(f"admin set-admin error: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/admin/users/<int:user_id>', methods=['DELETE'])
+def admin_delete_user(user_id):
+    me = getattr(request, 'current_user', None)
+    if me and me['id'] == user_id:
+        return jsonify({'success': False, 'error': 'You cannot delete your own account'}), 400
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("DELETE FROM app_users WHERE id = %s", (user_id,))
+        conn.commit()
+        conn.close()
+        return jsonify({'success': True})
+    except Exception as e:
+        logger.error(f"admin delete user error: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 @app.route('/', methods=['GET'])
 def index():
     """Serve the main dashboard"""
+    user = getattr(request, 'current_user', None) or _current_user()
     return render_template('index.html',
                            schroders_dimensions=SCHRODERS_DIMENSIONS,
                            schroders_dim_info=SCHRODERS_DIM_INFO,
                            schroders_v2_dimensions=SCHRODERS_V2_DIMENSIONS,
-                           schroders_v2_dim_info=SCHRODERS_V2_DIM_INFO)
+                           schroders_v2_dim_info=SCHRODERS_V2_DIM_INFO,
+                           current_user_email=user['email'] if user else '',
+                           current_user_is_admin=bool(user and user['is_admin']))
 
 
 # ============================================================================
@@ -4924,6 +5134,43 @@ def extraction_status():
     return jsonify(mgr.get_status())
 
 
+@app.route('/api/extraction/asset-managers')
+def extraction_asset_managers():
+    """Per-company extraction status for the Asset Management group.
+
+    Combines listed asset managers from the extraction queue (GICS sub-industry
+    'Asset Management & Custody Banks') with the 14 unlisted asset managers
+    (not in the queue; status derived from whether reviews exist).
+    """
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT eq.id, eq.issuer_name, eq.status, eq.reviews_extracted,
+                   eq.glassdoor_name
+            FROM extraction_queue eq
+            WHERE eq.gics_sub_industry = 'Asset Management & Custody Banks'
+            ORDER BY eq.issuer_name""")
+        listed = [{'queue_id': r[0], 'company': r[1], 'status': r[2],
+                   'reviews': r[3] or 0, 'glassdoor_name': r[4],
+                   'listed': True} for r in cur.fetchall()]
+        unlisted_names = list(UNLISTED_ASSET_MANAGERS.keys())
+        cur.execute("""
+            SELECT company_name, COUNT(*) FROM reviews
+            WHERE company_name = ANY(%s)
+            GROUP BY company_name""", (unlisted_names,))
+        counts = dict(cur.fetchall())
+        conn.close()
+        unlisted = [{'queue_id': None, 'company': c,
+                     'status': 'completed' if counts.get(c) else 'not_extracted',
+                     'reviews': counts.get(c, 0), 'glassdoor_name': None,
+                     'listed': False} for c in sorted(unlisted_names)]
+        return jsonify({'success': True, 'listed': listed, 'unlisted': unlisted})
+    except Exception as e:
+        logger.error(f"extraction asset-managers error: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 @app.route('/api/extraction/start', methods=['POST'])
 def extraction_start():
     from extraction_manager import ExtractionManager
@@ -5360,6 +5607,8 @@ init_cache_table()
 init_extraction_queue()
 init_culture_scores_table()
 ensure_db_indexes()
+
+init_users_table()
 
 from extraction_manager import init_extraction_control, start_monthly_scheduler
 init_extraction_control()

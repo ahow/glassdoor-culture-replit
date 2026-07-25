@@ -15,6 +15,9 @@ The application extracts reviews via OpenWeb Ninja API (primary) or RapidAPI (fa
 ### Unlisted Asset Managers
 14 private/unlisted asset management companies are hard-coded in `UNLISTED_ASSET_MANAGERS` dict in `app.py` with sector "Asset Management". These don't have ISINs and aren't in the extraction_queue (which contains 2,442 MSCI-listed companies). They're included in the analysis for sector-specific filtering and appear in the sector dropdown as a separate category. Companies: AllianceBernstein, Dimensional Fund Advisors, Eurazeo, Federated Hermes, Fidelity International, Fidelity Investments, Franklin Templeton, Invesco, Natixis Investment Managers, Nuveen, PIMCO, Robeco, Vanguard Group, Wellington Management.
 
+### Authentication (added 2026-07-25)
+Email/password login (Flask session, `SESSION_SECRET`), registration restricted to @schroders.com. `app_users` table with werkzeug hashes; seeded admin andy.howard@schroders.com. `before_request` guard: everything requires login except /login, /api/auth/*, /static; admin-only path prefixes: /api/extraction, /api/admin, /api/data-status, /api/score-company, /api/scoring, /api/rescore. Admin-only nav tabs (Data Status, Extraction Manager, Users) are Jinja-gated. Users tab lets admins grant/remove admin and delete accounts. Login page: `templates/login.html`.
+
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.

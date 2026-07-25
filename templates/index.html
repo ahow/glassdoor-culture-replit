@@ -517,8 +517,15 @@
                  rollback point pre_schroders_sector_relative_rebuild_2026_07_21. -->
 
             <button class="main-tab-button" onclick="switchMainTab('exportData', event)">Export Data</button>
+            {% if current_user_is_admin %}
             <button class="main-tab-button" onclick="switchMainTab('dataStatus', event)">Data Status</button>
             <button class="main-tab-button" onclick="switchMainTab('extractionMgr', event)">Extraction Manager</button>
+            <button class="main-tab-button" onclick="switchMainTab('users', event)" data-testid="tab-users">Users</button>
+            {% endif %}
+            <span style="margin-left: auto; display: inline-flex; align-items: center; gap: 0.75rem; padding: 0 0.5rem;">
+                <span style="font-size: 0.8rem; color: #64748b;" data-testid="text-current-user">{{ current_user_email }}</span>
+                <a href="/logout" data-testid="link-logout" style="font-size: 0.8rem; color: #2563eb; text-decoration: none; font-weight: 600;">Log out</a>
+            </span>
         </div>
         
         <!-- Overview Tab -->
@@ -888,8 +895,14 @@
                         <h3>Schroders v2 — Bipolar Culture Dimensions</h3>
                         <p style="color: #7f8c8d; font-size: 0.9rem; margin-bottom: 0.5rem;">Twelve bipolar dimensions scored −1 to +1. Zero means balanced; negative leans toward the left pole, positive toward the right pole.</p>
                         <p id="schrodersV2Confidence" data-testid="text-v2-confidence" style="font-size: 0.8rem; color: #94a3b8; margin-bottom: 1rem;"></p>
-                        <div style="position: relative; height: 560px;">
-                            <canvas id="schrodersV2Chart"></canvas>
+                        <div id="schrodersV2Legend" style="display: flex; flex-wrap: wrap; gap: 1.25rem; justify-content: center; margin-bottom: 0.5rem; font-size: 0.8rem; color: #475569;"></div>
+                        <div style="display: flex; gap: 0.75rem; align-items: stretch;">
+                            <div style="position: relative; height: 560px; flex: 1 1 70%; min-width: 0;">
+                                <canvas id="schrodersV2Chart"></canvas>
+                            </div>
+                            <div id="schrodersV2DiffWrap" style="position: relative; height: 560px; flex: 0 0 24%; min-width: 0; display: none;">
+                                <canvas id="schrodersV2DiffChart"></canvas>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1510,6 +1523,11 @@
                     Manage the extraction of Glassdoor reviews for all 2,442 companies across 11 GICS sectors. Extraction proceeds sector by sector. Existing company data is preserved -- duplicate reviews are automatically skipped.
                 </p>
 
+                <div style="display: inline-flex; margin-bottom: 1.25rem; border: 1px solid #e2e8f0; border-radius: 10px; overflow: hidden;">
+                    <button id="btnGroupListed" data-testid="button-group-listed" onclick="setExtractionGroup('listed')" style="padding: 0.5rem 1.25rem; border: none; cursor: pointer; font-size: 0.85rem; font-weight: 600; background: #2563eb; color: #fff;">Listed companies</button>
+                    <button id="btnGroupAssetMgrs" data-testid="button-group-asset-managers" onclick="setExtractionGroup('asset_managers')" style="padding: 0.5rem 1.25rem; border: none; cursor: pointer; font-size: 0.85rem; font-weight: 600; background: #f8fafc; color: #475569;">Asset managers</button>
+                </div>
+
                 <div id="extractionControls" style="display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; margin-bottom: 1.5rem; padding: 1rem; background: #f8fafc; border-radius: 10px; border: 1px solid #e2e8f0;">
                     <button id="btnStartExtraction" onclick="startExtraction()" style="padding: 0.625rem 1.5rem; background: #22c55e; color: white; border: none; border-radius: 8px; font-size: 0.875rem; font-weight: 600; cursor: pointer;">Start Extraction</button>
                     <button id="btnPauseExtraction" onclick="pauseExtraction()" style="padding: 0.625rem 1.5rem; background: #f59e0b; color: white; border: none; border-radius: 8px; font-size: 0.875rem; font-weight: 600; cursor: pointer; display: none;">Pause</button>
@@ -1583,6 +1601,17 @@
         </div>
 
         <!-- Data Status Tab -->
+        <!-- Users Tab (admin only) -->
+        <div id="usersTab" class="tab-content hidden-tab" style="display: none;">
+            <div class="chart-container">
+                <h2 class="chart-title">Users</h2>
+                <p style="color: #64748b; margin-bottom: 1.5rem;">
+                    Manage who can sign in to the dashboard. Anyone with a @schroders.com email can create an account; admins can grant or remove admin access here.
+                </p>
+                <div id="usersListArea" data-testid="list-users"><p style="color: #94a3b8;">Loading...</p></div>
+            </div>
+        </div>
+
         <div id="dataStatusTab" class="tab-content hidden-tab" style="display: none;">
             <div class="chart-container">
                 <h2 class="chart-title">Data Extraction Status</h2>
@@ -1926,7 +1955,7 @@
             console.log('switchMainTab called with tab:', tab);
             
             // Hide all tabs using both inline styles AND CSS class
-            const tabs = ['overviewTab', 'companiesTab', 'analysisTab', 'trendsTab', 'hofstedeTab', 'mitTab', 'schrodersTab', 'factorTab', 'insightsTab', 'culturePerfTab', 'corrAnalysisTab', 'exportDataTab', 'dataStatusTab', 'extractionMgrTab'];
+            const tabs = ['overviewTab', 'companiesTab', 'analysisTab', 'trendsTab', 'hofstedeTab', 'mitTab', 'schrodersTab', 'factorTab', 'insightsTab', 'culturePerfTab', 'corrAnalysisTab', 'exportDataTab', 'dataStatusTab', 'extractionMgrTab', 'usersTab'];
             tabs.forEach(tabId => {
                 const el = document.getElementById(tabId);
                 if (el) {
@@ -1955,7 +1984,8 @@
                 'corrAnalysis': 'corrAnalysisTab',
                 'exportData': 'exportDataTab',
                 'dataStatus': 'dataStatusTab',
-                'extractionMgr': 'extractionMgrTab'
+                'extractionMgr': 'extractionMgrTab',
+                'users': 'usersTab'
             };
             
             const targetTabId = tabMapping[tab];
@@ -1994,6 +2024,8 @@
                 loadDataStatus();
             } else if (tab === 'extractionMgr') {
                 initExtractionManager();
+            } else if (tab === 'users') {
+                loadUsersAdmin();
             }
             
             event.target.classList.add('active');
@@ -2694,6 +2726,17 @@
             if (window.schrodersV2ChartObj && typeof window.schrodersV2ChartObj.destroy === 'function') {
                 window.schrodersV2ChartObj.destroy();
             }
+            // Custom HTML legend (kept outside the canvas so the main chart and the
+            // "vs peer" diff chart share identical vertical plot areas and rows align).
+            const legendEl = document.getElementById('schrodersV2Legend');
+            if (legendEl) {
+                const sym = { circle: '●', rectRot: '◆', triangle: '▲' };
+                legendEl.innerHTML = datasets.map(ds =>
+                    '<span style="display:inline-flex;align-items:center;gap:0.35rem;">' +
+                    '<span style="color:' + ds.backgroundColor + ';font-size:0.95rem;">' + (sym[ds.pointStyle] || '●') + '</span>' +
+                    ds.label + '</span>').join('');
+            }
+
             window.schrodersV2ChartObj = new Chart(canvas.getContext('2d'), {
                 type: 'line',
                 data: { labels: leftLabels, datasets: datasets },
@@ -2702,7 +2745,7 @@
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {
-                        legend: { display: true, position: 'top', labels: { usePointStyle: true } },
+                        legend: { display: false },
                         tooltip: {
                             callbacks: {
                                 title: function(items) {
@@ -2738,8 +2781,8 @@
                         },
                         y: {
                             grid: { display: false },
-                            ticks: { font: { size: 11 }, color: '#dc2626', autoSkip: false },
-                            title: { display: true, text: 'Left pole', color: '#dc2626', font: { weight: '600' } }
+                            ticks: { font: { size: 11 }, color: '#2563eb', autoSkip: false },
+                            title: { display: true, text: 'Left pole', color: '#2563eb', font: { weight: '600' } }
                         },
                         y2: {
                             position: 'right',
@@ -2747,14 +2790,79 @@
                             labels: rightLabels,
                             offset: true,
                             grid: { display: false },
-                            ticks: { font: { size: 11 }, color: '#2563eb', autoSkip: false },
-                            title: { display: true, text: 'Right pole', color: '#2563eb', font: { weight: '600' } }
+                            ticks: { font: { size: 11 }, color: '#7c3aed', autoSkip: false },
+                            title: { display: true, text: 'Right pole', color: '#7c3aed', font: { weight: '600' } }
                         }
                     }
                 }
             });
             attachChartAxisTooltips(window.schrodersV2ChartObj, 'y',
                 dims.map(b => SCHRODERS_V2_DIM_INFO[b] || { title: b }));
+
+            // Narrow companion bar chart: company score minus peer average, rows aligned
+            const diffWrap = document.getElementById('schrodersV2DiffWrap');
+            const diffCanvas = document.getElementById('schrodersV2DiffChart');
+            if (window.schrodersV2DiffChartObj && typeof window.schrodersV2DiffChartObj.destroy === 'function') {
+                window.schrodersV2DiffChartObj.destroy();
+                window.schrodersV2DiffChartObj = null;
+            }
+            const diffVals = dims.map((b, i) =>
+                (companyVals[i] != null && peerVals[i] != null) ? companyVals[i] - peerVals[i] : null);
+            const hasDiff = diffVals.some(v => v != null);
+            if (diffWrap) diffWrap.style.display = hasDiff ? 'block' : 'none';
+            if (hasDiff && diffCanvas) {
+                const maxAbs = Math.max(0.2, ...diffVals.filter(v => v != null).map(v => Math.abs(v)));
+                const lim = Math.ceil(maxAbs * 10) / 10;
+                window.schrodersV2DiffChartObj = new Chart(diffCanvas.getContext('2d'), {
+                    type: 'bar',
+                    data: {
+                        labels: leftLabels,
+                        datasets: [{
+                            label: 'vs peer average',
+                            data: diffVals,
+                            backgroundColor: diffVals.map(v =>
+                                v == null ? 'rgba(0,0,0,0)' : v >= 0 ? 'rgba(37, 99, 235, 0.75)' : 'rgba(124, 58, 237, 0.55)'),
+                            borderWidth: 0,
+                            borderRadius: 3
+                        }]
+                    },
+                    options: {
+                        indexAxis: 'y',
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                callbacks: {
+                                    title: function(items) {
+                                        const b = dims[items[0].dataIndex];
+                                        const info = SCHRODERS_V2_DIM_INFO[b] || {};
+                                        return info.title || b;
+                                    },
+                                    label: function(item) {
+                                        const v = item.raw;
+                                        if (v == null) return 'No peer comparison';
+                                        return (v >= 0 ? '+' : '') + Number(v).toFixed(2) + ' vs peer average';
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                min: -lim, max: lim,
+                                ticks: { maxTicksLimit: 5, font: { size: 10 } },
+                                grid: { color: function(c) { return c.tick && c.tick.value === 0 ? '#64748b' : '#e2e8f0'; } },
+                                title: { display: true, text: 'Company vs peer average' }
+                            },
+                            y: {
+                                grid: { display: false },
+                                ticks: { display: false, autoSkip: false },
+                                offset: true
+                            }
+                        }
+                    }
+                });
+            }
         }
 
         function displaySchrodersProfile(profile, comparisonProfile, industryAvgProfile) {
@@ -5898,6 +6006,7 @@
                 </div>
             `).join('');
 
+            if (window._extractionGroup === 'asset_managers') return;
             const sectorDiv = document.getElementById('sectorProgressList');
             if (!data.sectors || data.sectors.length === 0) {
                 sectorDiv.innerHTML = '<p style="color: #94a3b8;">No sector data available.</p>';
@@ -5930,6 +6039,112 @@
             });
             html += '</div>';
             sectorDiv.innerHTML = html;
+        }
+
+        function escapeHtml(s) {
+            return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
+
+        async function loadUsersAdmin() {
+            const area = document.getElementById('usersListArea');
+            area.innerHTML = '<p style="color: #94a3b8;">Loading...</p>';
+            try {
+                const meRes = await fetch('/api/auth/me');
+                const me = await meRes.json();
+                const res = await fetch('/api/admin/users');
+                const data = await res.json();
+                if (!data.success) { area.innerHTML = '<p style="color: #ef4444;">' + (data.error || 'Could not load users.') + '</p>'; return; }
+                const rows = data.users.map(u => {
+                    const isSelf = me.email && u.email.toLowerCase() === me.email.toLowerCase();
+                    const safeEmail = escapeHtml(u.email);
+                    return `<tr data-testid="row-user-${u.id}">` +
+                        `<td style="padding: 0.5rem 0.75rem; font-weight: 600; color: #1e293b;">${safeEmail}${isSelf ? ' <span style="color: #94a3b8; font-weight: 400;">(you)</span>' : ''}</td>` +
+                        `<td style="padding: 0.5rem 0.75rem;">${u.is_admin ? '<span style="color: #2563eb; font-weight: 600;">Admin</span>' : 'User'}</td>` +
+                        `<td style="padding: 0.5rem 0.75rem; color: #64748b; font-size: 0.8rem;">${u.created_at ? u.created_at.slice(0,10) : ''}</td>` +
+                        `<td style="padding: 0.5rem 0.75rem; text-align: right; white-space: nowrap;">` +
+                        (isSelf ? '' :
+                            `<button data-testid="button-toggle-admin-${u.id}" onclick="setUserAdmin(${u.id}, ${!u.is_admin})" style="padding: 0.35rem 0.85rem; margin-right: 0.5rem; border: 1px solid #cbd5e1; background: #fff; border-radius: 6px; font-size: 0.8rem; cursor: pointer; color: #2563eb; font-weight: 600;">${u.is_admin ? 'Remove admin' : 'Make admin'}</button>` +
+                            `<button data-testid="button-delete-user-${u.id}" onclick="deleteUser(${u.id}, '${u.email.replace(/'/g, "\\'")}')" style="padding: 0.35rem 0.85rem; border: 1px solid #fecaca; background: #fff; border-radius: 6px; font-size: 0.8rem; cursor: pointer; color: #dc2626; font-weight: 600;">Delete</button>`) +
+                        `</td></tr>`;
+                }).join('');
+                area.innerHTML = `<div style="overflow-x: auto;"><table style="width: 100%; border-collapse: collapse; font-size: 0.875rem;">` +
+                    `<thead><tr style="text-align: left; color: #64748b; border-bottom: 1px solid #e2e8f0;">` +
+                    `<th style="padding: 0.5rem 0.75rem;">Email</th><th style="padding: 0.5rem 0.75rem;">Role</th>` +
+                    `<th style="padding: 0.5rem 0.75rem;">Joined</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`;
+            } catch (e) {
+                area.innerHTML = '<p style="color: #ef4444;">Could not load users.</p>';
+            }
+        }
+
+        async function setUserAdmin(userId, makeAdmin) {
+            try {
+                const res = await fetch(`/api/admin/users/${userId}/admin`, {
+                    method: 'POST', headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({is_admin: makeAdmin})
+                });
+                const data = await res.json();
+                if (!data.success) alert(data.error || 'Could not update user.');
+            } catch (e) { alert('Could not update user.'); }
+            loadUsersAdmin();
+        }
+
+        async function deleteUser(userId, email) {
+            if (!confirm(`Delete the account for ${email}? They will no longer be able to sign in.`)) return;
+            try {
+                const res = await fetch(`/api/admin/users/${userId}`, {method: 'DELETE'});
+                const data = await res.json();
+                if (!data.success) alert(data.error || 'Could not delete user.');
+            } catch (e) { alert('Could not delete user.'); }
+            loadUsersAdmin();
+        }
+
+        window._extractionGroup = 'listed';
+        function setExtractionGroup(group) {
+            window._extractionGroup = group;
+            const bL = document.getElementById('btnGroupListed');
+            const bA = document.getElementById('btnGroupAssetMgrs');
+            const on = 'background: #2563eb; color: #fff;';
+            const off = 'background: #f8fafc; color: #475569;';
+            const base = 'padding: 0.5rem 1.25rem; border: none; cursor: pointer; font-size: 0.85rem; font-weight: 600; ';
+            if (bL) bL.style.cssText = base + (group === 'listed' ? on : off);
+            if (bA) bA.style.cssText = base + (group === 'asset_managers' ? on : off);
+            const detail = document.getElementById('sectorDetailPanel');
+            if (detail) detail.style.display = 'none';
+            if (group === 'asset_managers') {
+                loadAssetManagerGroup();
+            } else {
+                loadExtractionStatus();
+            }
+        }
+
+        function loadAssetManagerGroup() {
+            const sectorDiv = document.getElementById('sectorProgressList');
+            sectorDiv.innerHTML = '<p style="color: #94a3b8;">Loading asset managers...</p>';
+            fetch('/api/extraction/asset-managers')
+                .then(r => r.json())
+                .then(d => {
+                    if (!d.success) { sectorDiv.innerHTML = '<p style="color: #ef4444;">Could not load asset managers.</p>'; return; }
+                    const statusColor = s => ({completed: '#22c55e', extracting: '#3b82f6', failed: '#ef4444',
+                        no_match: '#f59e0b', pending: '#94a3b8', skipped: '#94a3b8', not_extracted: '#94a3b8'}[s] || '#64748b');
+                    const row = c => `<tr data-testid="row-am-${c.company.replace(/\s+/g,'-')}">` +
+                        `<td style="padding: 0.45rem 0.75rem; font-weight: 600; color: #1e293b;">${c.company}</td>` +
+                        `<td style="padding: 0.45rem 0.75rem;">${c.listed ? 'Listed' : 'Unlisted'}</td>` +
+                        `<td style="padding: 0.45rem 0.75rem;"><span style="color: ${statusColor(c.status)}; font-weight: 600;">${c.status.replace('_',' ')}</span></td>` +
+                        `<td style="padding: 0.45rem 0.75rem; text-align: right;">${(c.reviews || 0).toLocaleString()}</td></tr>`;
+                    const all = [...d.listed, ...d.unlisted].sort((a,b) => a.company.localeCompare(b.company));
+                    const totalReviews = all.reduce((s,c) => s + (c.reviews || 0), 0);
+                    sectorDiv.innerHTML =
+                        `<p style="color: #64748b; font-size: 0.85rem; margin-bottom: 0.75rem;">Asset Management group — ${all.length} companies ` +
+                        `(${d.listed.length} listed, ${d.unlisted.length} unlisted) · ${totalReviews.toLocaleString()} reviews. ` +
+                        `This group overlaps the listed universe and is analysed separately.</p>` +
+                        `<div style="overflow-x: auto;"><table style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">` +
+                        `<thead><tr style="text-align: left; color: #64748b; border-bottom: 1px solid #e2e8f0;">` +
+                        `<th style="padding: 0.45rem 0.75rem;">Company</th><th style="padding: 0.45rem 0.75rem;">Type</th>` +
+                        `<th style="padding: 0.45rem 0.75rem;">Status</th><th style="padding: 0.45rem 0.75rem; text-align: right;">Reviews</th>` +
+                        `</tr></thead><tbody>` + all.map(row).join('') + `</tbody></table></div>`;
+                })
+                .catch(() => { sectorDiv.innerHTML = '<p style="color: #ef4444;">Could not load asset managers.</p>'; });
         }
 
         function loadSectorDetail(sector) {
