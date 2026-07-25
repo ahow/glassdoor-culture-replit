@@ -1847,7 +1847,16 @@
             triggerPrewarm(currentGicsLevel, value);
             await loadData();
             loadCompaniesForTrends();
-            loadCultureCompanies('schroders');
+            await loadCultureCompanies('schroders');
+            // Refresh the Schroders profile so the peer average follows the new filter
+            const schrodersSel = document.getElementById('schrodersCompanySelect');
+            if (schrodersSel && schrodersSel.value) {
+                if (window.schrodersFrameworkActive === 'v2') {
+                    loadSchrodersV2Profile(schrodersSel.value);
+                } else {
+                    loadCultureProfile('schroders');
+                }
+            }
             if (document.getElementById('analysisTab') && document.getElementById('analysisTab').style.display !== 'none') {
                 await loadAnalysisCompanies();
             }
@@ -2585,9 +2594,18 @@
             const v2c = document.getElementById('schrodersV2Container');
             const message = document.getElementById('schrodersMessage');
             if (v1c) v1c.style.display = 'none';
-            fetch('/api/v2/culture-scores/' + encodeURIComponent(companyName))
-                .then(r => r.json())
-                .then(d => {
+            const comparisonName = (document.getElementById('schrodersComparisonSelect') || {}).value || '';
+            const peerUrl = '/api/v2/peer-average' +
+                (currentGicsValue ? '?' + getSectorParam() : '');
+            const fetches = [
+                fetch('/api/v2/culture-scores/' + encodeURIComponent(companyName)).then(r => r.json()),
+                fetch(peerUrl).then(r => r.json()).catch(() => null),
+                (comparisonName && comparisonName !== companyName)
+                    ? fetch('/api/v2/culture-scores/' + encodeURIComponent(comparisonName)).then(r => r.json()).catch(() => null)
+                    : Promise.resolve(null)
+            ];
+            Promise.all(fetches)
+                .then(([d, peer, comp]) => {
                     if (!d.success || !d.company || d.company.hidden) {
                         if (v2c) v2c.style.display = 'none';
                         message.style.display = 'block';
@@ -2596,7 +2614,9 @@
                             : 'No v2 scores available for this company yet.';
                         return;
                     }
-                    displaySchrodersV2Profile(d.company);
+                    const peerData = (peer && peer.success && peer.n_companies > 0) ? peer : null;
+                    const compData = (comp && comp.success && comp.company && !comp.company.hidden) ? comp.company : null;
+                    displaySchrodersV2Profile(d.company, peerData, compData);
                 })
                 .catch(() => {
                     if (v2c) v2c.style.display = 'none';
@@ -2605,7 +2625,7 @@
                 });
         }
 
-        function displaySchrodersV2Profile(company) {
+        function displaySchrodersV2Profile(company, peerData, compCompany) {
             const canvas = document.getElementById('schrodersV2Chart');
             const v2c = document.getElementById('schrodersV2Container');
             const message = document.getElementById('schrodersMessage');
@@ -2616,46 +2636,73 @@
             const lowConf = company.low_confidence;
             const confEl = document.getElementById('schrodersV2Confidence');
             if (confEl) {
-                confEl.textContent = company.review_count + ' reviews · ' + company.confidence + ' confidence'
-                    + (lowConf ? ' — scores shown greyed out: fewer than 20 reviews, treat with caution' : '');
+                let txt = company.review_count + ' reviews · ' + company.confidence + ' confidence';
+                if (peerData) txt += ' — peer average: ' + peerData.peer_label + ' (' + peerData.n_companies + ' companies with 20+ reviews)';
+                if (lowConf) txt += ' — fewer than 20 reviews, treat with caution';
+                confEl.textContent = txt;
                 confEl.style.color = lowConf ? '#f59e0b' : '#94a3b8';
             }
 
             const dims = SCHRODERS_V2_DIMENSIONS.filter(b =>
                 company.dimensions[b] && company.dimensions[b].score !== null && company.dimensions[b].score !== undefined);
-            const labels = dims.map(b => {
-                const info = SCHRODERS_V2_DIM_INFO[b] || {};
-                return (info.left_label || b) + ' \u2194 ' + (info.right_label || '');
-            });
-            const vals = dims.map(b => company.dimensions[b].score);
-            // Diverging colours centred on 0: red (left pole) ↔ blue (right pole).
-            // Companies with <20 reviews render neutral grey (low confidence).
-            const colors = vals.map(v => {
-                if (lowConf) return 'rgba(148, 163, 184, 0.55)';
-                return v >= 0 ? 'rgba(37, 99, 235, 0.8)' : 'rgba(220, 38, 38, 0.8)';
-            });
+            const leftLabels = dims.map(b => (SCHRODERS_V2_DIM_INFO[b] || {}).left_label || b);
+            const rightLabels = dims.map(b => (SCHRODERS_V2_DIM_INFO[b] || {}).right_label || '');
+            const companyVals = dims.map(b => company.dimensions[b].score);
+            const peerVals = dims.map(b => (peerData && peerData.dimensions && peerData.dimensions[b] != null)
+                ? peerData.dimensions[b] : null);
+            const compVals = dims.map(b => (compCompany && compCompany.dimensions[b] &&
+                compCompany.dimensions[b].score != null) ? compCompany.dimensions[b].score : null);
+
+            const datasets = [{
+                label: company.company,
+                data: companyVals,
+                backgroundColor: lowConf ? 'rgba(148, 163, 184, 0.9)' : 'rgba(37, 99, 235, 0.9)',
+                borderColor: '#fff',
+                borderWidth: 1.5,
+                pointRadius: 8,
+                pointHoverRadius: 10,
+                pointStyle: 'circle',
+                showLine: false
+            }];
+            if (peerVals.some(v => v != null)) {
+                datasets.push({
+                    label: 'Peer average (' + ((peerData && peerData.peer_label) || 'all') + ')',
+                    data: peerVals,
+                    backgroundColor: 'rgba(148, 163, 184, 0.9)',
+                    borderColor: '#fff',
+                    borderWidth: 1.5,
+                    pointRadius: 6,
+                    pointHoverRadius: 8,
+                    pointStyle: 'rectRot',
+                    showLine: false
+                });
+            }
+            if (compCompany && compVals.some(v => v != null)) {
+                datasets.push({
+                    label: compCompany.company,
+                    data: compVals,
+                    backgroundColor: 'rgba(234, 88, 12, 0.9)',
+                    borderColor: '#fff',
+                    borderWidth: 1.5,
+                    pointRadius: 8,
+                    pointHoverRadius: 10,
+                    pointStyle: 'triangle',
+                    showLine: false
+                });
+            }
 
             if (window.schrodersV2ChartObj && typeof window.schrodersV2ChartObj.destroy === 'function') {
                 window.schrodersV2ChartObj.destroy();
             }
             window.schrodersV2ChartObj = new Chart(canvas.getContext('2d'), {
-                type: 'bar',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: company.company,
-                        data: vals,
-                        backgroundColor: colors,
-                        borderWidth: 0,
-                        borderRadius: 4
-                    }]
-                },
+                type: 'line',
+                data: { labels: leftLabels, datasets: datasets },
                 options: {
                     indexAxis: 'y',
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {
-                        legend: { display: false },
+                        legend: { display: true, position: 'top', labels: { usePointStyle: true } },
                         tooltip: {
                             callbacks: {
                                 title: function(items) {
@@ -2667,15 +2714,16 @@
                                     const b = dims[item.dataIndex];
                                     const info = SCHRODERS_V2_DIM_INFO[b] || {};
                                     const v = item.raw;
+                                    if (v == null) return item.dataset.label + ': no score';
                                     const pole = v >= 0 ? info.right_label : info.left_label;
-                                    return 'Score ' + Number(v).toFixed(2) + ' — leans ' + (pole || '');
+                                    return item.dataset.label + ': ' + Number(v).toFixed(2) + ' — leans ' + (pole || '');
                                 },
                                 afterBody: function(items) {
                                     const b = dims[items[0].dataIndex];
                                     const info = SCHRODERS_V2_DIM_INFO[b] || {};
                                     const ev = company.dimensions[b].evidence;
                                     const lines = info.description ? ['', info.description] : [];
-                                    lines.push('', 'Evidence: ' + ev + ' scored reviews');
+                                    lines.push('', 'Evidence (' + company.company + '): ' + ev + ' scored reviews');
                                     return lines;
                                 }
                             }
@@ -2686,9 +2734,22 @@
                             min: -1, max: 1,
                             ticks: { stepSize: 0.5 },
                             grid: { color: function(c) { return c.tick && c.tick.value === 0 ? '#64748b' : '#e2e8f0'; } },
-                            title: { display: true, text: '\u2190 left pole   ·   Score (\u22121 to +1)   ·   right pole \u2192' }
+                            title: { display: true, text: '\u2190 leans left pole   ·   Score (\u22121 to +1)   ·   leans right pole \u2192' }
                         },
-                        y: { grid: { display: false }, ticks: { font: { size: 11 } } }
+                        y: {
+                            grid: { display: false },
+                            ticks: { font: { size: 11 }, color: '#dc2626', autoSkip: false },
+                            title: { display: true, text: 'Left pole', color: '#dc2626', font: { weight: '600' } }
+                        },
+                        y2: {
+                            position: 'right',
+                            type: 'category',
+                            labels: rightLabels,
+                            offset: true,
+                            grid: { display: false },
+                            ticks: { font: { size: 11 }, color: '#2563eb', autoSkip: false },
+                            title: { display: true, text: 'Right pole', color: '#2563eb', font: { weight: '600' } }
+                        }
                     }
                 }
             });

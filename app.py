@@ -1120,6 +1120,53 @@ def v2_culture_scores_company(company_name):
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+@app.route('/api/v2/peer-average', methods=['GET'])
+def v2_peer_average():
+    """Average v2 dimension scores across a peer group (GICS filter).
+
+    Query params: gics_level (sector/industry/sub_industry), gics_value.
+    Only companies with >=20 reviews contribute to the average.
+    """
+    try:
+        gics_level = request.args.get('gics_level', 'sector')
+        gics_value = request.args.get('gics_value') or request.args.get('sector')
+        peer_companies = None
+        if gics_value:
+            peer_companies = get_companies_for_sector(gics_level=gics_level,
+                                                      gics_value=gics_value)
+            if not peer_companies:
+                return jsonify({'success': True, 'peer_label': gics_value,
+                                'n_companies': 0, 'dimensions': {}})
+        if not SCHRODERS_V2_DIMENSIONS:
+            return jsonify({'success': True, 'peer_label': gics_value or 'All companies',
+                            'n_companies': 0, 'dimensions': {}})
+        conn = get_db_connection()
+        cur = conn.cursor()
+        score_cols = ', '.join(
+            f"AVG(schroders_v2_{b}_score) AS {b}" for b in SCHRODERS_V2_DIMENSIONS)
+        if peer_companies is not None:
+            cur.execute(
+                f"SELECT COUNT(*), {score_cols} FROM company_culture_scores_v2 "
+                f"WHERE review_count >= 20 AND company_name = ANY(%s)",
+                (peer_companies,))
+        else:
+            cur.execute(
+                f"SELECT COUNT(*), {score_cols} FROM company_culture_scores_v2 "
+                f"WHERE review_count >= 20")
+        row = cur.fetchone()
+        conn.close()
+        n = row[0] or 0
+        dims = {b: (float(row[i + 1]) if row[i + 1] is not None else None)
+                for i, b in enumerate(SCHRODERS_V2_DIMENSIONS)}
+        return jsonify({'success': True,
+                        'peer_label': gics_value or 'All companies',
+                        'n_companies': n,
+                        'dimensions': dims})
+    except Exception as e:
+        logger.error(f"v2 peer-average error: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 @app.route('/api/v2/factor-scores', methods=['GET'])
 def v2_factor_scores():
     """Sector-relative Schroders factor scores with reliability + stability."""
