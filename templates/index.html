@@ -1748,17 +1748,33 @@
             return qs ? `${base}?${qs}` : base;
         }
 
+        let _gicsHierarchyLoading = null;
         async function loadGicsHierarchy() {
-            try {
-                const response = await fetch('/api/gics-hierarchy');
-                const data = await response.json();
-                if (data.success) {
-                    gicsHierarchy = data.hierarchy;
-                    populateGicsValues(currentGicsLevel);
+            // De-duplicate concurrent calls so only one request is in flight
+            if (_gicsHierarchyLoading) return _gicsHierarchyLoading;
+            _gicsHierarchyLoading = (async () => {
+                // Retry a few times: right after a server restart the first
+                // request can fail or time out, and without a retry the GICS
+                // value dropdown would stay stuck on "All" forever.
+                for (let attempt = 0; attempt < 3; attempt++) {
+                    try {
+                        const response = await fetch('/api/gics-hierarchy');
+                        const data = await response.json();
+                        if (data.success && data.hierarchy && Object.keys(data.hierarchy).length > 0) {
+                            gicsHierarchy = data.hierarchy;
+                            populateGicsValues(currentGicsLevel);
+                            return true;
+                        }
+                    } catch (error) {
+                        console.error('Error loading GICS hierarchy (attempt ' + (attempt + 1) + '):', error);
+                    }
+                    await new Promise(r => setTimeout(r, 2000 * (attempt + 1)));
                 }
-            } catch (error) {
-                console.error('Error loading GICS hierarchy:', error);
-            }
+                return false;
+            })();
+            const ok = await _gicsHierarchyLoading;
+            _gicsHierarchyLoading = null;
+            return ok;
         }
 
         function populateGicsValues(level) {
@@ -1852,7 +1868,12 @@
         function onGicsLevelChange(level) {
             currentGicsLevel = level;
             currentGicsValue = '';
-            populateGicsValues(level);
+            if (Object.keys(gicsHierarchy).length === 0) {
+                // Initial load failed earlier — fetch again on demand
+                loadGicsHierarchy();
+            } else {
+                populateGicsValues(level);
+            }
             onGicsValueChange('');
         }
 
