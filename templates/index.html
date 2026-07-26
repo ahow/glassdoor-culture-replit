@@ -511,6 +511,7 @@
             <button class="main-tab-button" onclick="switchMainTab('trends', event)">Quarterly Trends</button>
             <button class="main-tab-button" onclick="switchMainTab('schroders', event)">Culture Dimensions</button>
             <button class="main-tab-button" onclick="switchMainTab('factor', event)">Culture Factor</button>
+            <button class="main-tab-button" onclick="switchMainTab('sectorComparison', event)" data-testid="tab-sector-comparison">Sector Comparison</button>
             <!-- Schroders-only rebuild (2026-07-21): Hofstede, MIT, Performance Insights,
                  Culture vs Performance and Correlation Analysis tabs are inactive
                  (they are built on the retired Hofstede/MIT frameworks). Restore via
@@ -950,57 +951,6 @@
             </div>
 
             <div class="chart-container">
-                <h2 class="chart-title">Model Fit &amp; Dimension Weights</h2>
-                <p style="color: #64748b; font-size: 0.88rem; margin-bottom: 1rem;">
-                    How well culture explains financial performance within each peer group, and which
-                    dimensions the model weights most heavily. <strong>R&sup2; (in-sample)</strong> is the share of
-                    performance variation explained on the data the model was fit to; <strong>R&sup2; (cross-validated)</strong>
-                    is the more honest out-of-sample estimate &mdash; values near or below zero mean the
-                    relationship does not generalise reliably in that peer group.
-                </p>
-                <div style="overflow-x: auto; margin-bottom: 1.25rem;">
-                    <table id="modelFitTable" data-testid="table-model-fit" style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
-                        <thead>
-                            <tr style="background: #f1f5f9; text-align: left;">
-                                <th style="padding: 0.5rem 0.6rem;">Peer group</th>
-                                <th style="padding: 0.5rem 0.6rem;">Model used</th>
-                                <th style="padding: 0.5rem 0.6rem; text-align: right;">Companies</th>
-                                <th style="padding: 0.5rem 0.6rem; text-align: right;">R&sup2; (in-sample)</th>
-                                <th style="padding: 0.5rem 0.6rem; text-align: right;">R&sup2; (cross-validated)</th>
-                                <th style="padding: 0.5rem 0.6rem; text-align: right;">Ridge &alpha;</th>
-                            </tr>
-                        </thead>
-                        <tbody id="modelFitBody"></tbody>
-                    </table>
-                </div>
-                <p id="modelFitFootnote" style="color: #94a3b8; font-size: 0.78rem; margin: -0.5rem 0 1.25rem 0; display: none;">
-                    * Peer groups marked "Global model" had too few usable companies for a reliable
-                    group-specific model, so they borrow the model estimated across <em>all</em> companies.
-                    For those rows the "Companies" figure is the size of that global estimation set, not the peer group.
-                </p>
-                <div style="max-width: 720px; margin: 0 auto 1.5rem auto;">
-                    <canvas id="modelFitScatter" data-testid="chart-model-fit-scatter" style="max-height: 340px;"></canvas>
-                </div>
-                <label for="weightsPeerSelect" style="font-weight: 600; color: #1e293b; font-size: 0.85rem;">Dimension weights for peer group:</label>
-                <select id="weightsPeerSelect" data-testid="select-weights-peer" onchange="renderDimensionWeights(this.value)"
-                        style="padding: 0.4rem 0.6rem; border: 1px solid #cbd5e1; border-radius: 6px; margin: 0 0 1rem 0.5rem;"></select>
-                <div style="overflow-x: auto;">
-                    <table id="dimWeightsTable" data-testid="table-dim-weights" style="width: 100%; border-collapse: collapse; font-size: 0.85rem; display: none;">
-                        <thead>
-                            <tr style="background: #f1f5f9; text-align: left;">
-                                <th style="padding: 0.5rem 0.6rem;">Dimension</th>
-                                <th style="padding: 0.5rem 0.6rem; text-align: right;">Weight</th>
-                                <th style="padding: 0.5rem 0.6rem;">Direction</th>
-                                <th style="padding: 0.5rem 0.6rem; text-align: right;">Stability (SD)</th>
-                            </tr>
-                        </thead>
-                        <tbody id="dimWeightsBody"></tbody>
-                    </table>
-                </div>
-                <p id="modelFitMessage" style="text-align:center; color:#7f8c8d; padding:1rem;">Loading model diagnostics…</p>
-            </div>
-
-            <div class="chart-container">
                 <h2 class="chart-title">Culture vs Subsequent Share-Price Performance</h2>
                 <p style="color: #64748b; font-size: 0.88rem; margin-bottom: 1rem;">
                     Companies in the current filter are split into thirds by their Culture Factor percentile
@@ -1041,6 +991,59 @@
                         <tbody id="evidenceBody"></tbody>
                     </table>
                 </div>
+            </div>
+        </div>
+
+        <!-- Sector Comparison Tab -->
+        <div id="sectorComparisonTab" class="tab-content hidden-tab" style="display: none;">
+            <div class="chart-container">
+                <h2 class="chart-title">Model Fit &amp; Dimension Weights</h2>
+                <p style="color: #64748b; font-size: 0.88rem; margin-bottom: 1rem;">
+                    How strongly culture relates to financial performance within each peer group, and which
+                    dimensions the model weights most heavily. <strong>R&sup2;</strong> is the share of
+                    performance variation explained by the 12 culture dimensions among the companies each
+                    model was estimated on &mdash; higher values indicate a stronger culture&ndash;performance
+                    relationship in that peer group.
+                </p>
+                <div style="overflow-x: auto; margin-bottom: 1.25rem;">
+                    <table id="modelFitTable" data-testid="table-model-fit" style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
+                        <thead>
+                            <tr style="background: #f1f5f9; text-align: left;">
+                                <th style="padding: 0.5rem 0.6rem;">Peer group</th>
+                                <th style="padding: 0.5rem 0.6rem;">Model used</th>
+                                <th style="padding: 0.5rem 0.6rem; text-align: right;">Companies</th>
+                                <th style="padding: 0.5rem 0.6rem; text-align: right;">R&sup2;</th>
+                                <th style="padding: 0.5rem 0.6rem; text-align: right;">Ridge &alpha;</th>
+                            </tr>
+                        </thead>
+                        <tbody id="modelFitBody"></tbody>
+                    </table>
+                </div>
+                <p id="modelFitFootnote" style="color: #94a3b8; font-size: 0.78rem; margin: -0.5rem 0 1.25rem 0; display: none;">
+                    * Peer groups marked "Global model" had too few usable companies for a reliable
+                    group-specific model, so they borrow the model estimated across <em>all</em> companies.
+                    For those rows the "Companies" figure is the size of that global estimation set, not the peer group.
+                </p>
+                <div style="max-width: 720px; margin: 0 auto 1.5rem auto;">
+                    <canvas id="modelFitScatter" data-testid="chart-model-fit-scatter" style="max-height: 340px;"></canvas>
+                </div>
+                <label for="weightsPeerSelect" style="font-weight: 600; color: #1e293b; font-size: 0.85rem;">Dimension weights for peer group:</label>
+                <select id="weightsPeerSelect" data-testid="select-weights-peer" onchange="renderDimensionWeights(this.value)"
+                        style="padding: 0.4rem 0.6rem; border: 1px solid #cbd5e1; border-radius: 6px; margin: 0 0 1rem 0.5rem;"></select>
+                <div style="overflow-x: auto;">
+                    <table id="dimWeightsTable" data-testid="table-dim-weights" style="width: 100%; border-collapse: collapse; font-size: 0.85rem; display: none;">
+                        <thead>
+                            <tr style="background: #f1f5f9; text-align: left;">
+                                <th style="padding: 0.5rem 0.6rem;">Dimension</th>
+                                <th style="padding: 0.5rem 0.6rem; text-align: right;">Weight</th>
+                                <th style="padding: 0.5rem 0.6rem;">Direction</th>
+                                <th style="padding: 0.5rem 0.6rem; text-align: right;">Stability (SD)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dimWeightsBody"></tbody>
+                    </table>
+                </div>
+                <p id="modelFitMessage" style="text-align:center; color:#7f8c8d; padding:1rem;">Loading model diagnostics…</p>
             </div>
         </div>
 
@@ -2057,7 +2060,7 @@
             console.log('switchMainTab called with tab:', tab);
             
             // Hide all tabs using both inline styles AND CSS class
-            const tabs = ['overviewTab', 'companiesTab', 'analysisTab', 'trendsTab', 'hofstedeTab', 'mitTab', 'schrodersTab', 'factorTab', 'insightsTab', 'culturePerfTab', 'corrAnalysisTab', 'exportDataTab', 'dataStatusTab', 'extractionMgrTab', 'usersTab'];
+            const tabs = ['overviewTab', 'companiesTab', 'analysisTab', 'trendsTab', 'hofstedeTab', 'mitTab', 'schrodersTab', 'factorTab', 'sectorComparisonTab', 'insightsTab', 'culturePerfTab', 'corrAnalysisTab', 'exportDataTab', 'dataStatusTab', 'extractionMgrTab', 'usersTab'];
             tabs.forEach(tabId => {
                 const el = document.getElementById(tabId);
                 if (el) {
@@ -2081,6 +2084,7 @@
                 'mit': 'mitTab',
                 'schroders': 'schrodersTab',
                 'factor': 'factorTab',
+                'sectorComparison': 'sectorComparisonTab',
                 'insights': 'insightsTab',
                 'culturePerf': 'culturePerfTab',
                 'corrAnalysis': 'corrAnalysisTab',
@@ -2113,6 +2117,8 @@
                 loadCultureCompanies('schroders');
             } else if (tab === 'factor') {
                 loadFactorScores();
+            } else if (tab === 'sectorComparison') {
+                loadModelFit();
             } else if (tab === 'insights') {
                 loadPerformanceInsights();
             } else if (tab === 'culturePerf') {
@@ -2631,7 +2637,6 @@
         let _factorRequestId = 0;
 
         async function loadFactorScores() {
-            loadModelFit();
             loadCultureReturns();
             const filterKey = currentGicsValue ? (currentGicsLevel + '|' + currentGicsValue) : '';
             if (_factorScoresData && _factorRenderedFilter === filterKey) return;
@@ -2754,7 +2759,10 @@
                 if (!groups[w.peer_bucket]) groups[w.peer_bucket] = { rows: [], meta: w };
                 groups[w.peer_bucket].rows.push(w);
             });
-            const names = Object.keys(groups).sort();
+            const names = Object.keys(groups).sort((a, b) => {
+                const ra = groups[a].meta.model_r2_in_sample, rb = groups[b].meta.model_r2_in_sample;
+                return (rb == null ? -1 : rb) - (ra == null ? -1 : ra) || a.localeCompare(b);
+            });
             const fitBody = document.getElementById('modelFitBody');
             fitBody.textContent = '';
             const r2fmt = v => v == null ? '—' : Number(v).toFixed(2);
@@ -2773,7 +2781,6 @@
                 tr.appendChild(_td(_modelLabel(m)));
                 tr.appendChild(_td(m.n_companies_model == null ? '—' : String(m.n_companies_model), 'text-align: right;'));
                 tr.appendChild(_td(r2fmt(m.model_r2_in_sample), 'text-align: right; font-weight: 600; color: ' + r2color(m.model_r2_in_sample) + ';'));
-                tr.appendChild(_td(r2fmt(m.cross_validated_r2), 'text-align: right; font-weight: 600; color: ' + r2color(m.cross_validated_r2) + ';'));
                 tr.appendChild(_td(m.ridge_alpha_selected == null ? '—' : String(m.ridge_alpha_selected), 'text-align: right;'));
                 fitBody.appendChild(tr);
             });
@@ -2796,10 +2803,10 @@
             const canvas = document.getElementById('modelFitScatter');
             if (canvas && typeof Chart !== 'undefined') {
                 if (_modelFitScatterChart) { _modelFitScatterChart.destroy(); _modelFitScatterChart = null; }
-                const pts = names.map(g => {
+                const pts = names.filter(g => !_modelLabel(groups[g].meta).endsWith('*')).map(g => {
                     const m = groups[g].meta;
                     return {
-                        x: m.cross_validated_r2 == null ? 0 : Number(m.cross_validated_r2),
+                        x: m.n_companies_model == null ? 0 : Number(m.n_companies_model),
                         y: m.model_r2_in_sample == null ? 0 : Number(m.model_r2_in_sample),
                         r: Math.max(6, Math.min(28, 4 + Math.sqrt(m.n_companies_model || 1) * 1.6)),
                         label: g,
@@ -2818,15 +2825,15 @@
                         responsive: true,
                         plugins: {
                             legend: { display: false },
-                            title: { display: true, text: 'Model fit by peer group (bubble size = companies in model)' },
+                            title: { display: true, text: 'Model fit by peer group — group-specific models only (bubble size = companies in model)' },
                             tooltip: { callbacks: { label: ctx => {
                                 const p = ctx.raw;
-                                return p.label + ': R² in-sample ' + p.y.toFixed(2) + ', cross-validated ' + p.x.toFixed(2) + ', ' + p.n + ' companies';
+                                return p.label + ': R² ' + p.y.toFixed(2) + ', ' + p.n + ' companies';
                             } } }
                         },
                         scales: {
-                            x: { title: { display: true, text: 'R² (cross-validated — honest out-of-sample fit)' } },
-                            y: { title: { display: true, text: 'R² (in-sample)' } }
+                            x: { title: { display: true, text: 'Companies in model' } },
+                            y: { title: { display: true, text: 'R² (culture–performance fit)' } }
                         }
                     }
                 });
