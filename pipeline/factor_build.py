@@ -174,14 +174,24 @@ def peer_map(cur, settings):
     return out
 
 
-def pick_bucket(companies_info, settings):
+def pick_bucket(companies_info, settings, adequate=None):
     """Per-company peer assignment (§7, per-group variant).
 
     Greedy, finest-first: at each level of the hierarchy, companies whose
-    remaining group has >= min_companies_per_bucket members are assigned a
-    bucket at that level; the rest fall through to the next (coarser) level.
-    Companies whose sector-level remainder is still too small go to 'global'.
-    Buckets are disjoint and every non-global bucket has >= min_n members.
+    remaining group has >= min_companies_per_bucket qualifying members are
+    assigned a bucket at that level; the rest fall through to the next
+    (coarser) level. Companies whose sector-level remainder is still too
+    small go to 'global'. Buckets are disjoint and every non-global bucket
+    has >= min_n qualifying members.
+
+    `adequate` (optional): the set of companies that count toward min_n.
+    When given, a group qualifies at a level only if it contains >= min_n
+    *adequate* companies among the residual — but ALL residual companies in
+    a qualifying group are assigned to it. This lets adequacy be defined as
+    "usable for model estimation" (performance target + enough Tier A/B
+    dimensions), so buckets become coarser but almost every bucket can
+    estimate its own group-specific model instead of falling back to the
+    global one. When None, every company counts (original behaviour).
 
     DELIBERATE DESIGN CHOICE — residual counts, not full-group counts:
     counts at each level are taken over the companies still unassigned at
@@ -201,6 +211,8 @@ def pick_bucket(companies_info, settings):
     for level in hierarchy:
         counts = defaultdict(int)
         for comp in remaining:
+            if adequate is not None and comp not in adequate:
+                continue
             counts[companies_info[comp].get(level) or 'Unknown'] += 1
         for comp in sorted(remaining):
             val = companies_info[comp].get(level) or 'Unknown'
@@ -340,7 +352,20 @@ def build_shrinkage():
     rows = cur.fetchall()
     info = {r[0]: {'gics_sector': r[1], 'gics_industry': r[2],
                    'gics_sub_industry': r[3]} for r in rows}
-    buckets, bucket_level = pick_bucket(info, settings)
+    # Adequacy = usable for model estimation (§7 update 2026-07-26):
+    # a company counts toward min_companies_per_bucket only if it has a
+    # performance target AND >= min_dims_medium Tier A/B dimensions. Buckets
+    # become coarser, but nearly every bucket can fit its own model.
+    target = perf_targets(cur)
+    ab = defaultdict(int)
+    for comp, _s, _i, _si, _d, _n, _raw, tier in rows:
+        if tier in ('A', 'B'):
+            ab[comp] += 1
+    min_dims = settings['min_dims_medium']
+    adequate = {comp for comp in info
+                if comp in target and ab[comp] >= min_dims}
+    print(f'model-adequate companies: {len(adequate)} of {len(info)}')
+    buckets, bucket_level = pick_bucket(info, settings, adequate=adequate)
     lvl_counts = defaultdict(int)
     for comp in buckets:
         lvl_counts[bucket_level[buckets[comp]]] += 1
@@ -468,6 +493,10 @@ def build_model():
     # ---- model estimation per bucket (§9)
     min_model = settings['min_companies_model']
     min_dims = settings['min_dims_medium']
+    if settings['min_companies_per_bucket'] < min_model:
+        print(f"WARNING: min_companies_per_bucket ({settings['min_companies_per_bucket']}) "
+              f"< min_companies_model ({min_model}) — adequacy-based buckets may "
+              f"reintroduce global_fallback for named buckets.")
     alphas = settings['ridge_alphas']
     m_shrink = settings['coef_shrink_m']
 

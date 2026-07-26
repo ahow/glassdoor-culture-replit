@@ -85,6 +85,36 @@ def test_every_nonglobal_bucket_meets_min_n():
             assert n >= SETTINGS['min_companies_per_bucket'], (b, n)
 
 
+def test_adequate_set_controls_qualification():
+    # 4 companies in SUB but only 2 adequate -> SUB does not qualify;
+    # at sector level 3 adequate (2 + 1 from another industry) -> everyone,
+    # adequate or not, is assigned the sector bucket.
+    info = {}
+    for i in range(4):
+        info[f'a{i}'] = mk('S', 'I', 'SUB')
+    info['x0'] = mk('S', 'I2', 'SUB-X')
+    adequate = {'a0', 'a1', 'x0'}
+    buckets, levels = pick_bucket(info, SETTINGS, adequate=adequate)
+    assert all(b == 'S' for b in buckets.values()), buckets
+    assert levels['S'] == 'gics_sector'
+
+
+def test_adequate_set_assigns_inadequate_members_too():
+    # 3 adequate + 2 inadequate in same sub-industry: bucket qualifies at
+    # sub-industry level and ALL 5 are assigned to it.
+    info = {f'c{i}': mk('S', 'I', 'SUB') for i in range(5)}
+    adequate = {'c0', 'c1', 'c2'}
+    buckets, levels = pick_bucket(info, SETTINGS, adequate=adequate)
+    assert all(buckets[c] == 'SUB' for c in info), buckets
+    assert levels['SUB'] == 'gics_sub_industry'
+
+
+def test_no_adequate_companies_all_global():
+    info = {f'c{i}': mk('S', 'I', 'SUB') for i in range(5)}
+    buckets, levels = pick_bucket(info, SETTINGS, adequate=set())
+    assert all(b == 'global' for b in buckets.values()), buckets
+
+
 if __name__ == '__main__':
     fns = [v for k, v in sorted(globals().items()) if k.startswith('test_')]
     for fn in fns:

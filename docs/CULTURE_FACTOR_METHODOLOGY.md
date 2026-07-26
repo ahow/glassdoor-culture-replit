@@ -111,19 +111,32 @@ level.
 
 ## 4. §7 Peer-group assignment (per-group, since 2026-07-26)
 
-Implemented in `pick_bucket(companies_info, settings)`. Parameters:
-`peer_hierarchy = [gics_sub_industry, gics_industry, gics_sector]`,
+Implemented in `pick_bucket(companies_info, settings, adequate=None)`.
+Parameters: `peer_hierarchy = [gics_sub_industry, gics_industry, gics_sector]`,
 `min_companies_per_bucket = 8`.
 
 Algorithm — greedy, finest-first, **residual counting**:
 
 1. Start with all companies unassigned.
-2. At the sub-industry level, count unassigned companies per sub-industry.
-   Every company whose sub-industry has ≥ 8 unassigned members is assigned
-   a bucket named after that sub-industry.
+2. At the sub-industry level, count unassigned **adequate** companies per
+   sub-industry (see below). Every company — adequate or not — whose
+   sub-industry has ≥ 8 unassigned adequate members is assigned a bucket
+   named after that sub-industry.
 3. Repeat at industry level for the companies still unassigned, then at
    sector level.
 4. Anything still unassigned goes to a single `global` bucket.
+
+**Adequacy (added 2026-07-26, same day):** only *model-estimable* companies
+count toward the ≥ 8 threshold — those with a composite performance target
+(financial data) **and** ≥ `min_dims_medium` (6) Tier A/B culture
+dimensions. `build_shrinkage()` computes this set and passes it as
+`adequate`. Consequence: buckets are coarser on average, but every named
+bucket is guaranteed ≥ 8 model-usable companies, so **every named bucket
+estimates its own group-specific model** — the `global_fallback` model
+level is eliminated. Only the residual `global` bucket (companies that are
+not estimable and whose groups never reached 8 adequate members) uses the
+globally estimated model. When `adequate=None`, all companies count
+(pre-update behaviour).
 
 Properties (unit-tested in `pipeline/test_pick_bucket.py`):
 
