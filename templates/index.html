@@ -1840,6 +1840,14 @@
                 }
                 values = [...new Set(values)].sort();
             }
+            // The Extraction Manager toggle separates listed companies from the
+            // asset-manager group: hide "Asset Management" in listed mode, and
+            // show ONLY it in asset-manager mode.
+            if (window._extractionGroup === 'asset_managers') {
+                values = values.filter(v => v === 'Asset Management');
+            } else {
+                values = values.filter(v => v !== 'Asset Management');
+            }
             
             values.forEach(val => {
                 const option = document.createElement('option');
@@ -6288,6 +6296,19 @@
             if (bA) bA.style.cssText = base + (group === 'asset_managers' ? on : off);
             const detail = document.getElementById('sectorDetailPanel');
             if (detail) detail.style.display = 'none';
+            // Keep the global filter dropdown in sync with the toggle:
+            // listed mode hides "Asset Management"; asset-manager mode shows only it.
+            const gv = document.getElementById('gicsValueFilter');
+            if (gv) {
+                populateGicsValues(currentGicsLevel);
+                const stillValid = Array.from(gv.options).some(o => o.value === currentGicsValue);
+                if (stillValid) {
+                    gv.value = currentGicsValue;
+                } else if (currentGicsValue) {
+                    gv.value = '';
+                    onGicsValueChange('');
+                }
+            }
             if (group === 'asset_managers') {
                 loadAssetManagerGroup();
             } else {
