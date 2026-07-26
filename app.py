@@ -1509,6 +1509,91 @@ def v2_overlap_diagnostics():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+@app.route('/api/v2/culture-performance-groups', methods=['GET'])
+def v2_culture_performance_groups():
+    """Average annualized share-price return over 1/3/5 years, grouped by
+    culture-factor tercile (top/middle/bottom third within peer group)."""
+    try:
+        gics_level = request.args.get('gics_level', 'sector')
+        gics_value = request.args.get('gics_value') or request.args.get('sector')
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT company_name, schroders_factor_sector_pctile
+            FROM schroders_company_factor_scores
+            WHERE schroders_factor_sector_pctile IS NOT NULL""")
+        pct = dict(cur.fetchall())
+        allowed = None
+        if gics_value:
+            allowed = set(get_companies_for_sector(None, gics_level, gics_value))
+        comps = [c for c in pct if allowed is None or c in allowed]
+
+        cur.execute("""
+            SELECT company_name, ticker FROM fmp_performance_metrics
+            WHERE ticker IS NOT NULL AND ticker <> ''""")
+        tick = {c: t for c, t in cur.fetchall()}
+        tickers = sorted({tick[c] for c in comps if c in tick})
+        yearly = {}
+        if tickers:
+            cur.execute("""
+                SELECT ticker, data_json FROM fmp_financial_cache
+                WHERE data_type = 'price_history' AND ticker = ANY(%s)""", (tickers,))
+            for t, dj in cur.fetchall():
+                if isinstance(dj, str):
+                    try:
+                        dj = json.loads(dj)
+                    except Exception:
+                        continue
+                rows = dj if isinstance(dj, list) else [dj]
+                for r in rows:
+                    fy, close = r.get('fiscalYear'), r.get('close')
+                    if fy and close:
+                        yearly.setdefault(t, {})[int(fy)] = float(close)
+        conn.close()
+
+        def annualized_returns(ticker):
+            ys = yearly.get(ticker)
+            if not ys:
+                return {}
+            latest = max(ys)
+            out = {}
+            for h in (1, 3, 5):
+                base = ys.get(latest - h)
+                if base and base > 0 and ys[latest] > 0:
+                    out[h] = ((ys[latest] / base) ** (1.0 / h) - 1) * 100
+            return out
+
+        groups = {'Top third': [], 'Middle third': [], 'Bottom third': []}
+        n_with_prices = 0
+        for c in comps:
+            t = tick.get(c)
+            rets = annualized_returns(t) if t else {}
+            if not rets:
+                continue
+            n_with_prices += 1
+            p = pct[c]
+            g = 'Top third' if p >= 66.667 else ('Bottom third' if p < 33.333 else 'Middle third')
+            groups[g].append(rets)
+
+        result = []
+        for name in ('Top third', 'Middle third', 'Bottom third'):
+            rows = groups[name]
+            horizons = {}
+            for h in (1, 3, 5):
+                vals = [r[h] for r in rows if h in r]
+                horizons[str(h)] = {
+                    'avg_return': (sum(vals) / len(vals)) if vals else None,
+                    'n': len(vals)
+                }
+            result.append({'group': name, 'horizons': horizons})
+        return jsonify({'success': True, 'groups': result,
+                        'companies_with_prices': n_with_prices,
+                        'companies_in_filter': len(comps)})
+    except Exception as e:
+        logger.error(f"culture-performance-groups error: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 @app.route('/api/warm-cache', methods=['POST'])
 def warm_cache():
     """Warm the metrics cache for uncached companies (batch of 20 at a time)"""

@@ -586,7 +586,7 @@
                         <div style="background: #fff7ed; border-radius: 10px; padding: 1.1rem 1.25rem; border-left: 4px solid #f97316;">
                             <div style="font-weight: 700; color: #c2410c; font-size: 0.8rem; letter-spacing: 0.05em; margin-bottom: 0.4rem;">STEP 4</div>
                             <div style="font-weight: 600; color: #1e293b; margin-bottom: 0.35rem;">Performance Linkage</div>
-                            <p style="color: #475569; font-size: 0.85rem; margin: 0;">Financial metrics (ROE, operating margin, TSR, revenue growth) are sourced from FMP for listed companies and from proprietary data for unlisted asset managers. A composite performance score is computed within peer groups (same GICS sector) and linked to culture scores for correlation analysis.</p>
+                            <p style="color: #475569; font-size: 0.85rem; margin: 0;">Financial metrics (ROE, operating margin, TSR, revenue growth) are sourced from FMP for listed companies and from proprietary data for unlisted asset managers, and combined into a composite performance target within each peer group. A ridge regression then links each company's twelve culture dimensions — measured as <strong>deviations from the peer-group mean</strong> — to that target, producing a set of dimension weights per peer group. Peer groups with too few usable companies borrow a global model fit across all companies.</p>
                         </div>
                     </div>
 
@@ -608,7 +608,7 @@
                         <table style="width: 100%; font-size: 0.82rem; border-collapse: collapse;">
                             <tr style="background: #ede9fe;"><td style="padding: 0.35rem 0.5rem; font-weight: 600; color: #6d28d9;">Evidence tiers (A–D)</td><td style="padding: 0.35rem 0.5rem; color: #475569;">Every company × dimension score carries a tier based on how many reviews actually scored that dimension and how concentrated the evidence is.</td></tr>
                             <tr><td style="padding: 0.35rem 0.5rem; font-weight: 600; color: #6d28d9;">Sector-relative shrinkage</td><td style="padding: 0.35rem 0.5rem; color: #475569;">Thin evidence is pulled toward the sector average, so small-sample companies can't dominate rankings on noise.</td></tr>
-                            <tr style="background: #ede9fe;"><td style="padding: 0.35rem 0.5rem; font-weight: 600; color: #6d28d9;">Culture Factor</td><td style="padding: 0.35rem 0.5rem; color: #475569;">A single sector-relative score per company, combined with ridge-model weights fit against a composite financial-performance target within each peer group.</td></tr>
+                            <tr style="background: #ede9fe;"><td style="padding: 0.35rem 0.5rem; font-weight: 600; color: #6d28d9;">Culture Factor</td><td style="padding: 0.35rem 0.5rem; color: #475569;">A single score per company: each of the twelve dimension scores is expressed as a standardized <strong>deviation from the peer-group mean</strong>, then combined using the <strong>ridge-model weights estimated for that peer group</strong> (fit against a composite financial-performance target). The result is ranked within the peer group to give a sector-relative z-score and percentile. Dimensions with insufficient evidence (tier D) are set to the peer mean so they neither help nor hurt.</td></tr>
                             <tr><td style="padding: 0.35rem 0.5rem; font-weight: 600; color: #6d28d9;">Reliability tiers</td><td style="padding: 0.35rem 0.5rem; color: #475569;">High / Medium / Low / Insufficient — reflecting evidence depth and bootstrap rank stability. Low and Insufficient scores are indicative only.</td></tr>
                         </table>
                     </div>
@@ -943,6 +943,10 @@
                     </table>
                 </div>
                 <p id="factorScoresMessage" style="text-align:center; color:#7f8c8d; padding:1.5rem;">Loading factor scores…</p>
+                <p id="factorTableFootnote" style="color: #94a3b8; font-size: 0.78rem; margin: 0.5rem 0 0 0; display: none;">
+                    * "Global model" means this company's peer group had too few usable companies for a reliable
+                    group-specific model, so its Culture Factor uses dimension weights estimated across <em>all</em> companies.
+                </p>
             </div>
 
             <div class="chart-container">
@@ -969,6 +973,14 @@
                         <tbody id="modelFitBody"></tbody>
                     </table>
                 </div>
+                <p id="modelFitFootnote" style="color: #94a3b8; font-size: 0.78rem; margin: -0.5rem 0 1.25rem 0; display: none;">
+                    * Peer groups marked "Global model" had too few usable companies for a reliable
+                    group-specific model, so they borrow the model estimated across <em>all</em> companies.
+                    For those rows the "Companies" figure is the size of that global estimation set, not the peer group.
+                </p>
+                <div style="max-width: 720px; margin: 0 auto 1.5rem auto;">
+                    <canvas id="modelFitScatter" data-testid="chart-model-fit-scatter" style="max-height: 340px;"></canvas>
+                </div>
                 <label for="weightsPeerSelect" style="font-weight: 600; color: #1e293b; font-size: 0.85rem;">Dimension weights for peer group:</label>
                 <select id="weightsPeerSelect" data-testid="select-weights-peer" onchange="renderDimensionWeights(this.value)"
                         style="padding: 0.4rem 0.6rem; border: 1px solid #cbd5e1; border-radius: 6px; margin: 0 0 1rem 0.5rem;"></select>
@@ -986,6 +998,20 @@
                     </table>
                 </div>
                 <p id="modelFitMessage" style="text-align:center; color:#7f8c8d; padding:1rem;">Loading model diagnostics…</p>
+            </div>
+
+            <div class="chart-container">
+                <h2 class="chart-title">Culture vs Subsequent Share-Price Performance</h2>
+                <p style="color: #64748b; font-size: 0.88rem; margin-bottom: 1rem;">
+                    Companies in the current filter are split into thirds by their Culture Factor percentile
+                    within their peer group. Bars show the average <strong>annualized share-price return</strong>
+                    of each third over the last 1, 3 and 5 years (listed companies with price history only;
+                    unlisted asset managers are excluded). Hover a bar to see how many companies it covers.
+                </p>
+                <div style="max-width: 760px; margin: 0 auto;">
+                    <canvas id="cultureReturnsChart" data-testid="chart-culture-returns" style="max-height: 360px;"></canvas>
+                </div>
+                <p id="cultureReturnsMessage" style="text-align:center; color:#7f8c8d; padding:1rem;">Loading performance comparison…</p>
             </div>
 
             <div class="chart-container">
@@ -2606,6 +2632,7 @@
 
         async function loadFactorScores() {
             loadModelFit();
+            loadCultureReturns();
             const filterKey = currentGicsValue ? (currentGicsLevel + '|' + currentGicsValue) : '';
             if (_factorScoresData && _factorRenderedFilter === filterKey) return;
             const reqId = ++_factorRequestId;
@@ -2644,6 +2671,9 @@
                     return;
                 }
                 msg.style.display = 'none';
+                const factorFoot = document.getElementById('factorTableFootnote');
+                if (factorFoot) factorFoot.style.display =
+                    companies.some(c => _modelLabel(c).endsWith('*')) ? 'block' : 'none';
                 companies.forEach((c, i) => {
                         if (sel) {
                             const opt = document.createElement('option');
@@ -2664,7 +2694,7 @@
                         const tier = c.schroders_factor_reliability_tier || 'Insufficient';
                         tr.appendChild(_td(c.company_name, 'font-weight: 600;'));
                         tr.appendChild(_td(c.peer_bucket || ''));
-                        tr.appendChild(_td(c.sector_model_level_used || ''));
+                        tr.appendChild(_td(_modelLabel(c)));
                         tr.appendChild(_td(z == null ? '—' : Number(z).toFixed(2)));
                         tr.appendChild(_td(p == null ? '—' : Number(p).toFixed(0) + '%'));
                         const tierTd = document.createElement('td');
@@ -2685,7 +2715,7 @@
 
         function loadModelFit() {
             const msg = document.getElementById('modelFitMessage');
-            if (_modelWeightsData) return;
+            if (_modelWeightsData) { renderModelFit(); return; }
             fetch('/api/v2/model-weights')
                 .then(r => r.json())
                 .then(d => {
@@ -2694,47 +2724,170 @@
                         return;
                     }
                     _modelWeightsData = d.weights;
-                    msg.style.display = 'none';
-                    // One summary row per peer group
-                    const groups = {};
-                    d.weights.forEach(w => {
-                        if (!groups[w.peer_bucket]) groups[w.peer_bucket] = { rows: [], meta: w };
-                        groups[w.peer_bucket].rows.push(w);
-                    });
-                    const fitBody = document.getElementById('modelFitBody');
-                    fitBody.textContent = '';
-                    const r2fmt = v => v == null ? '—' : Number(v).toFixed(2);
-                    const r2color = v => v == null ? '#94a3b8' : (v >= 0.3 ? '#16a34a' : v >= 0.1 ? '#d97706' : '#dc2626');
-                    Object.keys(groups).sort().forEach(g => {
-                        const m = groups[g].meta;
-                        const tr = document.createElement('tr');
-                        tr.style.cssText = 'border-bottom: 1px solid #e2e8f0; cursor: pointer;';
-                        tr.addEventListener('click', () => {
-                            const sel = document.getElementById('weightsPeerSelect');
-                            if (sel) { sel.value = g; renderDimensionWeights(g); }
-                        });
-                        tr.appendChild(_td(g, 'font-weight: 600;'));
-                        tr.appendChild(_td(m.sector_model_level_used || ''));
-                        tr.appendChild(_td(m.n_companies_model == null ? '—' : String(m.n_companies_model), 'text-align: right;'));
-                        tr.appendChild(_td(r2fmt(m.model_r2_in_sample), 'text-align: right; font-weight: 600; color: ' + r2color(m.model_r2_in_sample) + ';'));
-                        tr.appendChild(_td(r2fmt(m.cross_validated_r2), 'text-align: right; font-weight: 600; color: ' + r2color(m.cross_validated_r2) + ';'));
-                        tr.appendChild(_td(m.ridge_alpha_selected == null ? '—' : String(m.ridge_alpha_selected), 'text-align: right;'));
-                        fitBody.appendChild(tr);
-                    });
-                    // Peer-group selector for dimension weights
-                    const sel = document.getElementById('weightsPeerSelect');
-                    if (sel) {
-                        sel.textContent = '';
-                        Object.keys(groups).sort().forEach(g => {
-                            const opt = document.createElement('option');
-                            opt.value = g;
-                            opt.textContent = g;
-                            sel.appendChild(opt);
-                        });
-                        if (sel.options.length) renderDimensionWeights(sel.value);
-                    }
+                    renderModelFit();
                 })
                 .catch(() => { msg.textContent = 'Failed to load model diagnostics.'; });
+        }
+
+        function _modelLabel(m) {
+            if (m.sector_model_level_used === 'global_fallback' || m.sector_model_level_used === 'global') {
+                return 'Global model*';
+            }
+            if (m.sector_model_level_used === 'gics_sector') return 'Sector-specific';
+            if (m.sector_model_level_used === 'gics_industry') return 'Industry-specific';
+            if (m.sector_model_level_used === 'gics_sub_industry') return 'Sub-industry-specific';
+            return m.sector_model_level_used || '';
+        }
+
+        let _modelFitScatterChart = null;
+
+        function renderModelFit() {
+            if (!_modelWeightsData) return;
+            const msg = document.getElementById('modelFitMessage');
+            msg.style.display = 'none';
+            // Group rows per peer bucket, respecting the listed/asset-managers toggle
+            const amMode = window._extractionGroup === 'asset_managers';
+            const groups = {};
+            _modelWeightsData.forEach(w => {
+                const isAM = w.peer_bucket === 'Asset Management/Other';
+                if (amMode ? !isAM : isAM) return;
+                if (!groups[w.peer_bucket]) groups[w.peer_bucket] = { rows: [], meta: w };
+                groups[w.peer_bucket].rows.push(w);
+            });
+            const names = Object.keys(groups).sort();
+            const fitBody = document.getElementById('modelFitBody');
+            fitBody.textContent = '';
+            const r2fmt = v => v == null ? '—' : Number(v).toFixed(2);
+            const r2color = v => v == null ? '#94a3b8' : (v >= 0.3 ? '#16a34a' : v >= 0.1 ? '#d97706' : '#dc2626');
+            let anyFallback = false;
+            names.forEach(g => {
+                const m = groups[g].meta;
+                if (_modelLabel(m).endsWith('*')) anyFallback = true;
+                const tr = document.createElement('tr');
+                tr.style.cssText = 'border-bottom: 1px solid #e2e8f0; cursor: pointer;';
+                tr.addEventListener('click', () => {
+                    const sel = document.getElementById('weightsPeerSelect');
+                    if (sel) { sel.value = g; renderDimensionWeights(g); }
+                });
+                tr.appendChild(_td(g, 'font-weight: 600;'));
+                tr.appendChild(_td(_modelLabel(m)));
+                tr.appendChild(_td(m.n_companies_model == null ? '—' : String(m.n_companies_model), 'text-align: right;'));
+                tr.appendChild(_td(r2fmt(m.model_r2_in_sample), 'text-align: right; font-weight: 600; color: ' + r2color(m.model_r2_in_sample) + ';'));
+                tr.appendChild(_td(r2fmt(m.cross_validated_r2), 'text-align: right; font-weight: 600; color: ' + r2color(m.cross_validated_r2) + ';'));
+                tr.appendChild(_td(m.ridge_alpha_selected == null ? '—' : String(m.ridge_alpha_selected), 'text-align: right;'));
+                fitBody.appendChild(tr);
+            });
+            const foot = document.getElementById('modelFitFootnote');
+            if (foot) foot.style.display = anyFallback ? 'block' : 'none';
+            // Peer-group selector for dimension weights
+            const sel = document.getElementById('weightsPeerSelect');
+            if (sel) {
+                sel.textContent = '';
+                names.forEach(g => {
+                    const opt = document.createElement('option');
+                    opt.value = g;
+                    opt.textContent = g;
+                    sel.appendChild(opt);
+                });
+                if (sel.options.length) renderDimensionWeights(sel.value);
+                else document.getElementById('dimWeightsTable').style.display = 'none';
+            }
+            // Bubble chart: model fit per peer group (bubble size = companies in model)
+            const canvas = document.getElementById('modelFitScatter');
+            if (canvas && typeof Chart !== 'undefined') {
+                if (_modelFitScatterChart) { _modelFitScatterChart.destroy(); _modelFitScatterChart = null; }
+                const pts = names.map(g => {
+                    const m = groups[g].meta;
+                    return {
+                        x: m.cross_validated_r2 == null ? 0 : Number(m.cross_validated_r2),
+                        y: m.model_r2_in_sample == null ? 0 : Number(m.model_r2_in_sample),
+                        r: Math.max(6, Math.min(28, 4 + Math.sqrt(m.n_companies_model || 1) * 1.6)),
+                        label: g,
+                        n: m.n_companies_model
+                    };
+                });
+                _modelFitScatterChart = new Chart(canvas.getContext('2d'), {
+                    type: 'bubble',
+                    data: { datasets: [{
+                        data: pts,
+                        backgroundColor: 'rgba(37, 99, 235, 0.35)',
+                        borderColor: 'rgba(37, 99, 235, 0.9)',
+                        borderWidth: 1.5
+                    }] },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: { display: false },
+                            title: { display: true, text: 'Model fit by peer group (bubble size = companies in model)' },
+                            tooltip: { callbacks: { label: ctx => {
+                                const p = ctx.raw;
+                                return p.label + ': R² in-sample ' + p.y.toFixed(2) + ', cross-validated ' + p.x.toFixed(2) + ', ' + p.n + ' companies';
+                            } } }
+                        },
+                        scales: {
+                            x: { title: { display: true, text: 'R² (cross-validated — honest out-of-sample fit)' } },
+                            y: { title: { display: true, text: 'R² (in-sample)' } }
+                        }
+                    }
+                });
+            }
+        }
+
+        let _cultureReturnsChart = null;
+        let _cultureReturnsRequestId = 0;
+
+        function loadCultureReturns() {
+            const msg = document.getElementById('cultureReturnsMessage');
+            if (!msg) return;
+            const reqId = ++_cultureReturnsRequestId;
+            msg.style.display = 'block';
+            msg.textContent = 'Loading performance comparison…';
+            const params = getSectorParam();
+            fetch('/api/v2/culture-performance-groups' + (params ? '?' + params : ''))
+                .then(r => r.json())
+                .then(d => {
+                    if (reqId !== _cultureReturnsRequestId) return;
+                    if (!d.success || !d.groups) {
+                        msg.textContent = 'No performance comparison available.';
+                        return;
+                    }
+                    if (!d.companies_with_prices) {
+                        if (_cultureReturnsChart) { _cultureReturnsChart.destroy(); _cultureReturnsChart = null; }
+                        msg.textContent = 'No listed companies with price history in the current filter.';
+                        return;
+                    }
+                    msg.style.display = 'none';
+                    const horizons = ['1', '3', '5'];
+                    const labels = ['1 year', '3 years', '5 years'];
+                    const colors = { 'Top third': '#16a34a', 'Middle third': '#94a3b8', 'Bottom third': '#dc2626' };
+                    const datasets = d.groups.map(g => ({
+                        label: g.group + ' by Culture Factor',
+                        data: horizons.map(h => g.horizons[h] && g.horizons[h].avg_return != null ? g.horizons[h].avg_return : null),
+                        backgroundColor: colors[g.group] || '#64748b',
+                        _counts: horizons.map(h => g.horizons[h] ? g.horizons[h].n : 0)
+                    }));
+                    const canvas = document.getElementById('cultureReturnsChart');
+                    if (_cultureReturnsChart) { _cultureReturnsChart.destroy(); _cultureReturnsChart = null; }
+                    _cultureReturnsChart = new Chart(canvas.getContext('2d'), {
+                        type: 'bar',
+                        data: { labels: labels, datasets: datasets },
+                        options: {
+                            responsive: true,
+                            plugins: {
+                                tooltip: { callbacks: { label: ctx => {
+                                    const n = ctx.dataset._counts[ctx.dataIndex];
+                                    return ctx.dataset.label + ': ' + (ctx.raw == null ? 'n/a' : ctx.raw.toFixed(1) + '% p.a.') + ' (' + n + ' companies)';
+                                } } }
+                            },
+                            scales: {
+                                y: { title: { display: true, text: 'Avg annualized share-price return (%)' } }
+                            }
+                        }
+                    });
+                })
+                .catch(() => {
+                    if (reqId === _cultureReturnsRequestId) msg.textContent = 'Failed to load performance comparison.';
+                });
         }
 
         function renderDimensionWeights(peerBucket) {
@@ -2775,8 +2928,8 @@
                     const tierBg = { 'A': '#dcfce7', 'B': '#fef9c3', 'C': '#fee2e2', 'D': '#f1f5f9' };
                     body.textContent = '';
                     d.dimensions.forEach(dim => {
-                        const info = (d.dim_info && d.dim_info[dim.dimension]) || {};
-                        const name = info.name || dim.dimension;
+                        const info = (d.dim_info && d.dim_info[dim.dimension]) || SCHRODERS_V2_DIM_INFO[dim.dimension] || {};
+                        const name = info.title || info.name || dim.dimension;
                         const cov = dim.share_reviews_scored_dimension;
                         const conc = dim.top_5_reviews_contribution_share;
                         const concFlag = conc != null && Number(conc) > 0.30;
@@ -6314,6 +6467,8 @@
             } else {
                 loadExtractionStatus();
             }
+            // Model fit table on the Culture Factor tab also follows this toggle
+            if (typeof renderModelFit === 'function' && _modelWeightsData) renderModelFit();
         }
 
         function loadAssetManagerGroup() {
