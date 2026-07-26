@@ -946,6 +946,49 @@
             </div>
 
             <div class="chart-container">
+                <h2 class="chart-title">Model Fit &amp; Dimension Weights</h2>
+                <p style="color: #64748b; font-size: 0.88rem; margin-bottom: 1rem;">
+                    How well culture explains financial performance within each peer group, and which
+                    dimensions the model weights most heavily. <strong>R&sup2; (in-sample)</strong> is the share of
+                    performance variation explained on the data the model was fit to; <strong>R&sup2; (cross-validated)</strong>
+                    is the more honest out-of-sample estimate &mdash; values near or below zero mean the
+                    relationship does not generalise reliably in that peer group.
+                </p>
+                <div style="overflow-x: auto; margin-bottom: 1.25rem;">
+                    <table id="modelFitTable" data-testid="table-model-fit" style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
+                        <thead>
+                            <tr style="background: #f1f5f9; text-align: left;">
+                                <th style="padding: 0.5rem 0.6rem;">Peer group</th>
+                                <th style="padding: 0.5rem 0.6rem;">Model used</th>
+                                <th style="padding: 0.5rem 0.6rem; text-align: right;">Companies</th>
+                                <th style="padding: 0.5rem 0.6rem; text-align: right;">R&sup2; (in-sample)</th>
+                                <th style="padding: 0.5rem 0.6rem; text-align: right;">R&sup2; (cross-validated)</th>
+                                <th style="padding: 0.5rem 0.6rem; text-align: right;">Ridge &alpha;</th>
+                            </tr>
+                        </thead>
+                        <tbody id="modelFitBody"></tbody>
+                    </table>
+                </div>
+                <label for="weightsPeerSelect" style="font-weight: 600; color: #1e293b; font-size: 0.85rem;">Dimension weights for peer group:</label>
+                <select id="weightsPeerSelect" data-testid="select-weights-peer" onchange="renderDimensionWeights(this.value)"
+                        style="padding: 0.4rem 0.6rem; border: 1px solid #cbd5e1; border-radius: 6px; margin: 0 0 1rem 0.5rem;"></select>
+                <div style="overflow-x: auto;">
+                    <table id="dimWeightsTable" data-testid="table-dim-weights" style="width: 100%; border-collapse: collapse; font-size: 0.85rem; display: none;">
+                        <thead>
+                            <tr style="background: #f1f5f9; text-align: left;">
+                                <th style="padding: 0.5rem 0.6rem;">Dimension</th>
+                                <th style="padding: 0.5rem 0.6rem; text-align: right;">Weight</th>
+                                <th style="padding: 0.5rem 0.6rem;">Direction</th>
+                                <th style="padding: 0.5rem 0.6rem; text-align: right;">Stability (SD)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dimWeightsBody"></tbody>
+                    </table>
+                </div>
+                <p id="modelFitMessage" style="text-align:center; color:#7f8c8d; padding:1rem;">Loading model diagnostics…</p>
+            </div>
+
+            <div class="chart-container">
                 <h2 class="chart-title">Dimension Evidence Detail</h2>
                 <p style="color: #64748b; font-size: 0.88rem; margin-bottom: 0.8rem;">
                     Raw vs shrunk score per dimension, with evidence tier (A = deep evidence &rarr; D = thin),
@@ -1910,6 +1953,10 @@
             if (document.getElementById('analysisTab') && document.getElementById('analysisTab').style.display !== 'none') {
                 await loadAnalysisCompanies();
             }
+            // Culture Factor tab follows the global filter too
+            if (document.getElementById('factorTab') && document.getElementById('factorTab').style.display !== 'none') {
+                loadFactorScores();
+            }
             if (document.getElementById('culturePerfTab') && document.getElementById('culturePerfTab').style.display !== 'none') {
                 loadCulturePerfScatter();
             }
@@ -2536,7 +2583,9 @@
         }
 
         // ── Culture Factor tab ───────────────────────────────────────────────
-        let factorScoresLoaded = false;
+        let _factorScoresData = null;      // raw /api/v2/factor-scores payload (all companies)
+        let _factorRenderedFilter = null;  // filter key the table was last rendered for
+        let _modelWeightsData = null;
 
         function _td(text, style) {
             const td = document.createElement('td');
@@ -2545,23 +2594,49 @@
             return td;
         }
 
-        function loadFactorScores() {
-            if (factorScoresLoaded) return;
+        let _factorRequestId = 0;
+
+        async function loadFactorScores() {
+            loadModelFit();
+            const filterKey = currentGicsValue ? (currentGicsLevel + '|' + currentGicsValue) : '';
+            if (_factorScoresData && _factorRenderedFilter === filterKey) return;
+            const reqId = ++_factorRequestId;
             const body = document.getElementById('factorScoresBody');
             const msg = document.getElementById('factorScoresMessage');
-            fetch('/api/v2/factor-scores')
-                .then(r => r.json())
-                .then(d => {
+            msg.style.display = 'block';
+            msg.textContent = 'Loading factor scores…';
+            try {
+                if (!_factorScoresData) {
+                    const d = await (await fetch('/api/v2/factor-scores')).json();
+                    if (reqId !== _factorRequestId) return; // stale response — a newer request took over
                     if (!d.success || !d.companies || !d.companies.length) {
                         msg.textContent = 'No factor scores available yet.';
                         return;
                     }
-                    factorScoresLoaded = true;
-                    msg.style.display = 'none';
-                    const tierColor = { 'High': '#16a34a', 'Medium': '#d97706', 'Low': '#dc2626', 'Insufficient': '#94a3b8' };
-                    const sel = document.getElementById('evidenceCompanySelect');
-                    body.textContent = '';
-                    d.companies.forEach((c, i) => {
+                    _factorScoresData = d;
+                }
+                // Respect the global GICS filter at the top of the page
+                let allowed = null;
+                if (currentGicsValue) {
+                    const cl = await (await fetch('/api/companies-list?' + getSectorParam())).json();
+                    if (reqId !== _factorRequestId) return; // stale response — a newer request took over
+                    allowed = new Set(cl.companies || []);
+                }
+                const companies = _factorScoresData.companies.filter(c => !allowed || allowed.has(c.company_name));
+                _factorRenderedFilter = filterKey;
+                const tierColor = { 'High': '#16a34a', 'Medium': '#d97706', 'Low': '#dc2626', 'Insufficient': '#94a3b8' };
+                const sel = document.getElementById('evidenceCompanySelect');
+                if (sel) {
+                    // Rebuild options (keep the placeholder first option)
+                    while (sel.options.length > 1) sel.remove(1);
+                }
+                body.textContent = '';
+                if (!companies.length) {
+                    msg.textContent = 'No companies with factor scores match the current filter.';
+                    return;
+                }
+                msg.style.display = 'none';
+                companies.forEach((c, i) => {
                         if (sel) {
                             const opt = document.createElement('option');
                             opt.value = c.company_name;
@@ -2594,9 +2669,91 @@
                         tr.appendChild(_td(sd == null ? '—' : '±' + Number(sd).toFixed(1)));
                         tr.appendChild(_td(c.n_dims_tier_ab != null ? c.n_dims_tier_ab + ' / 12' : '—'));
                         body.appendChild(tr);
+                });
+            } catch (e) {
+                if (reqId === _factorRequestId) msg.textContent = 'Failed to load factor scores.';
+            }
+        }
+
+        function loadModelFit() {
+            const msg = document.getElementById('modelFitMessage');
+            if (_modelWeightsData) return;
+            fetch('/api/v2/model-weights')
+                .then(r => r.json())
+                .then(d => {
+                    if (!d.success || !d.weights || !d.weights.length) {
+                        msg.textContent = 'No model diagnostics available yet.';
+                        return;
+                    }
+                    _modelWeightsData = d.weights;
+                    msg.style.display = 'none';
+                    // One summary row per peer group
+                    const groups = {};
+                    d.weights.forEach(w => {
+                        if (!groups[w.peer_bucket]) groups[w.peer_bucket] = { rows: [], meta: w };
+                        groups[w.peer_bucket].rows.push(w);
                     });
+                    const fitBody = document.getElementById('modelFitBody');
+                    fitBody.textContent = '';
+                    const r2fmt = v => v == null ? '—' : Number(v).toFixed(2);
+                    const r2color = v => v == null ? '#94a3b8' : (v >= 0.3 ? '#16a34a' : v >= 0.1 ? '#d97706' : '#dc2626');
+                    Object.keys(groups).sort().forEach(g => {
+                        const m = groups[g].meta;
+                        const tr = document.createElement('tr');
+                        tr.style.cssText = 'border-bottom: 1px solid #e2e8f0; cursor: pointer;';
+                        tr.addEventListener('click', () => {
+                            const sel = document.getElementById('weightsPeerSelect');
+                            if (sel) { sel.value = g; renderDimensionWeights(g); }
+                        });
+                        tr.appendChild(_td(g, 'font-weight: 600;'));
+                        tr.appendChild(_td(m.sector_model_level_used || ''));
+                        tr.appendChild(_td(m.n_companies_model == null ? '—' : String(m.n_companies_model), 'text-align: right;'));
+                        tr.appendChild(_td(r2fmt(m.model_r2_in_sample), 'text-align: right; font-weight: 600; color: ' + r2color(m.model_r2_in_sample) + ';'));
+                        tr.appendChild(_td(r2fmt(m.cross_validated_r2), 'text-align: right; font-weight: 600; color: ' + r2color(m.cross_validated_r2) + ';'));
+                        tr.appendChild(_td(m.ridge_alpha_selected == null ? '—' : String(m.ridge_alpha_selected), 'text-align: right;'));
+                        fitBody.appendChild(tr);
+                    });
+                    // Peer-group selector for dimension weights
+                    const sel = document.getElementById('weightsPeerSelect');
+                    if (sel) {
+                        sel.textContent = '';
+                        Object.keys(groups).sort().forEach(g => {
+                            const opt = document.createElement('option');
+                            opt.value = g;
+                            opt.textContent = g;
+                            sel.appendChild(opt);
+                        });
+                        if (sel.options.length) renderDimensionWeights(sel.value);
+                    }
                 })
-                .catch(() => { msg.textContent = 'Failed to load factor scores.'; });
+                .catch(() => { msg.textContent = 'Failed to load model diagnostics.'; });
+        }
+
+        function renderDimensionWeights(peerBucket) {
+            if (!_modelWeightsData) return;
+            const table = document.getElementById('dimWeightsTable');
+            const body = document.getElementById('dimWeightsBody');
+            const rows = _modelWeightsData.filter(w => w.peer_bucket === peerBucket);
+            if (!rows.length) { table.style.display = 'none'; return; }
+            body.textContent = '';
+            rows.slice().sort((a, b) => Math.abs(b.dimension_weight_final || 0) - Math.abs(a.dimension_weight_final || 0))
+                .forEach(w => {
+                    const info = SCHRODERS_V2_DIM_INFO[w.dimension] || {};
+                    const name = info.title || info.name || w.dimension;
+                    const wt = w.dimension_weight_final;
+                    const dir = wt == null ? '—'
+                        : wt >= 0 ? ('Higher "' + (info.right_label || 'right pole') + '" → better performance')
+                                  : ('Higher "' + (info.left_label || 'left pole') + '" → better performance');
+                    const tr = document.createElement('tr');
+                    tr.style.cssText = 'border-bottom: 1px solid #e2e8f0;';
+                    tr.appendChild(_td(name, 'font-weight: 600;'));
+                    tr.appendChild(_td(wt == null ? '—' : (wt >= 0 ? '+' : '') + Number(wt).toFixed(3),
+                        'text-align: right; font-weight: 600; color: ' + (wt >= 0 ? '#2563eb' : '#7c3aed') + ';'));
+                    tr.appendChild(_td(dir, 'color: #64748b;'));
+                    tr.appendChild(_td(w.coefficient_stability_sd == null ? '—' : '±' + Number(w.coefficient_stability_sd).toFixed(3), 'text-align: right; color: #64748b;'));
+                    body.appendChild(tr);
+                });
+            table.style.display = 'table';
         }
 
         function loadEvidenceDetail(companyName) {
