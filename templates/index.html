@@ -509,7 +509,7 @@
             <button class="main-tab-button" onclick="switchMainTab('companies', event)">Companies</button>
             <button class="main-tab-button" onclick="switchMainTab('analysis', event)">Company Analysis</button>
             <button class="main-tab-button" onclick="switchMainTab('trends', event)">Quarterly Trends</button>
-            <button class="main-tab-button" onclick="switchMainTab('schroders', event)">Schroders Framework</button>
+            <button class="main-tab-button" onclick="switchMainTab('schroders', event)">Culture Dimensions</button>
             <button class="main-tab-button" onclick="switchMainTab('factor', event)">Culture Factor</button>
             <!-- Schroders-only rebuild (2026-07-21): Hofstede, MIT, Performance Insights,
                  Culture vs Performance and Correlation Analysis tabs are inactive
@@ -642,7 +642,7 @@
 
                                                                                                                                                 <div style="border: 1px solid #e2e8f0; border-radius: 10px; padding: 1rem 1.25rem;">
                             <div style="display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.5rem;">
-                                <span style="background: #ede9fe; color: #6d28d9; font-size: 0.75rem; font-weight: 700; padding: 0.2rem 0.55rem; border-radius: 20px;">Schroders Framework</span>
+                                <span style="background: #ede9fe; color: #6d28d9; font-size: 0.75rem; font-weight: 700; padding: 0.2rem 0.55rem; border-radius: 20px;">Culture Dimensions</span>
                             </div>
                             <p style="color: #475569; font-size: 0.85rem; line-height: 1.65; margin: 0;">Deep dive into a single company's twelve Schroders v2 bipolar dimensions, shown as a bar chart from −1 to +1 with evidence counts. Compare with an optional benchmark company.</p>
                         </div>
@@ -892,7 +892,7 @@
 
                 <div id="schrodersV2Container" style="display: none;">
                     <div class="chart-container">
-                        <h3>Schroders v2 — Bipolar Culture Dimensions</h3>
+                        <h3>Bipolar Culture Dimensions</h3>
                         <p style="color: #7f8c8d; font-size: 0.9rem; margin-bottom: 0.5rem;">Twelve bipolar dimensions scored −1 to +1. Zero means balanced; negative leans toward the left pole, positive toward the right pole.</p>
                         <p id="schrodersV2Confidence" data-testid="text-v2-confidence" style="font-size: 0.8rem; color: #94a3b8; margin-bottom: 1rem;"></p>
                         <div id="schrodersV2Legend" style="display: flex; flex-wrap: wrap; gap: 1.25rem; justify-content: center; margin-bottom: 0.5rem; font-size: 0.8rem; color: #475569;"></div>
@@ -2801,9 +2801,9 @@
                             title: { display: true, text: '\u2190 leans left pole   ·   Score (\u22121 to +1)   ·   leans right pole \u2192' }
                         },
                         y: {
+                            offset: true,
                             grid: { display: false },
-                            ticks: { font: { size: 11 }, color: '#2563eb', autoSkip: false },
-                            title: { display: true, text: 'Left pole', color: '#2563eb', font: { weight: '600' } }
+                            ticks: { font: { size: 11 }, color: '#2563eb', autoSkip: false }
                         },
                         y2: {
                             position: 'right',
@@ -2811,8 +2811,7 @@
                             labels: rightLabels,
                             offset: true,
                             grid: { display: false },
-                            ticks: { font: { size: 11 }, color: '#7c3aed', autoSkip: false },
-                            title: { display: true, text: 'Right pole', color: '#7c3aed', font: { weight: '600' } }
+                            ticks: { font: { size: 11 }, color: '#7c3aed', autoSkip: false }
                         }
                     }
                 }
@@ -6145,6 +6144,9 @@
             fetch('/api/extraction/asset-managers')
                 .then(r => r.json())
                 .then(d => {
+                    // If the user has switched back to "Listed companies" while this
+                    // request was in flight, do not overwrite the listed sector view.
+                    if (window._extractionGroup !== 'asset_managers') return;
                     if (!d.success) { sectorDiv.innerHTML = '<p style="color: #ef4444;">Could not load asset managers.</p>'; return; }
                     const statusColor = s => ({completed: '#22c55e', extracting: '#3b82f6', failed: '#ef4444',
                         no_match: '#f59e0b', pending: '#94a3b8', skipped: '#94a3b8', not_extracted: '#94a3b8'}[s] || '#64748b');
@@ -6165,7 +6167,10 @@
                         `<th style="padding: 0.45rem 0.75rem;">Status</th><th style="padding: 0.45rem 0.75rem; text-align: right;">Reviews</th>` +
                         `</tr></thead><tbody>` + all.map(row).join('') + `</tbody></table></div>`;
                 })
-                .catch(() => { sectorDiv.innerHTML = '<p style="color: #ef4444;">Could not load asset managers.</p>'; });
+                .catch(() => {
+                    if (window._extractionGroup !== 'asset_managers') return;
+                    sectorDiv.innerHTML = '<p style="color: #ef4444;">Could not load asset managers.</p>';
+                });
         }
 
         function loadSectorDetail(sector) {
