@@ -1594,6 +1594,87 @@ def v2_culture_performance_groups():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+@app.route('/api/v2/culture-performance-slope', methods=['GET'])
+def v2_culture_performance_slope():
+    """Per peer group: OLS regression of the composite performance target on the
+    culture factor z-score. Slope = performance payoff per 1 SD of culture;
+    r2 = strength of that relationship. Both come from the same simple regression."""
+    try:
+        from scipy import stats as scipy_stats
+        conn = get_db_connection()
+        cur = conn.cursor()
+
+        # Composite performance target — same definition as pipeline perf_targets()
+        cur.execute("""
+            SELECT e.company_name, f.roe_5y_avg, f.revenue_growth_5y, f.tsr_5y,
+                   f.op_margin_5y_avg
+            FROM (SELECT DISTINCT company_name FROM schroders_company_dimension_evidence) e
+            JOIN fmp_performance_metrics f
+              ON lower(e.company_name) = lower(f.company_name)""")
+        raw = {r[0]: r[1:] for r in cur.fetchall()}
+        cols = list(zip(*raw.values())) if raw else []
+        stats = []
+        for j in range(4):
+            vals = [v for v in cols[j] if v is not None] if cols else []
+            if len(vals) >= 3:
+                import numpy as _np
+                mu, sd = float(_np.mean(vals)), float(_np.std(vals))
+                stats.append((mu, sd) if sd > 0 else None)
+            else:
+                stats.append(None)
+        weights = [0.30, 0.25, 0.25, 0.20]
+        target = {}
+        for comp, vals in raw.items():
+            num = den = 0.0
+            for j, v in enumerate(vals):
+                if v is not None and stats[j]:
+                    z = max(-2, min(2, (v - stats[j][0]) / stats[j][1]))
+                    num += weights[j] * z
+                    den += weights[j]
+            if den > 0:
+                target[comp] = num / den
+
+        cur.execute("""
+            SELECT company_name, peer_bucket, schroders_factor_sector_z,
+                   sector_model_level_used
+            FROM schroders_company_factor_scores
+            WHERE peer_bucket IS NOT NULL AND schroders_factor_sector_z IS NOT NULL""")
+        buckets = {}
+        model_level = {}
+        for comp, bucket, z, lvl in cur.fetchall():
+            model_level[bucket] = lvl
+            if comp in target:
+                buckets.setdefault(bucket, []).append((float(z), float(target[comp])))
+        conn.close()
+
+        min_n = 5
+        out = []
+        for bucket, pairs in buckets.items():
+            if len(pairs) < min_n:
+                continue
+            xs = [p[0] for p in pairs]
+            ys = [p[1] for p in pairs]
+            # linregress raises on identical x values
+            if len(set(xs)) < 2:
+                continue
+            slope, intercept, r_value, p_value, _ = scipy_stats.linregress(xs, ys)
+            if any(v != v for v in (slope, r_value)):
+                continue
+            out.append({
+                'peer_bucket': bucket,
+                'slope': round(float(slope), 4),
+                'r2': round(float(r_value) ** 2, 4),
+                'p_value': round(float(p_value), 4),
+                'n': len(pairs),
+                'model_level': model_level.get(bucket)
+            })
+        out.sort(key=lambda r: -r['r2'])
+        return jsonify({'success': True, 'groups': out, 'min_n': min_n})
+    except Exception as e:
+        logger.error(f"culture-performance-slope error: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 @app.route('/api/warm-cache', methods=['POST'])
 def warm_cache():
     """Warm the metrics cache for uncached companies (batch of 20 at a time)"""

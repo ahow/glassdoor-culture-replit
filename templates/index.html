@@ -1027,6 +1027,20 @@
                 <div style="max-width: 720px; margin: 0 auto 1.5rem auto;">
                     <canvas id="modelFitScatter" data-testid="chart-model-fit-scatter" style="max-height: 340px;"></canvas>
                 </div>
+                <h3 style="color: #1e293b; font-size: 1rem; margin: 1.5rem 0 0.4rem 0;">Culture Payoff vs Strength of Relationship</h3>
+                <p style="color: #64748b; font-size: 0.88rem; margin-bottom: 1rem;">
+                    Each bubble is a peer group. The <strong>vertical axis</strong> shows the regression
+                    coefficient &mdash; how much composite performance improves for each 1 standard-deviation
+                    improvement in culture. The <strong>horizontal axis</strong> shows the R&sup2; of that same
+                    regression &mdash; how strong/consistent the relationship is within the group. Groups in the
+                    top-right combine a big payoff with a reliable relationship. Bubble size = companies with
+                    both culture and financial data. This is a descriptive, in-sample relationship &mdash;
+                    it shows association within each peer group, not causation.
+                </p>
+                <div style="max-width: 720px; margin: 0 auto 1.5rem auto;">
+                    <canvas id="slopeScatter" data-testid="chart-slope-scatter" style="max-height: 340px;"></canvas>
+                </div>
+                <p id="slopeScatterMessage" style="text-align:center; color:#7f8c8d; padding:0.5rem; display:none;"></p>
                 <label for="weightsPeerSelect" style="font-weight: 600; color: #1e293b; font-size: 0.85rem;">Dimension weights for peer group:</label>
                 <select id="weightsPeerSelect" data-testid="select-weights-peer" onchange="renderDimensionWeights(this.value)"
                         style="padding: 0.4rem 0.6rem; border: 1px solid #cbd5e1; border-radius: 6px; margin: 0 0 1rem 0.5rem;"></select>
@@ -2718,7 +2732,73 @@
             }
         }
 
+        let _slopeData = null;
+        let _slopeScatterChart = null;
+
+        function loadSlopeChart() {
+            if (_slopeData) { renderSlopeChart(); return; }
+            fetch('/api/v2/culture-performance-slope')
+                .then(r => r.json())
+                .then(d => {
+                    if (!d.success || !d.groups || !d.groups.length) {
+                        const m = document.getElementById('slopeScatterMessage');
+                        m.textContent = 'No regression data available yet.';
+                        m.style.display = 'block';
+                        return;
+                    }
+                    _slopeData = d.groups;
+                    renderSlopeChart();
+                })
+                .catch(() => {
+                    const m = document.getElementById('slopeScatterMessage');
+                    m.textContent = 'Failed to load regression data.';
+                    m.style.display = 'block';
+                });
+        }
+
+        function renderSlopeChart() {
+            const canvas = document.getElementById('slopeScatter');
+            if (!canvas || typeof Chart === 'undefined' || !_slopeData) return;
+            if (_slopeScatterChart) { _slopeScatterChart.destroy(); _slopeScatterChart = null; }
+            const amMode = window._extractionGroup === 'asset_managers';
+            const pts = _slopeData.filter(g => {
+                const isAM = g.peer_bucket === 'Asset Management/Other';
+                return amMode ? isAM : !isAM;
+            }).map(g => ({
+                x: g.r2,
+                y: g.slope,
+                r: Math.max(6, Math.min(28, 4 + Math.sqrt(g.n || 1) * 1.6)),
+                label: g.peer_bucket,
+                n: g.n
+            }));
+            _slopeScatterChart = new Chart(canvas.getContext('2d'), {
+                type: 'bubble',
+                data: { datasets: [{
+                    data: pts,
+                    backgroundColor: 'rgba(16, 185, 129, 0.35)',
+                    borderColor: 'rgba(5, 150, 105, 0.9)',
+                    borderWidth: 1
+                }] },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { display: false },
+                        title: { display: true, text: 'Culture payoff (regression coefficient) vs strength (R²) by peer group' },
+                        tooltip: { callbacks: { label: ctx => {
+                            const p = ctx.raw;
+                            return p.label + ': payoff ' + p.y.toFixed(2) + ' per 1 SD culture, R² ' + p.x.toFixed(2) + ', ' + p.n + ' companies';
+                        } } }
+                    },
+                    scales: {
+                        x: { title: { display: true, text: 'R² (strength of culture–performance relationship)' }, min: 0 },
+                        y: { title: { display: true, text: 'Coefficient (performance improvement per 1 SD of culture)' } }
+                    }
+                }
+            });
+        }
+
         function loadModelFit() {
+            loadSlopeChart();
             const msg = document.getElementById('modelFitMessage');
             if (_modelWeightsData) { renderModelFit(); return; }
             fetch('/api/v2/model-weights')
@@ -6476,6 +6556,7 @@
             }
             // Model fit table on the Culture Factor tab also follows this toggle
             if (typeof renderModelFit === 'function' && _modelWeightsData) renderModelFit();
+            if (typeof renderSlopeChart === 'function' && _slopeData) renderSlopeChart();
         }
 
         function loadAssetManagerGroup() {
