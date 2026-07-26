@@ -26,12 +26,45 @@ logger = logging.getLogger(__name__)
 
 # Initialize Flask app
 app = Flask(__name__, template_folder='templates', static_folder='static')
-app.secret_key = os.environ.get('SESSION_SECRET') or os.environ.get('SECRET_KEY')
-if not app.secret_key:
-    # No static fallback: use a random per-process secret (sessions reset on
-    # restart) so cookies can never be forged with a known default value.
-    logger.warning("SESSION_SECRET not set — using a random per-process secret")
-    app.secret_key = os.urandom(32)
+def _load_or_create_session_secret():
+    """Return a stable session secret shared by every worker process.
+
+    Priority: SESSION_SECRET / SECRET_KEY env var. If neither is set (e.g. on
+    Heroku before the config var is added), fall back to a random secret that
+    is generated once and persisted in the database — a per-process random
+    secret would make logins flaky behind multiple gunicorn workers, because
+    a cookie signed by one worker would be rejected by the others.
+    """
+    env_secret = os.environ.get('SESSION_SECRET') or os.environ.get('SECRET_KEY')
+    if env_secret:
+        return env_secret
+    try:
+        import secrets as _secrets
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS app_config (
+                key VARCHAR(100) PRIMARY KEY,
+                value VARCHAR(255),
+                updated_at TIMESTAMP DEFAULT NOW()
+            )""")
+        conn.commit()
+        # Atomic: first process inserts, all others read the same value
+        cur.execute("""
+            INSERT INTO app_config (key, value) VALUES ('session_secret', %s)
+            ON CONFLICT (key) DO NOTHING""", (_secrets.token_hex(32),))
+        conn.commit()
+        cur.execute("SELECT value FROM app_config WHERE key = 'session_secret'")
+        row = cur.fetchone()
+        conn.close()
+        if row and row[0]:
+            logger.warning("SESSION_SECRET not set — using shared secret stored in database")
+            return row[0]
+    except Exception as e:
+        logger.error(f"Could not load shared session secret from DB: {e}")
+    logger.warning("SESSION_SECRET not set and DB unavailable — using per-process secret")
+    return os.urandom(32)
+
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=14)
 
 # ============================================================================
@@ -88,6 +121,9 @@ def get_db_connection():
     except Exception as e:
         logger.error(f"Database connection error: {e}")
         return None
+
+# Session secret (needs get_db_connection, so set here rather than at app init)
+app.secret_key = _load_or_create_session_secret()
 
 # ============================================================================
 # HELPER FUNCTIONS
