@@ -3,7 +3,7 @@
 **System:** Culture Analytics Dashboard (culturescoring.com)
 **Framework:** Schroders v2 (12 bipolar culture dimensions)
 **Pipeline:** `pipeline/factor_build.py` (Python, PostgreSQL, NumPy)
-**Last updated:** 26 July 2026 (per-group peer-level assignment)
+**Last updated:** 26 July 2026 (adequacy-based peer buckets — global fallback for named groups eliminated)
 
 This document describes, end to end, how a company's Culture Factor score is
 produced from raw Glassdoor reviews. It is written for a developer who needs
@@ -161,8 +161,12 @@ longer a single global "classification level used" — the run log records
 `classification_level_used: "per_group_mixed"` plus per-level company
 counts.
 
-Production result (26 Jul 2026, 1,957 companies): 87 sub-industry buckets,
-11 industry, 8 sector, 1 global.
+Production result (26 Jul 2026, 1,957 companies, adequacy-based): 57
+sub-industry buckets, 15 industry, 5 sector, 1 global — 77 named buckets in
+total. Company counts: 1,375 scored at sub-industry level, 343 at industry,
+158 at sector, 81 in the residual global bucket (~4%). Every named bucket
+has its own group-specific model; before the adequacy update 447 companies
+(~23%) were scored with the global fallback.
 
 ## 5. §8 Shrinkage toward the peer-group mean
 
@@ -223,9 +227,14 @@ Reported metrics: in-sample R² and LOO cross-validated R².
    coef   = lambda * coef_bucket + (1 − lambda) * coef_global
    ```
 
-3. Buckets with < 8 eligible companies use the global model directly;
-   their `sector_model_level_used` is recorded as `global_fallback`
-   (vs `gics_sub_industry` / `gics_industry` / `gics_sector` / `global`).
+3. Buckets with < 8 eligible companies would use the global model directly
+   (`sector_model_level_used = 'global_fallback'`). **Since the adequacy
+   update this path cannot trigger for named buckets** — bucket assignment
+   already guarantees ≥ 8 model-estimable members per named bucket (the
+   same criterion as model eligibility, and `min_companies_per_bucket` =
+   `min_companies_model` = 8; `build_model()` prints a warning if these
+   settings ever drift apart). The residual `global` bucket uses the global
+   model with level `'global'`.
 
 Coefficient stability is estimated by bootstrap (up to 100 resamples of the
 estimation set, refitting at the selected alpha) and stored as
@@ -311,7 +320,19 @@ automatically alter the model.
 
 Dashboard API endpoints (Flask, `app.py`): `/api/v2/factor-scores`,
 `/api/v2/evidence/<company>`, `/api/v2/model-weights`,
-`/api/v2/overlap-diagnostics`, `/api/v2/culture-performance-groups`.
+`/api/v2/overlap-diagnostics`, `/api/v2/culture-performance-groups`,
+`/api/v2/culture-performance-slope`.
+
+**Sector Comparison tab** (dashboard): shows the per-bucket model-fit table
+(in-sample R² only, sorted descending), a bubble chart of in-sample R² vs
+companies in model (group-specific models only), the per-bucket dimension
+weights, and a "Culture Payoff vs Strength" chart. The latter is fed by
+`/api/v2/culture-performance-slope`: per bucket, a simple OLS of the
+composite performance target (same definition as `perf_targets()`) on
+`schroders_factor_sector_z` — the slope is the performance improvement per
+1 SD of culture; the R² of that same regression is the strength of the
+relationship. Minimum 5 companies per bucket; descriptive/in-sample only,
+not causal or out-of-sample evidence.
 
 ## 13. Operational notes
 
