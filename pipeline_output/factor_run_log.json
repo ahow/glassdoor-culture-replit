@@ -1,10 +1,20 @@
 {
-  "run_at": "2026-07-24T12:05:42.515459+00:00",
+  "run_at": "2026-07-26T18:30:41.708257+00:00",
   "dictionary_version": "2026-07-22-v3.1-generalised-clean",
   "scoring_engine_version": "v2.0-regex-negation",
   "snapshot_tag": "pre_schroders_sector_relative_rebuild_2026_07_21",
-  "classification_level_used": "gics_sector",
+  "classification_level_used": "per_group_mixed",
+  "companies_per_classification_level": {
+    "gics_sub_industry": 34,
+    "gics_sector": 19
+  },
+  "bucket_classification_levels": {
+    "Asset Management & Custody Banks": "gics_sub_industry",
+    "Asset Management/Other": "gics_sub_industry",
+    "Financials": "gics_sector"
+  },
   "bucket_model_levels": {
+    "Asset Management & Custody Banks": "gics_sub_industry",
     "Asset Management/Other": "global_fallback",
     "Financials": "gics_sector"
   },
@@ -58,6 +68,7 @@
     "b12": 50
   },
   "ridge_alpha_by_bucket": {
+    "Asset Management & Custody Banks": 30.0,
     "Asset Management/Other": 30.0,
     "Financials": 30.0
   },
@@ -67,6 +78,16 @@
     "max_flagged_dims": 3
   },
   "overlap_flags": {
+    "Asset Management & Custody Banks/b01": "STRONG_WARNING",
+    "Asset Management & Custody Banks/b02": "STRONG_WARNING",
+    "Asset Management & Custody Banks/b03": "FAIL",
+    "Asset Management & Custody Banks/b04": "STRONG_WARNING",
+    "Asset Management & Custody Banks/b05": "FAIL",
+    "Asset Management & Custody Banks/b06": "FAIL",
+    "Asset Management & Custody Banks/b08": "REVIEW",
+    "Asset Management & Custody Banks/b09": "FAIL",
+    "Asset Management & Custody Banks/b10": "FAIL",
+    "Asset Management & Custody Banks/b12": "FAIL",
     "Asset Management/Other/b01": "FAIL",
     "Asset Management/Other/b02": "STRONG_WARNING",
     "Asset Management/Other/b03": "STRONG_WARNING",
@@ -78,12 +99,17 @@
     "Asset Management/Other/b09": "STRONG_WARNING",
     "Asset Management/Other/b10": "STRONG_WARNING",
     "Asset Management/Other/b11": "FAIL",
-    "Asset Management/Other/b12": "FAIL"
+    "Asset Management/Other/b12": "FAIL",
+    "Financials/b02": "STRONG_WARNING",
+    "Financials/b03": "REVIEW",
+    "Financials/b06": "STRONG_WARNING",
+    "Financials/b07": "FAIL",
+    "Financials/b09": "STRONG_WARNING"
   },
   "bootstrap_reps": 200,
   "reliability_distribution": {
-    "High": 14,
-    "Medium": 21,
+    "High": 22,
+    "Medium": 13,
     "Low": 11,
     "Insufficient": 7
   }

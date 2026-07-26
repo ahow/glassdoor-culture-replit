@@ -28,7 +28,7 @@ import math
 import os
 import pickle
 import sys
-from collections import defaultdict
+from collections import Counter, defaultdict
 from datetime import datetime, timezone
 
 import numpy as np
@@ -175,22 +175,49 @@ def peer_map(cur, settings):
 
 
 def pick_bucket(companies_info, settings):
-    """Choose classification level per §7: finest level with enough companies.
+    """Per-company peer assignment (§7, per-group variant).
 
-    Returns (level_name, {company: bucket_value}).
+    Greedy, finest-first: at each level of the hierarchy, companies whose
+    remaining group has >= min_companies_per_bucket members are assigned a
+    bucket at that level; the rest fall through to the next (coarser) level.
+    Companies whose sector-level remainder is still too small go to 'global'.
+    Buckets are disjoint and every non-global bucket has >= min_n members.
+
+    DELIBERATE DESIGN CHOICE — residual counts, not full-group counts:
+    counts at each level are taken over the companies still unassigned at
+    that level. Full-group counts would let a company claim an industry
+    bucket whose other members were already assigned at sub-industry level,
+    leaving the actual ranking peer set below min_n. Residual counting
+    trades a coarser assignment for a guaranteed adequate peer set, which
+    the ranking (z / percentile) step requires.
+
+    Returns (buckets: {company: bucket_name},
+             bucket_level: {bucket_name: level_name}).
     """
-    hierarchy = settings['peer_hierarchy'] + ['__global__']
+    hierarchy = settings['peer_hierarchy']
     min_n = settings['min_companies_per_bucket']
+    buckets, bucket_level = {}, {}
+    remaining = set(companies_info)
     for level in hierarchy:
-        if level == '__global__':
-            return 'global', {comp: 'global' for comp in companies_info}
         counts = defaultdict(int)
-        for comp, info in companies_info.items():
-            counts[info.get(level) or 'Unknown'] += 1
-        if all(n >= min_n for n in counts.values()):
-            return level, {comp: (info.get(level) or 'Unknown')
-                           for comp, info in companies_info.items()}
-    return 'global', {comp: 'global' for comp in companies_info}
+        for comp in remaining:
+            counts[companies_info[comp].get(level) or 'Unknown'] += 1
+        for comp in sorted(remaining):
+            val = companies_info[comp].get(level) or 'Unknown'
+            if counts[val] < min_n:
+                continue
+            name = val
+            # disambiguate on the rare GICS name collision across levels
+            if name in bucket_level and bucket_level[name] != level:
+                name = f'{val} ({level.replace("gics_", "").replace("_", "-")})'
+            buckets[comp] = name
+            bucket_level[name] = level
+        remaining -= set(buckets)
+    for comp in remaining:
+        buckets[comp] = 'global'
+    if remaining:
+        bucket_level['global'] = 'global'
+    return buckets, bucket_level
 
 
 # ---------------------------------------------------------------- evidence
@@ -313,8 +340,11 @@ def build_shrinkage():
     rows = cur.fetchall()
     info = {r[0]: {'gics_sector': r[1], 'gics_industry': r[2],
                    'gics_sub_industry': r[3]} for r in rows}
-    level, buckets = pick_bucket(info, settings)
-    print(f'peer classification level used: {level}')
+    buckets, bucket_level = pick_bucket(info, settings)
+    lvl_counts = defaultdict(int)
+    for comp in buckets:
+        lvl_counts[bucket_level[buckets[comp]]] += 1
+    print(f'peer classification (per-group): {dict(lvl_counts)}')
 
     # sector prior means per bucket x dim (companies with any mentions)
     by_bd = defaultdict(list)
@@ -346,7 +376,7 @@ def build_shrinkage():
         WHERE company_name=%s AND dimension=%s""", upd)
     c.commit()
     c.close()
-    return level, buckets
+    return buckets, bucket_level
 
 
 # ---------------------------------------------------------------- model
@@ -415,7 +445,7 @@ def _ridge_solve(X, y, alpha):
 def build_model():
     c = conn(); cur = c.cursor()
     settings = load_settings(cur)
-    level, buckets = build_shrinkage()   # ensures shrunk scores fresh
+    buckets, bucket_level = build_shrinkage()   # ensures shrunk scores fresh
     target = perf_targets(cur)
 
     cur.execute("""
@@ -505,7 +535,7 @@ def build_model():
             coef_s, _, alpha, r2, cv = _ridge_fit(Xb, yb, alphas)
             lam = len(est) / (len(est) + m_shrink)
             coef = lam * coef_s + (1 - lam) * coef_g   # hierarchical shrink §9
-            used, nm = level, len(est)
+            used, nm = bucket_level[b], len(est)
         # coefficient stability via bootstrap over estimation set
         coefs_bs = []
         for _ in range(min(reps, 100)):
@@ -520,7 +550,7 @@ def build_model():
         coef_sd = np.std(coefs_bs, axis=0) if coefs_bs else [None] * len(DIMS)
         bucket_model[b] = dict(coef=coef, mu=mu, sd=sd, used=used, n=nm,
                                alpha=alpha, r2=r2, cv=cv)
-        rows = [(b, level, used, nm, alpha, r2, cv, lam, d, float(coef[j]),
+        rows = [(b, bucket_level[b], used, nm, alpha, r2, cv, lam, d, float(coef[j]),
                  float(mu[j]), float(sd[j]),
                  float(coef_sd[j]) if coef_sd[j] is not None else None)
                 for j, d in enumerate(DIMS)]
@@ -660,7 +690,8 @@ def build_model():
     for comp in companies:
         st = stab[comp]
         rows.append((
-            comp, buckets[comp], level, bucket_model[buckets[comp]]['used'],
+            comp, buckets[comp], bucket_level[buckets[comp]],
+            bucket_model[buckets[comp]]['used'],
             ab_count[comp], conc_flags[comp],
             raw_f[comp], float(z_f[comp]), float(pct_f[comp]), rel[comp],
             float(np.mean(st['ranks'])) if st['ranks'] else None,
@@ -735,7 +766,10 @@ def build_model():
         'dictionary_version': DICTIONARY_VERSION,
         'scoring_engine_version': SCORING_ENGINE_VERSION,
         'snapshot_tag': SNAPSHOT_TAG,
-        'classification_level_used': level,
+        'classification_level_used': 'per_group_mixed',
+        'companies_per_classification_level': dict(Counter(
+            bucket_level[buckets[comp]] for comp in companies)),
+        'bucket_classification_levels': {b: bucket_level[b] for b in bucket_names},
         'bucket_model_levels': {b: bucket_model[b]['used'] for b in bucket_names},
         'n_companies_total': len(companies),
         'n_companies_in_global_model': len(g_comps),
