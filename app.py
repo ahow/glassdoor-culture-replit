@@ -1834,6 +1834,41 @@ def v2_backtest():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+@app.route('/api/v2/backtest-series', methods=['GET'])
+def v2_backtest_series():
+    """Precomputed backtest series for a chosen measure (tsr | earnings | pe)
+    and weighting variant (C = current, A = average, W = walkback).
+    Payloads are written offline by pipeline/backtest_dashboard.py into
+    backtest_payload_cache; this endpoint is read-only."""
+    try:
+        measure = request.args.get('measure', 'tsr').lower()
+        weights = request.args.get('weights', 'C').upper()
+        if measure not in ('tsr', 'earnings', 'pe') or weights not in ('C', 'A', 'W'):
+            return jsonify({'success': False,
+                            'error': 'invalid measure or weights'}), 400
+        conn = get_db_connection()
+        cur = conn.cursor()
+        version = _backtest_data_version(cur)
+        cache_key = ('backtest-series', measure, weights)
+        cached = _backtest_cache_get(cache_key, version)
+        if cached is not None:
+            conn.close()
+            return jsonify(cached)
+        payload = read_cached_payload(cur, f'bt-series:{measure}:{weights}',
+                                      version)
+        conn.close()
+        if payload is None:
+            return jsonify({'success': True, 'available': False,
+                            'message': 'This combination has not been '
+                                       'computed yet. Run pipeline/'
+                                       'backtest_dashboard.py payloads.'})
+        _backtest_cache_put(cache_key, version, payload)
+        return jsonify(payload)
+    except Exception as e:
+        logger.error(f"backtest-series endpoint error: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 @app.route('/api/v2/peer-group-outperformance', methods=['GET'])
 def v2_peer_group_outperformance():
     """Per peer group: annualized return (CAGR) of each culture quartile

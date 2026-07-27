@@ -997,16 +997,49 @@
         <!-- Backtest Tab -->
         <div id="backtestTab" class="tab-content hidden-tab" style="display: none;">
             <div class="chart-container">
-                <h2 class="chart-title">Culture Quartile Backtest &mdash; Cumulative Share-Price Return</h2>
+                <h2 class="chart-title" id="backtestTitle">Culture Quartile Backtest &mdash; Cumulative Share-Price Return</h2>
                 <p style="color: #64748b; font-size: 0.88rem; margin-bottom: 1rem;">
                     At the end of every quarter, companies are scored using <strong>only the reviews
                     posted up to that date</strong> and sorted into quartiles within their peer group
                     (Q1 = strongest culture, Q4 = weakest). Each quartile is held as an equal-weighted
-                    portfolio for the following quarter, then re-formed. The chart shows the growth of
-                    100 invested in each quartile, next to a benchmark of all scored companies.
+                    portfolio for the following quarter, then re-formed.
                     This backtest always covers the full universe of companies &mdash; the filter at the
                     top of the page does not apply here, because quartiles are formed globally.
                 </p>
+                <p style="color: #64748b; font-size: 0.88rem; margin-bottom: 0.75rem;">
+                    Use the two menus to choose <strong>what is measured</strong> and
+                    <strong>how the culture score is weighted</strong>.
+                    Measure: <strong>TSR</strong> shows the growth of 100 invested in each quartile
+                    (share-price return); <strong>Earnings</strong> shows the growth of each quartile's
+                    profits (median trailing-12-month earnings growth, chained quarter by quarter);
+                    <strong>P/E</strong> shows how expensively each quartile trades (median
+                    price-to-earnings ratio over time).
+                    Weighting: <strong>Current weights</strong> uses today's model weights for the whole
+                    history (this is what the rest of the dashboard uses, but it peeks ahead);
+                    <strong>Walkback weights</strong> re-estimates weights each year using only data
+                    available at the time (no look-ahead, the most honest test);
+                    <strong>Average weights</strong> uses the average of all yearly re-estimations.
+                </p>
+                <div style="display:flex; gap:1.5rem; flex-wrap:wrap; align-items:center; margin-bottom:1rem;">
+                    <span>
+                        <label for="backtestMeasure" style="font-weight:600; color:#1e293b; font-size:0.85rem;">Measure:</label>
+                        <select id="backtestMeasure" data-testid="select-backtest-measure" onchange="loadBacktest()"
+                                style="padding:0.3rem 0.5rem; border:1px solid #cbd5e1; border-radius:6px; font-size:0.85rem;">
+                            <option value="tsr" selected>TSR (share-price return)</option>
+                            <option value="earnings">Earnings (profit growth)</option>
+                            <option value="pe">P/E (valuation)</option>
+                        </select>
+                    </span>
+                    <span>
+                        <label for="backtestWeights" style="font-weight:600; color:#1e293b; font-size:0.85rem;">Weighting:</label>
+                        <select id="backtestWeights" data-testid="select-backtest-weights" onchange="loadBacktest()"
+                                style="padding:0.3rem 0.5rem; border:1px solid #cbd5e1; border-radius:6px; font-size:0.85rem;">
+                            <option value="C" selected>Current weights</option>
+                            <option value="W">Walkback weights</option>
+                            <option value="A">Average weights</option>
+                        </select>
+                    </span>
+                </div>
                 <div id="backtestLoading" class="loading" style="display:none;"><h2>Running backtest query&hellip;</h2></div>
                 <p id="backtestMessage" style="text-align:center; color:#7f8c8d; padding:0.75rem; display:none;" data-testid="text-backtest-message"></p>
                 <div style="display: flex; flex-wrap: wrap; gap: 1.5rem; align-items: flex-start; margin-bottom: 1.5rem;">
@@ -1016,15 +1049,16 @@
                     <div style="flex: 0 1 420px; min-width: 320px; overflow-x: auto;">
                         <table id="backtestStatsTable" data-testid="table-backtest-stats" style="width: 100%; border-collapse: collapse; font-size: 0.85rem; display: none;">
                         <thead>
-                            <tr style="background: #f1f5f9; text-align: left;">
+                            <tr id="backtestStatsHead" style="background: #f1f5f9; text-align: left;">
                                 <th style="padding: 0.5rem 0.6rem;">Portfolio</th>
-                                <th style="padding: 0.5rem 0.6rem; text-align: right;">Cumulative return</th>
-                                <th style="padding: 0.5rem 0.6rem; text-align: right;">Annualized return</th>
+                                <th style="padding: 0.5rem 0.6rem; text-align: right;">Cumulative vs avg</th>
+                                <th style="padding: 0.5rem 0.6rem; text-align: right;">Annualized vs avg</th>
                                 <th style="padding: 0.5rem 0.6rem; text-align: right;">Avg companies/quarter</th>
                             </tr>
                         </thead>
                         <tbody id="backtestStatsBody"></tbody>
                         </table>
+                        <p id="backtestTableNote" style="color:#94a3b8; font-size:0.75rem; margin-top:0.4rem;"></p>
                     </div>
                 </div>
                 <p id="backtestPeriod" style="text-align:center; color:#64748b; font-size:0.82rem; margin-bottom:1rem;" data-testid="text-backtest-period"></p>
@@ -2977,7 +3011,15 @@
             msg.style.display = 'none';
             // Backtest is always run on the full universe (ignores the top filter)
             loadPeerOutperformance();
-            fetch('/api/v2/backtest')
+            const measure = document.getElementById('backtestMeasure').value;
+            const weights = document.getElementById('backtestWeights').value;
+            const titles = {
+                tsr: 'Culture Quartile Backtest — Cumulative Share-Price Return',
+                earnings: 'Culture Quartile Backtest — Earnings Growth',
+                pe: 'Culture Quartile Backtest — Valuation (median P/E)'
+            };
+            document.getElementById('backtestTitle').textContent = titles[measure];
+            fetch(`/api/v2/backtest-series?measure=${measure}&weights=${weights}`)
                 .then(r => r.json())
                 .then(d => {
                     loading.style.display = 'none';
@@ -3032,6 +3074,7 @@
                         tooltip: {
                             callbacks: {
                                 label: (c) => {
+                                    if (c.parsed.y == null) return `${c.dataset.label}: —`;
                                     let txt = `${c.dataset.label}: ${c.parsed.y.toFixed(1)}`;
                                     const key = Object.keys(d.series).find(k => (labelNames[k] || k) === c.dataset.label);
                                     if (d.counts && d.counts[key] && c.dataIndex > 0) {
@@ -3044,25 +3087,54 @@
                         }
                     },
                     scales: {
-                        y: { title: { display: true, text: 'Growth of 100' } },
+                        y: { title: { display: true, text: d.measure === 'pe' ? 'Median trailing P/E (×)' : 'Growth of 100' } },
                         x: { ticks: { maxTicksLimit: 14 } }
                     }
                 }
             });
             const body = document.getElementById('backtestStatsBody');
+            const head = document.getElementById('backtestStatsHead');
+            const note = document.getElementById('backtestTableNote');
             body.innerHTML = '';
+            const isPE = d.measure === 'pe';
+            const th = (t, right) => `<th style="padding:0.5rem 0.6rem;${right ? ' text-align:right;' : ''}">${t}</th>`;
+            if (isPE) {
+                head.innerHTML = th('Portfolio') + th('Latest median P/E', 1) +
+                    th('Average P/E over period', 1) + th('Avg companies/quarter', 1);
+                note.textContent = 'P/E levels are shown as-is (not relative to the average).';
+            } else {
+                head.innerHTML = th('Portfolio') + th('Cumulative vs avg', 1) +
+                    th('Annualized vs avg', 1) + th('Avg companies/quarter', 1);
+                note.textContent = 'Returns are shown relative to the average of all companies (positive = beat the average).';
+            }
+            const benchRow = d.stats.find(s => s.quartile === 'All companies') || {};
+            const fmt = (v, dp, suffix, signed) => v != null
+                ? (signed && v >= 0 ? '+' : '') + v.toFixed(dp) + suffix : '—';
             d.stats.forEach(s => {
+                if (s.quartile === 'All companies') return;
                 const tr = document.createElement('tr');
                 tr.setAttribute('data-testid', `row-backtest-${s.quartile.replace(/\s+/g, '-').toLowerCase()}`);
                 tr.style.borderBottom = '1px solid #f1f5f9';
                 const isSpread = s.quartile.indexOf('spread') !== -1;
                 if (isSpread) tr.style.background = '#f8fafc';
-                const cum = s.cumulative_return_pct;
-                const ann = s.annualized_return_pct;
+                let c2, c3;
+                if (isPE) {
+                    c2 = fmt(s.latest_pe, 1, '×', isSpread);
+                    c3 = fmt(s.avg_pe, 1, '×', false);
+                } else {
+                    const cum = isSpread ? s.cumulative_return_pct
+                        : (s.cumulative_return_pct != null && benchRow.cumulative_return_pct != null
+                            ? s.cumulative_return_pct - benchRow.cumulative_return_pct : null);
+                    const ann = isSpread ? s.annualized_return_pct
+                        : (s.annualized_return_pct != null && benchRow.annualized_return_pct != null
+                            ? s.annualized_return_pct - benchRow.annualized_return_pct : null);
+                    c2 = fmt(cum, 1, '%', true);
+                    c3 = fmt(ann, 2, '%', true);
+                }
                 tr.innerHTML = `
                     <td style="padding:0.45rem 0.6rem; font-weight:${isSpread ? '700' : '500'};">${labelNames[s.quartile] || s.quartile}</td>
-                    <td style="padding:0.45rem 0.6rem; text-align:right;${isSpread ? ' font-weight:700;' : ''}">${cum != null ? (cum >= 0 ? '+' : '') + cum.toFixed(1) + '%' : '—'}</td>
-                    <td style="padding:0.45rem 0.6rem; text-align:right;${isSpread ? ' font-weight:700;' : ''}">${ann != null ? (ann >= 0 ? '+' : '') + ann.toFixed(2) + '%' : '—'}</td>
+                    <td style="padding:0.45rem 0.6rem; text-align:right;${isSpread ? ' font-weight:700;' : ''}">${c2}</td>
+                    <td style="padding:0.45rem 0.6rem; text-align:right;${isSpread ? ' font-weight:700;' : ''}">${c3}</td>
                     <td style="padding:0.45rem 0.6rem; text-align:right;">${s.avg_companies != null ? s.avg_companies : '—'}</td>`;
                 body.appendChild(tr);
             });
