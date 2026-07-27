@@ -1009,11 +1009,12 @@
                 </p>
                 <div id="backtestLoading" class="loading" style="display:none;"><h2>Running backtest query&hellip;</h2></div>
                 <p id="backtestMessage" style="text-align:center; color:#7f8c8d; padding:0.75rem; display:none;" data-testid="text-backtest-message"></p>
-                <div style="max-width: 900px; margin: 0 auto 1.5rem auto;">
-                    <canvas id="backtestChart" data-testid="chart-backtest" style="max-height: 420px;"></canvas>
-                </div>
-                <div style="overflow-x: auto; margin-bottom: 1rem;">
-                    <table id="backtestStatsTable" data-testid="table-backtest-stats" style="width: 100%; max-width: 720px; margin: 0 auto; border-collapse: collapse; font-size: 0.85rem; display: none;">
+                <div style="display: flex; flex-wrap: wrap; gap: 1.5rem; align-items: flex-start; margin-bottom: 1.5rem;">
+                    <div style="flex: 1 1 600px; min-width: 0; position: relative; height: 620px;">
+                        <canvas id="backtestChart" data-testid="chart-backtest"></canvas>
+                    </div>
+                    <div style="flex: 0 1 420px; min-width: 320px; overflow-x: auto;">
+                        <table id="backtestStatsTable" data-testid="table-backtest-stats" style="width: 100%; border-collapse: collapse; font-size: 0.85rem; display: none;">
                         <thead>
                             <tr style="background: #f1f5f9; text-align: left;">
                                 <th style="padding: 0.5rem 0.6rem;">Portfolio</th>
@@ -1023,7 +1024,8 @@
                             </tr>
                         </thead>
                         <tbody id="backtestStatsBody"></tbody>
-                    </table>
+                        </table>
+                    </div>
                 </div>
                 <p id="backtestPeriod" style="text-align:center; color:#64748b; font-size:0.82rem; margin-bottom:1rem;" data-testid="text-backtest-period"></p>
                 <div style="border-top: 1px solid #e2e8f0; margin: 1.5rem 0; padding-top: 1.5rem;">
@@ -3494,7 +3496,7 @@
                             label: 'vs peer average',
                             data: diffVals,
                             backgroundColor: diffVals.map(v =>
-                                v == null ? 'rgba(0,0,0,0)' : v >= 0 ? 'rgba(37, 99, 235, 0.75)' : 'rgba(124, 58, 237, 0.55)'),
+                                v == null ? 'rgba(0,0,0,0)' : v >= 0 ? 'rgba(124, 58, 237, 0.75)' : 'rgba(37, 99, 235, 0.55)'),
                             borderWidth: 0,
                             borderRadius: 3
                         }]
@@ -4297,7 +4299,7 @@
             });
         }
         
-        function openCompanyAnalysis(name) {
+        async function openCompanyAnalysis(name) {
             _selectedCompany = name;
             const buttons = document.querySelectorAll('.main-tab-button');
             for (const btn of buttons) {
@@ -4306,7 +4308,8 @@
                     break;
                 }
             }
-            // If the company dropdown is already populated, preselect and load directly
+            // Wait until the company dropdown is populated, then select and load
+            await loadAnalysisCompanies();
             const select = document.getElementById('analysisCompany');
             if (select) {
                 for (let opt of select.options) {
@@ -5407,9 +5410,14 @@
         window.analysisSchrodersChart = null;
         window.analysisTrendChart = null;
         
+        let _analysisCompaniesPromise = null;
         async function loadAnalysisCompanies() {
             if (analysisCompaniesLoaded) return;
-            
+            if (_analysisCompaniesPromise) return _analysisCompaniesPromise;
+            _analysisCompaniesPromise = _loadAnalysisCompaniesInner();
+            try { await _analysisCompaniesPromise; } finally { _analysisCompaniesPromise = null; }
+        }
+        async function _loadAnalysisCompaniesInner() {
             try {
                 const response = await fetch(buildUrl('/api/companies-list'));
                 const data = await response.json();
