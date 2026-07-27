@@ -125,10 +125,10 @@ title = "Full package (PDF + charts + data files)"
 id = "kSUk84eRpP4CCV0Zranvg"
 uri = "file://pipeline_output/fund_val_weights/fund_val_weights_report.pdf"
 type = "pdf"
-title = "Fundamentals, valuation & weight-consistency report (PDF)"
+title = "Report (PDF)"
 
 [[outputs]]
 id = "k_YngfuZD-BuQmfIjzPnV"
 uri = "file://pipeline_output/fund_val_weights/fund_val_weights_package.zip"
 type = "unspecified"
-title = "Full package (PDF + HTML + 8 charts + all CSV/JSON data)"
+title = "Full package (ZIP)"
