@@ -66,3 +66,45 @@ id = "LUBr_jHEE-KHvCHrPg8OS"
 uri = "file://docs/Culture_Factor_Methodology.docx"
 type = "word_document"
 title = "Culture Factor Methodology (Word document)"
+
+[[outputs]]
+id = "lJokvGzl53WAguezLNXem"
+uri = "file://pipeline_output/backtest_variants/cumulative_returns.png"
+type = "image"
+title = "Cumulative returns — Q1/Q4/benchmark per variant"
+
+[[outputs]]
+id = "Ln60CqyqyGRoEuZ8-UtUx"
+uri = "file://pipeline_output/backtest_variants/rolling_3y_spread.png"
+type = "image"
+title = "Rolling 3-year Q1−Q4 spread per variant"
+
+[[outputs]]
+id = "t-t08yreZYv0LWkRSAuCo"
+uri = "file://pipeline_output/backtest_variants/weight_stability_W.png"
+type = "image"
+title = "Walk-forward weight stability (Variant W)"
+
+[[outputs]]
+id = "H1GuTJbJCRkLrqf1_rg3r"
+uri = "file://pipeline_output/backtest_variants/headline_stats.csv"
+type = "table"
+title = "Headline statistics table"
+
+[[outputs]]
+id = "ZwlAqfwGPvycPHHH_o-OG"
+uri = "file://pipeline_output/backtest_variants/split_period_stats.csv"
+type = "table"
+title = "Split-period table (2016–2020 vs 2021–present)"
+
+[[outputs]]
+id = "ix_oE3szfKAVE6lwd8SCm"
+uri = "file://pipeline_output/backtest_variants/window_log.csv"
+type = "table"
+title = "Per-window estimation log"
+
+[[outputs]]
+id = "mW1aaCv3epa6dV68ZJC1J"
+uri = "file://pipeline_output/backtest_variants/results.json"
+type = "unspecified"
+title = "Full results payload (JSON)"

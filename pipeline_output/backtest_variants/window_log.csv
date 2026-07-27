@@ -1,0 +1,671 @@
+window_end,bucket,n_est,alpha,r2,cv_r2,conf,thin_vs_current
+2015-12-31,Aerospace & Defense,15,0.3,0.963,0.322,10510.0,True
+2015-12-31,Application Software,16,10.0,0.629,0.17,10897.0,True
+2015-12-31,Automobile Manufacturers,8,30.0,0.345,-0.693,2265.0,True
+2015-12-31,Consumer Staples,8,30.0,0.386,-0.306,2348.0,True
+2015-12-31,Diversified Banks,41,30.0,0.264,-0.107,31942.0,True
+2015-12-31,Electric Utilities,13,30.0,0.411,-0.228,2250.0,True
+2015-12-31,Financials,11,30.0,0.454,-0.302,6727.0,True
+2015-12-31,global,557,30.0,0.247,0.211,285312.0,True
+2015-12-31,Health Care Equipment,15,30.0,0.297,-0.226,4339.0,False
+2015-12-31,"Hotels, Resorts & Cruise Lines",8,30.0,0.384,-0.382,3946.0,True
+2015-12-31,Industrial Machinery & Supplies & Components,14,30.0,0.436,-0.156,2067.0,True
+2015-12-31,Industrials,9,10.0,0.724,0.039,6895.0,True
+2015-12-31,Integrated Oil & Gas,11,30.0,0.39,-0.25,4197.0,False
+2015-12-31,Integrated Telecommunication Services,9,30.0,0.331,-0.655,15217.0,True
+2015-12-31,Life & Health Insurance,11,30.0,0.467,-0.092,6157.0,True
+2015-12-31,Metals & Mining,8,30.0,0.466,-0.407,1297.0,True
+2015-12-31,Multi-Utilities,11,30.0,0.328,-0.422,1512.0,False
+2015-12-31,Packaged Foods & Meats,11,30.0,0.542,-0.173,4077.0,True
+2015-12-31,Pharmaceuticals,18,30.0,0.494,0.058,7589.0,True
+2015-12-31,Property & Casualty Insurance,10,30.0,0.365,-0.391,6823.0,True
+2015-12-31,Research & Consulting Services,12,0.1,0.997,0.253,10624.0,False
+2015-12-31,Semiconductors,15,30.0,0.401,-0.161,16529.0,False
+2015-12-31,Specialty Retail,8,30.0,0.334,-0.612,8247.0,True
+2015-12-31,"Technology Hardware, Storage & Peripherals",8,0.1,1.0,0.118,2898.0,True
+2015-12-31,Trading Companies & Distributors,10,0.1,1.0,0.253,3327.0,True
+2016-12-31,Aerospace & Defense,15,3.0,0.757,-0.205,13782.0,True
+2016-12-31,Application Software,16,10.0,0.716,0.353,15483.0,True
+2016-12-31,Asset Management & Custody Banks,12,30.0,0.184,-0.431,7208.0,False
+2016-12-31,Automobile Manufacturers,8,30.0,0.467,-0.384,3106.0,True
+2016-12-31,Commercial Services & Supplies,8,0.1,1.0,0.144,2837.0,False
+2016-12-31,Consumer Staples,12,0.1,0.997,0.457,3778.0,True
+2016-12-31,Diversified Banks,55,30.0,0.209,-0.148,45676.0,True
+2016-12-31,Electrical Components & Equipment,8,30.0,0.341,-0.414,5113.0,True
+2016-12-31,Electric Utilities,18,30.0,0.282,-0.283,3626.0,True
+2016-12-31,Financials,14,30.0,0.438,-0.126,9995.0,False
+2016-12-31,global,663,30.0,0.226,0.195,411398.0,True
+2016-12-31,Health Care Equipment,15,30.0,0.35,-0.26,6136.0,False
+2016-12-31,Health Care Providers & Services,8,30.0,0.189,-0.933,6359.0,True
+2016-12-31,"Hotels, Resorts & Cruise Lines",8,3.0,0.937,0.026,5772.0,True
+2016-12-31,Industrial Machinery & Supplies & Components,19,30.0,0.226,-0.315,3381.0,False
+2016-12-31,Industrials,13,0.1,0.998,0.405,10164.0,True
+2016-12-31,Integrated Oil & Gas,13,1.0,0.986,0.875,6610.0,False
+2016-12-31,Integrated Telecommunication Services,15,30.0,0.199,-0.415,21774.0,False
+2016-12-31,Life & Health Insurance,13,10.0,0.659,0.09,8645.0,True
+2016-12-31,Life Sciences Tools & Services,9,10.0,0.73,-0.114,2563.0,False
+2016-12-31,Metals & Mining,9,30.0,0.269,-0.684,1969.0,False
+2016-12-31,Multi-Utilities,11,0.1,1.0,0.414,2233.0,False
+2016-12-31,Packaged Foods & Meats,15,30.0,0.309,-0.217,6055.0,False
+2016-12-31,Pharmaceuticals,20,30.0,0.452,0.214,10747.0,True
+2016-12-31,Property & Casualty Insurance,12,1.0,0.922,0.136,9564.0,True
+2016-12-31,Research & Consulting Services,12,30.0,0.409,-0.136,13999.0,False
+2016-12-31,Residential REITs,9,10.0,0.74,0.163,1432.0,False
+2016-12-31,Semiconductors,16,30.0,0.284,-0.334,22490.0,False
+2016-12-31,Specialized REITs,9,10.0,0.803,-0.12,3037.0,False
+2016-12-31,Specialty Chemicals,8,0.1,1.0,0.681,3663.0,True
+2016-12-31,Specialty Retail,9,3.0,0.917,-0.259,11776.0,True
+2016-12-31,"Technology Hardware, Storage & Peripherals",11,30.0,0.322,-0.591,4399.0,True
+2016-12-31,Trading Companies & Distributors,10,30.0,0.47,-0.087,4802.0,True
+2017-12-31,Aerospace & Defense,19,0.1,0.984,0.765,17724.0,False
+2017-12-31,Application Software,17,1.0,0.897,0.356,20898.0,True
+2017-12-31,Asset Management & Custody Banks,14,30.0,0.235,-0.338,9260.0,False
+2017-12-31,Automobile Manufacturers,10,30.0,0.369,-0.427,4295.0,True
+2017-12-31,Biotechnology,8,1.0,0.989,0.609,2884.0,True
+2017-12-31,Building Products,8,30.0,0.345,-0.495,3899.0,False
+2017-12-31,Chemicals,10,30.0,0.267,-0.418,4477.0,True
+2017-12-31,Commercial Services & Supplies,8,30.0,0.16,-1.166,4385.0,False
+2017-12-31,Construction & Engineering,11,30.0,0.155,-0.502,7906.0,False
+2017-12-31,Consumer Staples,14,30.0,0.295,-0.163,5328.0,False
+2017-12-31,Diversified Banks,66,30.0,0.155,-0.123,60516.0,False
+2017-12-31,Electrical Components & Equipment,9,30.0,0.289,-0.281,6724.0,True
+2017-12-31,Electric Utilities,21,30.0,0.273,-0.337,4912.0,False
+2017-12-31,Financial Exchanges & Data,9,10.0,0.673,-0.11,4620.0,False
+2017-12-31,Financials,14,3.0,0.921,0.428,13794.0,False
+2017-12-31,global,751,30.0,0.142,0.113,545710.0,False
+2017-12-31,Health Care Equipment,18,30.0,0.312,-0.235,8363.0,False
+2017-12-31,Health Care Providers & Services,12,30.0,0.248,-0.384,10582.0,False
+2017-12-31,"Hotels, Resorts & Cruise Lines",8,3.0,0.906,0.195,7832.0,True
+2017-12-31,Industrial Machinery & Supplies & Components,21,30.0,0.255,-0.131,4759.0,False
+2017-12-31,Industrials,17,30.0,0.343,-0.122,13827.0,False
+2017-12-31,Integrated Oil & Gas,13,10.0,0.746,-0.097,8723.0,False
+2017-12-31,Integrated Telecommunication Services,14,10.0,0.57,-0.189,27868.0,False
+2017-12-31,Life & Health Insurance,15,30.0,0.483,0.057,11156.0,False
+2017-12-31,Life Sciences Tools & Services,10,30.0,0.468,-0.255,3398.0,False
+2017-12-31,Metals & Mining,10,30.0,0.23,-0.682,2642.0,False
+2017-12-31,Multi-Utilities,10,0.1,1.0,0.514,2784.0,False
+2017-12-31,Packaged Foods & Meats,14,0.1,0.991,-0.27,7605.0,False
+2017-12-31,Pharmaceuticals,21,30.0,0.279,-0.026,14202.0,False
+2017-12-31,Property & Casualty Insurance,13,30.0,0.454,-0.223,12411.0,True
+2017-12-31,Research & Consulting Services,12,10.0,0.701,0.216,17368.0,False
+2017-12-31,Residential REITs,9,10.0,0.799,0.116,1979.0,False
+2017-12-31,Semiconductors,18,30.0,0.318,-0.206,27701.0,False
+2017-12-31,Specialized REITs,9,3.0,0.936,0.194,3914.0,False
+2017-12-31,Specialty Chemicals,9,30.0,0.325,-0.146,4747.0,False
+2017-12-31,Specialty Retail,9,30.0,0.312,-0.532,15230.0,True
+2017-12-31,"Technology Hardware, Storage & Peripherals",12,30.0,0.524,-0.069,5604.0,False
+2017-12-31,Trading Companies & Distributors,10,30.0,0.354,-0.295,6177.0,True
+2018-12-31,Aerospace & Defense,18,0.3,0.932,0.309,20514.0,False
+2018-12-31,Application Software,17,30.0,0.322,-0.241,27142.0,True
+2018-12-31,Asset Management & Custody Banks,14,30.0,0.181,-0.345,10964.0,False
+2018-12-31,Automobile Manufacturers,12,30.0,0.374,-0.256,5625.0,False
+2018-12-31,Biotechnology,9,0.1,1.0,0.595,3725.0,True
+2018-12-31,Building Products,9,0.1,1.0,0.519,4811.0,False
+2018-12-31,Chemicals,13,30.0,0.453,0.017,5428.0,False
+2018-12-31,Construction & Engineering,11,0.3,0.985,0.314,9682.0,False
+2018-12-31,Consumer Staples,16,30.0,0.371,-0.139,6820.0,False
+2018-12-31,Diversified Banks,67,30.0,0.229,-0.068,74195.0,False
+2018-12-31,Electrical Components & Equipment,12,30.0,0.347,-0.183,8616.0,False
+2018-12-31,Electric Utilities,23,30.0,0.266,-0.355,6238.0,False
+2018-12-31,Financial Exchanges & Data,12,30.0,0.509,-0.097,5750.0,False
+2018-12-31,Financials,17,30.0,0.363,-0.081,17783.0,False
+2018-12-31,global,807,30.0,0.148,0.122,671575.0,False
+2018-12-31,Health Care Equipment,18,30.0,0.369,-0.138,10116.0,False
+2018-12-31,Health Care Providers & Services,12,30.0,0.426,-0.275,14658.0,False
+2018-12-31,"Hotels, Resorts & Cruise Lines",9,30.0,0.222,-0.572,9780.0,False
+2018-12-31,Household Products,8,30.0,0.217,-0.745,11464.0,False
+2018-12-31,Industrial Machinery & Supplies & Components,19,30.0,0.202,-0.211,5454.0,False
+2018-12-31,Industrials,18,30.0,0.186,-0.211,17347.0,False
+2018-12-31,Integrated Oil & Gas,13,30.0,0.457,-0.284,10655.0,False
+2018-12-31,Integrated Telecommunication Services,15,30.0,0.152,-0.444,33107.0,False
+2018-12-31,Life & Health Insurance,16,1.0,0.895,0.455,13355.0,False
+2018-12-31,Life Sciences Tools & Services,9,30.0,0.397,-0.428,4140.0,False
+2018-12-31,Metals & Mining,9,30.0,0.432,-0.312,3058.0,False
+2018-12-31,Multi-Utilities,13,0.1,0.998,0.346,3741.0,False
+2018-12-31,Packaged Foods & Meats,15,30.0,0.347,-0.23,9416.0,False
+2018-12-31,Passenger Airlines,8,30.0,0.318,-0.237,4027.0,False
+2018-12-31,Pharmaceuticals,22,30.0,0.285,-0.101,17492.0,False
+2018-12-31,Property & Casualty Insurance,13,0.3,0.98,-0.39,14620.0,True
+2018-12-31,Research & Consulting Services,12,10.0,0.587,-0.121,20422.0,False
+2018-12-31,Residential REITs,9,30.0,0.326,-0.388,2505.0,False
+2018-12-31,Semiconductor Materials & Equipment,9,0.1,1.0,0.382,3726.0,False
+2018-12-31,Semiconductors,18,30.0,0.39,-0.181,32334.0,False
+2018-12-31,Specialized REITs,9,0.1,1.0,0.35,4840.0,False
+2018-12-31,Specialty Chemicals,10,3.0,0.935,0.026,5760.0,False
+2018-12-31,Specialty Retail,10,30.0,0.416,-0.076,18147.0,True
+2018-12-31,Systems Software,8,30.0,0.315,-0.417,3198.0,False
+2018-12-31,"Technology Hardware, Storage & Peripherals",13,0.1,0.999,0.811,7085.0,False
+2018-12-31,Trading Companies & Distributors,10,30.0,0.127,-0.685,7396.0,True
+2018-12-31,Wireless Telecommunication Services,8,1.0,0.979,0.276,16458.0,False
+2019-12-31,Aerospace & Defense,20,10.0,0.585,0.002,24181.0,False
+2019-12-31,Application Software,21,30.0,0.216,-0.439,34867.0,False
+2019-12-31,Asset Management & Custody Banks,14,30.0,0.164,-0.392,12981.0,False
+2019-12-31,Automobile Manufacturers,13,30.0,0.206,-0.523,7911.0,False
+2019-12-31,Biotechnology,8,30.0,0.246,-0.96,4335.0,True
+2019-12-31,Building Products,10,1.0,0.943,0.089,6437.0,False
+2019-12-31,Chemicals,15,3.0,0.789,0.17,6703.0,False
+2019-12-31,Commercial Services & Supplies,9,30.0,0.405,-0.581,6259.0,False
+2019-12-31,Construction & Engineering,10,30.0,0.234,-0.336,11561.0,False
+2019-12-31,Construction Materials,8,10.0,0.672,-0.33,2638.0,False
+2019-12-31,Consumer Staples,16,30.0,0.363,-0.075,8626.0,False
+2019-12-31,Diversified Banks,72,30.0,0.134,-0.109,91376.0,False
+2019-12-31,Electrical Components & Equipment,11,0.1,1.0,0.269,10261.0,False
+2019-12-31,Electric Utilities,22,0.3,0.851,0.297,7171.0,False
+2019-12-31,Entertainment,8,0.3,0.999,0.219,10095.0,False
+2019-12-31,Financial Exchanges & Data,12,10.0,0.842,0.477,6863.0,False
+2019-12-31,Financials,18,3.0,0.846,0.483,22159.0,False
+2019-12-31,global,866,30.0,0.142,0.115,820635.0,False
+2019-12-31,Health Care Equipment,19,10.0,0.563,-0.075,12485.0,False
+2019-12-31,Health Care Providers & Services,13,30.0,0.388,-0.35,17996.0,False
+2019-12-31,"Hotels, Resorts & Cruise Lines",11,30.0,0.357,-0.52,12855.0,False
+2019-12-31,Household Products,8,30.0,0.293,-0.621,13383.0,False
+2019-12-31,Industrial Machinery & Supplies & Components,21,30.0,0.134,-0.274,7279.0,False
+2019-12-31,Industrials,17,30.0,0.336,-0.287,20882.0,False
+2019-12-31,Integrated Oil & Gas,13,0.3,0.996,0.395,12574.0,False
+2019-12-31,Integrated Telecommunication Services,14,30.0,0.302,-0.248,37843.0,False
+2019-12-31,Interactive Media & Services,9,30.0,0.261,-0.502,2516.0,False
+2019-12-31,Investment Banking & Brokerage,8,1.0,0.988,0.787,19249.0,True
+2019-12-31,Life & Health Insurance,17,30.0,0.38,-0.135,15986.0,False
+2019-12-31,Life Sciences Tools & Services,10,0.1,1.0,0.348,5365.0,False
+2019-12-31,Metals & Mining,10,30.0,0.436,-0.182,3711.0,False
+2019-12-31,Multi-Utilities,14,30.0,0.441,-0.095,4633.0,False
+2019-12-31,Oil & Gas Storage & Transportation,8,30.0,0.344,-0.335,1915.0,False
+2019-12-31,Packaged Foods & Meats,16,30.0,0.33,-0.213,10824.0,False
+2019-12-31,Passenger Airlines,9,30.0,0.343,-0.236,4966.0,False
+2019-12-31,Pharmaceuticals,25,30.0,0.293,-0.093,21796.0,False
+2019-12-31,Property & Casualty Insurance,14,3.0,0.895,-0.008,16976.0,False
+2019-12-31,Real Estate,8,30.0,0.499,-0.362,930.0,True
+2019-12-31,Research & Consulting Services,12,30.0,0.421,-0.151,23491.0,False
+2019-12-31,Residential REITs,9,0.1,1.0,0.423,2919.0,False
+2019-12-31,Semiconductor Materials & Equipment,9,10.0,0.827,0.357,4394.0,False
+2019-12-31,Semiconductors,18,30.0,0.44,-0.089,37493.0,False
+2019-12-31,Specialized REITs,9,0.1,1.0,0.654,5606.0,False
+2019-12-31,Specialty Chemicals,10,0.1,0.999,0.198,6807.0,False
+2019-12-31,Specialty Retail,10,10.0,0.631,0.007,21188.0,True
+2019-12-31,Systems Software,9,0.1,1.0,0.895,4404.0,False
+2019-12-31,"Technology Hardware, Storage & Peripherals",12,3.0,0.943,0.157,8722.0,False
+2019-12-31,Trading Companies & Distributors,12,30.0,0.14,-0.402,8742.0,False
+2019-12-31,Wireless Telecommunication Services,9,10.0,0.827,0.322,20131.0,False
+2020-12-31,Aerospace & Defense,22,1.0,0.749,0.073,29014.0,False
+2020-12-31,Application Software,24,30.0,0.196,-0.428,45065.0,False
+2020-12-31,Asset Management & Custody Banks,10,30.0,0.364,-0.364,14900.0,True
+2020-12-31,Automobile Manufacturers,14,30.0,0.351,-0.197,10987.0,False
+2020-12-31,Biotechnology,10,30.0,0.396,-0.488,5790.0,True
+2020-12-31,Broadline Retail,8,30.0,0.29,-0.397,10038.0,False
+2020-12-31,Building Products,9,10.0,0.798,-0.068,7571.0,False
+2020-12-31,Chemicals,13,30.0,0.35,-0.258,7790.0,False
+2020-12-31,Commercial Services & Supplies,9,30.0,0.386,-0.503,7417.0,False
+2020-12-31,Construction & Engineering,12,30.0,0.228,-0.39,14349.0,False
+2020-12-31,Construction Machinery & Heavy Transportation Equipment,8,30.0,0.426,-0.309,7835.0,True
+2020-12-31,Consumer Discretionary,9,10.0,0.711,0.087,7082.0,False
+2020-12-31,Consumer Staples,17,30.0,0.343,-0.193,10551.0,False
+2020-12-31,Diversified Banks,74,30.0,0.294,0.085,113187.0,False
+2020-12-31,Electrical Components & Equipment,12,10.0,0.627,-0.228,12669.0,False
+2020-12-31,Electric Utilities,19,30.0,0.354,-0.314,7973.0,True
+2020-12-31,Entertainment,8,0.3,0.999,0.352,12425.0,False
+2020-12-31,Financial Exchanges & Data,13,10.0,0.705,0.241,8076.0,False
+2020-12-31,Financials,19,3.0,0.786,0.238,27743.0,False
+2020-12-31,Food Retail,8,0.1,1.0,-0.117,21686.0,False
+2020-12-31,global,894,30.0,0.149,0.122,1009128.0,False
+2020-12-31,Health Care Equipment,19,10.0,0.695,0.351,15716.0,False
+2020-12-31,Health Care Providers & Services,12,30.0,0.368,-0.307,21507.0,False
+2020-12-31,"Hotels, Resorts & Cruise Lines",10,30.0,0.274,-0.407,16130.0,False
+2020-12-31,Household Durables,8,30.0,0.455,-0.341,5055.0,False
+2020-12-31,Household Products,9,30.0,0.267,-0.752,16036.0,False
+2020-12-31,Industrial Conglomerates,10,30.0,0.265,-0.425,6972.0,False
+2020-12-31,Industrial Machinery & Supplies & Components,22,30.0,0.141,-0.259,9078.0,False
+2020-12-31,Industrials,17,30.0,0.384,-0.302,25114.0,False
+2020-12-31,Integrated Oil & Gas,14,3.0,0.893,0.034,15386.0,False
+2020-12-31,Integrated Telecommunication Services,16,30.0,0.267,-0.411,43095.0,False
+2020-12-31,Interactive Media & Services,9,30.0,0.474,-0.397,3268.0,False
+2020-12-31,Investment Banking & Brokerage,10,30.0,0.403,-0.203,23534.0,False
+2020-12-31,Life & Health Insurance,18,30.0,0.204,-0.411,19022.0,False
+2020-12-31,Life Sciences Tools & Services,10,0.1,0.999,0.169,6606.0,False
+2020-12-31,Metals & Mining,12,30.0,0.423,-0.355,4676.0,False
+2020-12-31,Multi-Utilities,13,3.0,0.896,-0.08,5548.0,False
+2020-12-31,Oil & Gas Storage & Transportation,8,3.0,0.865,-0.056,2312.0,False
+2020-12-31,Packaged Foods & Meats,16,30.0,0.39,-0.098,12620.0,False
+2020-12-31,Passenger Airlines,9,30.0,0.391,-0.541,6653.0,False
+2020-12-31,Pharmaceuticals,23,30.0,0.186,-0.397,26402.0,False
+2020-12-31,Property & Casualty Insurance,14,30.0,0.441,-0.191,19678.0,False
+2020-12-31,Real Estate,8,1.0,0.989,-0.301,1087.0,True
+2020-12-31,Research & Consulting Services,12,10.0,0.741,0.149,27211.0,False
+2020-12-31,Residential REITs,9,0.1,1.0,0.28,3382.0,False
+2020-12-31,Restaurants,8,0.3,0.998,0.128,11547.0,True
+2020-12-31,Semiconductor Materials & Equipment,11,30.0,0.34,-0.236,5409.0,False
+2020-12-31,Semiconductors,19,30.0,0.276,-0.254,44316.0,False
+2020-12-31,Specialized REITs,9,1.0,0.995,0.573,6674.0,False
+2020-12-31,Specialty Chemicals,8,30.0,0.513,-0.424,7755.0,True
+2020-12-31,Specialty Retail,11,10.0,0.717,0.101,25470.0,True
+2020-12-31,Systems Software,9,3.0,0.916,0.291,5760.0,False
+2020-12-31,"Technology Hardware, Storage & Peripherals",11,10.0,0.714,-0.212,10993.0,True
+2020-12-31,Trading Companies & Distributors,12,30.0,0.459,-0.069,10256.0,False
+2020-12-31,Transaction & Payment Processing Services,8,30.0,0.449,-0.332,7339.0,False
+2020-12-31,Wireless Telecommunication Services,10,10.0,0.817,0.215,24586.0,False
+2021-12-31,Aerospace & Defense,21,30.0,0.369,-0.119,38273.0,False
+2021-12-31,"Apparel, Accessories & Luxury Goods",9,3.0,0.944,0.589,9372.0,False
+2021-12-31,Application Software,23,30.0,0.266,-0.257,61280.0,False
+2021-12-31,Asset Management & Custody Banks,10,0.3,0.993,-0.033,20000.0,True
+2021-12-31,Automobile Components,8,1.0,0.992,0.767,5207.0,False
+2021-12-31,Automobile Manufacturers,15,30.0,0.314,-0.289,18022.0,False
+2021-12-31,Biotechnology,10,30.0,0.402,-0.47,8377.0,True
+2021-12-31,Broadline Retail,9,30.0,0.25,-0.521,14140.0,False
+2021-12-31,Building Products,9,0.1,1.0,-0.022,10299.0,False
+2021-12-31,Chemicals,16,30.0,0.274,-0.243,11347.0,False
+2021-12-31,Commercial Services & Supplies,9,30.0,0.388,-0.255,9621.0,False
+2021-12-31,Construction & Engineering,10,30.0,0.27,-0.464,19237.0,False
+2021-12-31,Construction Machinery & Heavy Transportation Equipment,11,30.0,0.267,-0.129,11375.0,False
+2021-12-31,Consumer Discretionary,11,3.0,0.856,0.104,9394.0,False
+2021-12-31,Consumer Staples,17,30.0,0.225,-0.336,14779.0,False
+2021-12-31,Diversified Banks,79,30.0,0.269,0.043,160917.0,False
+2021-12-31,Electrical Components & Equipment,15,0.1,0.995,0.693,17391.0,False
+2021-12-31,Electric Utilities,22,30.0,0.337,-0.263,10883.0,False
+2021-12-31,Electronic Components,8,30.0,0.496,-0.29,1955.0,False
+2021-12-31,Electronic Equipment & Instruments,8,30.0,0.468,-0.233,5261.0,False
+2021-12-31,Entertainment,9,10.0,0.854,0.029,17190.0,False
+2021-12-31,Financial Exchanges & Data,14,10.0,0.784,0.132,11052.0,False
+2021-12-31,Financials,20,10.0,0.664,0.158,39946.0,False
+2021-12-31,Financial Services,8,3.0,0.946,0.09,5315.0,False
+2021-12-31,Food Retail,9,0.1,1.0,0.079,38210.0,False
+2021-12-31,global,975,30.0,0.226,0.204,1438248.0,False
+2021-12-31,Health Care Equipment,23,10.0,0.705,0.355,27779.0,False
+2021-12-31,Health Care Providers & Services,14,10.0,0.599,-0.165,38026.0,False
+2021-12-31,"Hotels, Resorts & Cruise Lines",10,30.0,0.379,-0.182,21222.0,False
+2021-12-31,Household Durables,8,30.0,0.463,-0.455,6623.0,False
+2021-12-31,Household Products,9,30.0,0.227,-0.819,21225.0,False
+2021-12-31,Independent Power & Renewable Electricity Producers,8,30.0,0.259,-0.683,2366.0,False
+2021-12-31,Industrial Conglomerates,9,0.1,0.999,0.397,14977.0,False
+2021-12-31,Industrial Machinery & Supplies & Components,22,30.0,0.314,-0.106,12247.0,False
+2021-12-31,Industrials,18,30.0,0.331,-0.313,37915.0,False
+2021-12-31,Integrated Oil & Gas,15,10.0,0.531,0.114,20867.0,False
+2021-12-31,Integrated Telecommunication Services,16,30.0,0.234,-0.416,54219.0,False
+2021-12-31,Interactive Media & Services,9,30.0,0.394,-0.384,4709.0,False
+2021-12-31,Internet Services & Infrastructure,8,10.0,0.783,-0.096,5629.0,False
+2021-12-31,Investment Banking & Brokerage,13,30.0,0.364,-0.118,33181.0,False
+2021-12-31,Life & Health Insurance,19,10.0,0.696,0.161,25689.0,False
+2021-12-31,Life Sciences Tools & Services,12,30.0,0.38,-0.211,9743.0,False
+2021-12-31,Metals & Mining,13,30.0,0.362,-0.283,6793.0,False
+2021-12-31,Multi-Utilities,13,30.0,0.517,-0.089,7849.0,False
+2021-12-31,Oil & Gas Exploration & Production,8,30.0,0.537,-0.178,3067.0,False
+2021-12-31,Packaged Foods & Meats,17,30.0,0.302,-0.115,16658.0,False
+2021-12-31,Passenger Airlines,11,30.0,0.344,-0.229,9731.0,False
+2021-12-31,Pharmaceuticals,24,30.0,0.206,-0.347,37071.0,False
+2021-12-31,Property & Casualty Insurance,14,30.0,0.368,-0.289,25954.0,False
+2021-12-31,Real Estate,9,30.0,0.33,-0.558,1483.0,False
+2021-12-31,Real Estate Management & Development,10,30.0,0.451,-0.378,4850.0,False
+2021-12-31,Research & Consulting Services,12,0.1,1.0,0.588,34547.0,False
+2021-12-31,Residential REITs,9,10.0,0.743,-0.036,4224.0,False
+2021-12-31,Semiconductor Materials & Equipment,11,0.3,0.994,0.243,7692.0,False
+2021-12-31,Semiconductors,18,30.0,0.436,0.022,58045.0,False
+2021-12-31,Specialized REITs,9,0.1,1.0,0.747,8431.0,False
+2021-12-31,Specialty Chemicals,10,3.0,0.837,0.02,10606.0,False
+2021-12-31,Specialty Retail,13,30.0,0.306,-0.154,34980.0,False
+2021-12-31,Systems Software,10,3.0,0.952,0.503,9137.0,False
+2021-12-31,"Technology Hardware, Storage & Peripherals",14,30.0,0.44,-0.176,17013.0,False
+2021-12-31,Trading Companies & Distributors,14,30.0,0.348,-0.144,13571.0,False
+2021-12-31,Transaction & Payment Processing Services,10,30.0,0.325,-0.456,13328.0,False
+2021-12-31,Wireless Telecommunication Services,8,10.0,0.753,-0.158,34077.0,False
+2022-12-31,Aerospace & Defense,24,30.0,0.359,-0.06,48344.0,False
+2022-12-31,"Apparel, Accessories & Luxury Goods",9,3.0,0.937,0.717,12870.0,False
+2022-12-31,Application Software,26,30.0,0.282,-0.173,77458.0,False
+2022-12-31,Asset Management & Custody Banks,15,30.0,0.404,-0.026,25631.0,False
+2022-12-31,Automobile Components,8,30.0,0.294,-0.378,6735.0,False
+2022-12-31,Automobile Manufacturers,14,30.0,0.197,-0.671,24625.0,False
+2022-12-31,Biotechnology,13,30.0,0.467,-0.244,11385.0,False
+2022-12-31,Broadline Retail,9,1.0,0.941,0.194,18288.0,False
+2022-12-31,Building Products,10,0.1,1.0,0.561,13069.0,False
+2022-12-31,Chemicals,19,30.0,0.332,-0.045,14645.0,False
+2022-12-31,Commercial Services & Supplies,10,30.0,0.519,-0.081,12131.0,False
+2022-12-31,Construction & Engineering,10,30.0,0.204,-0.606,23604.0,False
+2022-12-31,Construction Machinery & Heavy Transportation Equipment,11,30.0,0.176,-0.35,14965.0,False
+2022-12-31,Consumer Discretionary,10,30.0,0.388,-0.25,11198.0,False
+2022-12-31,Consumer Staples,20,30.0,0.409,-0.024,19085.0,False
+2022-12-31,Diversified Banks,90,30.0,0.14,-0.07,206783.0,False
+2022-12-31,Electrical Components & Equipment,15,30.0,0.422,-0.218,21633.0,False
+2022-12-31,Electric Utilities,26,30.0,0.321,-0.184,14288.0,False
+2022-12-31,Electronic Equipment & Instruments,9,30.0,0.42,-0.137,6821.0,False
+2022-12-31,Entertainment,9,0.1,0.999,-0.172,21358.0,False
+2022-12-31,Financial Exchanges & Data,12,30.0,0.533,-0.268,13982.0,False
+2022-12-31,Financials,20,10.0,0.662,0.162,51436.0,False
+2022-12-31,Financial Services,9,30.0,0.425,-0.535,7204.0,False
+2022-12-31,Food Retail,10,30.0,0.341,-0.301,53507.0,False
+2022-12-31,global,1053,30.0,0.157,0.135,1891752.0,False
+2022-12-31,Health Care Equipment,23,10.0,0.647,0.261,37475.0,False
+2022-12-31,Health Care Providers & Services,15,1.0,0.884,-0.082,55348.0,False
+2022-12-31,"Hotels, Resorts & Cruise Lines",12,0.1,0.998,0.177,26676.0,False
+2022-12-31,Household Products,9,30.0,0.273,-0.791,25987.0,False
+2022-12-31,Independent Power & Renewable Electricity Producers,8,10.0,0.735,-0.138,2831.0,False
+2022-12-31,Industrial Conglomerates,10,30.0,0.602,-0.519,22904.0,False
+2022-12-31,Industrial Machinery & Supplies & Components,24,10.0,0.545,0.052,15619.0,False
+2022-12-31,Industrials,20,30.0,0.251,-0.384,53210.0,False
+2022-12-31,Integrated Oil & Gas,15,0.1,0.992,0.542,25525.0,False
+2022-12-31,Integrated Telecommunication Services,22,30.0,0.263,-0.246,67092.0,False
+2022-12-31,Interactive Media & Services,8,1.0,0.982,0.083,6226.0,False
+2022-12-31,Internet Services & Infrastructure,8,3.0,0.967,0.202,7986.0,False
+2022-12-31,Investment Banking & Brokerage,12,0.3,0.979,0.199,41147.0,False
+2022-12-31,IT Consulting & Other Services,9,30.0,0.421,-0.264,36165.0,True
+2022-12-31,Life & Health Insurance,21,30.0,0.275,-0.04,32611.0,False
+2022-12-31,Life Sciences Tools & Services,14,30.0,0.2,-0.381,13581.0,False
+2022-12-31,Metals & Mining,15,30.0,0.343,-0.129,8624.0,False
+2022-12-31,Multi-Utilities,13,30.0,0.432,-0.328,9877.0,False
+2022-12-31,Oil & Gas Exploration & Production,9,10.0,0.802,0.132,3797.0,False
+2022-12-31,Oil & Gas Refining & Marketing,8,0.1,1.0,0.116,7787.0,False
+2022-12-31,Packaged Foods & Meats,18,0.1,0.943,0.282,20303.0,False
+2022-12-31,Passenger Airlines,10,30.0,0.16,-0.533,12094.0,False
+2022-12-31,Pharmaceuticals,29,30.0,0.311,-0.114,49174.0,False
+2022-12-31,Property & Casualty Insurance,17,30.0,0.427,-0.105,31996.0,False
+2022-12-31,Real Estate,11,30.0,0.42,-0.247,1936.0,False
+2022-12-31,Real Estate Management & Development,11,30.0,0.431,-0.364,6337.0,False
+2022-12-31,Research & Consulting Services,12,3.0,0.909,0.268,41102.0,False
+2022-12-31,Residential REITs,9,3.0,0.941,0.21,5057.0,False
+2022-12-31,Restaurants,11,30.0,0.415,-0.367,34535.0,False
+2022-12-31,Semiconductor Materials & Equipment,11,30.0,0.422,-0.388,10141.0,False
+2022-12-31,Semiconductors,18,30.0,0.491,0.049,70533.0,False
+2022-12-31,Specialized REITs,9,10.0,0.791,-0.098,10200.0,False
+2022-12-31,Specialty Chemicals,11,3.0,0.889,0.514,13246.0,False
+2022-12-31,Specialty Retail,14,30.0,0.297,-0.126,46728.0,False
+2022-12-31,Systems Software,10,3.0,0.955,0.433,12568.0,False
+2022-12-31,"Technology Hardware, Storage & Peripherals",14,30.0,0.593,0.072,22004.0,False
+2022-12-31,Trading Companies & Distributors,15,30.0,0.317,-0.177,16747.0,False
+2022-12-31,Transaction & Payment Processing Services,10,0.1,1.0,0.012,18730.0,False
+2022-12-31,Wireless Telecommunication Services,8,0.1,1.0,0.515,43747.0,False
+2023-12-31,Aerospace & Defense,26,3.0,0.705,0.016,56669.0,False
+2023-12-31,"Apparel, Accessories & Luxury Goods",10,10.0,0.778,-0.022,16410.0,False
+2023-12-31,Application Software,27,1.0,0.638,-0.041,92500.0,False
+2023-12-31,Asset Management & Custody Banks,16,30.0,0.434,-0.008,29861.0,False
+2023-12-31,Automobile Components,8,30.0,0.34,-0.381,8115.0,False
+2023-12-31,Automobile Manufacturers,16,30.0,0.365,0.053,32815.0,False
+2023-12-31,Biotechnology,17,30.0,0.43,-0.18,13933.0,False
+2023-12-31,Broadline Retail,9,30.0,0.189,-0.552,21605.0,False
+2023-12-31,Building Products,12,3.0,0.885,0.116,15910.0,False
+2023-12-31,Chemicals,20,30.0,0.335,-0.025,17779.0,False
+2023-12-31,Commercial Services & Supplies,10,10.0,0.802,0.087,13792.0,False
+2023-12-31,Construction & Engineering,14,30.0,0.175,-0.551,28536.0,False
+2023-12-31,Construction Machinery & Heavy Transportation Equipment,13,30.0,0.286,-0.163,18288.0,False
+2023-12-31,Construction Materials,8,30.0,0.423,-0.36,5801.0,False
+2023-12-31,Consumer Discretionary,11,0.3,0.996,0.213,13133.0,False
+2023-12-31,Consumer Staples,17,30.0,0.334,-0.069,22190.0,False
+2023-12-31,Diversified Banks,92,30.0,0.144,-0.067,246286.0,False
+2023-12-31,Electrical Components & Equipment,15,30.0,0.267,-0.528,25796.0,False
+2023-12-31,Electric Utilities,28,10.0,0.537,0.001,17083.0,False
+2023-12-31,Electronic Components,9,10.0,0.701,-0.065,3733.0,False
+2023-12-31,Electronic Equipment & Instruments,9,30.0,0.462,-0.242,8198.0,False
+2023-12-31,Entertainment,9,30.0,0.531,-0.305,25108.0,False
+2023-12-31,Financial Exchanges & Data,11,30.0,0.578,-0.027,16511.0,False
+2023-12-31,Financials,20,30.0,0.473,0.092,63053.0,False
+2023-12-31,Financial Services,9,30.0,0.469,-0.367,8343.0,False
+2023-12-31,Food Retail,9,30.0,0.366,-0.492,65297.0,False
+2023-12-31,global,1109,30.0,0.147,0.128,2322326.0,False
+2023-12-31,Ground Transportation,8,10.0,0.783,0.053,15245.0,False
+2023-12-31,Health Care Equipment,24,30.0,0.575,0.314,46700.0,False
+2023-12-31,Health Care Providers & Services,15,10.0,0.645,0.206,69536.0,False
+2023-12-31,Heavy Electrical Equipment,8,30.0,0.33,-0.4,14816.0,False
+2023-12-31,"Hotels, Resorts & Cruise Lines",14,30.0,0.306,-0.181,32819.0,False
+2023-12-31,Household Durables,8,30.0,0.28,-0.643,9499.0,False
+2023-12-31,Household Products,8,30.0,0.248,-0.783,30441.0,False
+2023-12-31,Independent Power & Renewable Electricity Producers,9,10.0,0.834,0.36,3603.0,False
+2023-12-31,Industrial Conglomerates,12,30.0,0.272,-0.571,29790.0,False
+2023-12-31,Industrial Machinery & Supplies & Components,25,30.0,0.356,-0.025,18638.0,False
+2023-12-31,Industrials,20,30.0,0.368,0.024,65666.0,False
+2023-12-31,Integrated Oil & Gas,14,30.0,0.502,-0.096,29329.0,False
+2023-12-31,Integrated Telecommunication Services,23,30.0,0.309,-0.188,79460.0,False
+2023-12-31,Interactive Media & Services,10,10.0,0.765,0.054,8123.0,False
+2023-12-31,Internet Services & Infrastructure,8,30.0,0.501,-0.362,10337.0,False
+2023-12-31,Investment Banking & Brokerage,12,0.1,0.993,0.577,48831.0,False
+2023-12-31,IT Consulting & Other Services,13,30.0,0.432,-0.126,71369.0,False
+2023-12-31,Life & Health Insurance,21,0.3,0.874,0.324,38113.0,False
+2023-12-31,Life Sciences Tools & Services,14,30.0,0.296,-0.373,18219.0,False
+2023-12-31,Metals & Mining,15,30.0,0.354,-0.164,10230.0,False
+2023-12-31,Multi-Utilities,13,3.0,0.957,0.525,11576.0,False
+2023-12-31,Oil & Gas Exploration & Production,11,0.1,1.0,-0.054,4453.0,False
+2023-12-31,Oil & Gas Storage & Transportation,8,30.0,0.442,-0.097,4281.0,False
+2023-12-31,Packaged Foods & Meats,20,10.0,0.511,0.053,23512.0,False
+2023-12-31,Passenger Airlines,10,30.0,0.322,-0.504,14504.0,False
+2023-12-31,Personal Care Products,8,30.0,0.514,-0.098,7006.0,False
+2023-12-31,Pharmaceuticals,33,30.0,0.3,-0.083,60584.0,False
+2023-12-31,Property & Casualty Insurance,18,30.0,0.177,-0.447,36590.0,False
+2023-12-31,Real Estate,13,0.3,0.975,0.0,2373.0,False
+2023-12-31,Real Estate Management & Development,12,30.0,0.302,-0.127,7466.0,False
+2023-12-31,Research & Consulting Services,12,0.1,0.999,0.733,47379.0,False
+2023-12-31,Residential REITs,9,0.1,1.0,0.661,5690.0,False
+2023-12-31,Restaurants,9,30.0,0.573,-0.249,53309.0,True
+2023-12-31,Semiconductor Materials & Equipment,11,0.1,0.999,0.516,12537.0,False
+2023-12-31,Semiconductors,20,30.0,0.489,0.127,83157.0,False
+2023-12-31,Specialized REITs,9,3.0,0.92,-0.004,12238.0,False
+2023-12-31,Specialty Chemicals,10,0.1,1.0,0.638,15397.0,False
+2023-12-31,Specialty Retail,14,30.0,0.324,-0.085,59783.0,False
+2023-12-31,Systems Software,12,3.0,0.933,0.438,16273.0,False
+2023-12-31,"Technology Hardware, Storage & Peripherals",15,3.0,0.85,0.258,26543.0,False
+2023-12-31,Trading Companies & Distributors,12,10.0,0.751,0.155,18877.0,False
+2023-12-31,Transaction & Payment Processing Services,12,0.1,0.998,0.683,23648.0,False
+2023-12-31,Wireless Telecommunication Services,8,3.0,0.919,-0.159,50690.0,False
+2024-12-31,Aerospace & Defense,27,10.0,0.606,0.132,66168.0,False
+2024-12-31,"Apparel, Accessories & Luxury Goods",8,30.0,0.45,-0.29,19393.0,False
+2024-12-31,Application Software,29,3.0,0.622,0.092,113691.0,False
+2024-12-31,Asset Management & Custody Banks,18,30.0,0.239,-0.125,34906.0,False
+2024-12-31,Automobile Components,9,30.0,0.403,-0.19,9558.0,False
+2024-12-31,Automobile Manufacturers,17,30.0,0.318,-0.04,37075.0,False
+2024-12-31,Biotechnology,17,30.0,0.393,-0.214,16376.0,False
+2024-12-31,Broadline Retail,10,30.0,0.264,-0.428,25334.0,False
+2024-12-31,Building Products,13,0.1,0.995,0.689,19019.0,False
+2024-12-31,Chemicals,20,30.0,0.359,0.015,20539.0,False
+2024-12-31,Commercial Services & Supplies,11,30.0,0.322,-0.262,15437.0,False
+2024-12-31,Communications Equipment,8,0.1,1.0,0.679,17032.0,False
+2024-12-31,Construction & Engineering,16,30.0,0.145,-0.443,33673.0,False
+2024-12-31,Construction Machinery & Heavy Transportation Equipment,14,30.0,0.213,-0.491,21500.0,False
+2024-12-31,Construction Materials,8,30.0,0.315,-0.485,6579.0,False
+2024-12-31,Consumer Discretionary,10,3.0,0.905,-0.041,14540.0,False
+2024-12-31,Consumer Staples,20,30.0,0.359,-0.114,25905.0,False
+2024-12-31,Diversified Banks,96,30.0,0.066,-0.139,289490.0,False
+2024-12-31,Electrical Components & Equipment,16,30.0,0.236,-0.386,29865.0,False
+2024-12-31,Electric Utilities,33,30.0,0.351,0.001,20401.0,False
+2024-12-31,Electronic Components,10,1.0,0.944,0.219,4812.0,False
+2024-12-31,Electronic Equipment & Instruments,9,10.0,0.59,-0.141,9728.0,False
+2024-12-31,Entertainment,9,10.0,0.789,0.123,28682.0,False
+2024-12-31,Financial Exchanges & Data,14,10.0,0.767,0.075,20262.0,False
+2024-12-31,Financials,23,30.0,0.394,-0.037,76354.0,False
+2024-12-31,Financial Services,8,30.0,0.525,-0.477,9203.0,False
+2024-12-31,Food Retail,8,0.1,1.0,0.391,77718.0,False
+2024-12-31,global,1181,30.0,0.097,0.078,2819917.0,False
+2024-12-31,Ground Transportation,8,10.0,0.682,0.074,17326.0,False
+2024-12-31,Health Care Equipment,23,10.0,0.546,0.028,55155.0,False
+2024-12-31,Health Care Providers & Services,16,3.0,0.855,0.346,83177.0,False
+2024-12-31,Heavy Electrical Equipment,8,30.0,0.349,-0.571,17275.0,False
+2024-12-31,"Hotels, Resorts & Cruise Lines",14,30.0,0.327,-0.414,39267.0,False
+2024-12-31,Household Durables,10,30.0,0.319,-0.425,11242.0,False
+2024-12-31,Household Products,8,30.0,0.292,-0.717,34720.0,False
+2024-12-31,Independent Power & Renewable Electricity Producers,9,30.0,0.459,-0.367,4274.0,False
+2024-12-31,Industrial Conglomerates,12,30.0,0.194,-0.445,35786.0,False
+2024-12-31,Industrial Machinery & Supplies & Components,26,30.0,0.21,-0.302,21541.0,False
+2024-12-31,Industrials,23,30.0,0.352,0.019,78346.0,False
+2024-12-31,Integrated Oil & Gas,15,30.0,0.5,-0.174,33451.0,False
+2024-12-31,Integrated Telecommunication Services,22,30.0,0.313,-0.249,90639.0,False
+2024-12-31,Interactive Media & Services,11,0.1,1.0,0.323,9912.0,False
+2024-12-31,Internet Services & Infrastructure,8,30.0,0.433,-0.207,12783.0,False
+2024-12-31,Investment Banking & Brokerage,15,30.0,0.531,0.196,56916.0,False
+2024-12-31,IT Consulting & Other Services,15,30.0,0.387,-0.177,139064.0,False
+2024-12-31,Life & Health Insurance,20,30.0,0.195,-0.342,43182.0,False
+2024-12-31,Life Sciences Tools & Services,14,30.0,0.18,-0.581,23484.0,False
+2024-12-31,Metals & Mining,15,10.0,0.714,0.181,11941.0,False
+2024-12-31,Multi-Utilities,13,3.0,0.949,0.461,13384.0,False
+2024-12-31,Oil & Gas Exploration & Production,11,30.0,0.388,-0.288,5014.0,False
+2024-12-31,Oil & Gas Refining & Marketing,8,30.0,0.304,-0.649,11367.0,False
+2024-12-31,Oil & Gas Storage & Transportation,9,30.0,0.441,-0.001,5249.0,False
+2024-12-31,Packaged Foods & Meats,21,30.0,0.44,0.089,26860.0,False
+2024-12-31,Passenger Airlines,9,30.0,0.32,-0.302,16333.0,False
+2024-12-31,Personal Care Products,8,0.1,1.0,0.733,8659.0,False
+2024-12-31,Pharmaceuticals,34,30.0,0.262,-0.119,73506.0,False
+2024-12-31,Property & Casualty Insurance,20,30.0,0.31,-0.293,41467.0,False
+2024-12-31,Real Estate,12,30.0,0.206,-0.232,2626.0,False
+2024-12-31,Real Estate Management & Development,12,30.0,0.29,-0.058,8518.0,False
+2024-12-31,Research & Consulting Services,12,1.0,0.94,0.09,53743.0,False
+2024-12-31,Residential REITs,9,30.0,0.518,-0.067,6303.0,False
+2024-12-31,Restaurants,13,3.0,0.888,0.279,79684.0,False
+2024-12-31,Semiconductor Materials & Equipment,11,30.0,0.407,-0.293,15058.0,False
+2024-12-31,Semiconductors,23,10.0,0.67,0.168,96889.0,False
+2024-12-31,Soft Drinks & Non-alcoholic Beverages,8,30.0,0.587,-0.404,29641.0,False
+2024-12-31,Specialized REITs,9,10.0,0.655,-0.187,14142.0,False
+2024-12-31,Specialty Chemicals,12,30.0,0.238,-0.396,17787.0,False
+2024-12-31,Specialty Retail,17,30.0,0.31,-0.006,72430.0,False
+2024-12-31,Steel,9,10.0,0.658,0.202,7977.0,False
+2024-12-31,Systems Software,12,3.0,0.923,0.464,27494.0,False
+2024-12-31,"Technology Hardware, Storage & Peripherals",19,30.0,0.478,0.023,36817.0,False
+2024-12-31,Trading Companies & Distributors,14,3.0,0.873,0.065,21372.0,False
+2024-12-31,Transaction & Payment Processing Services,12,30.0,0.346,-0.26,29236.0,False
+2024-12-31,Wireless Telecommunication Services,11,10.0,0.745,-0.207,57578.0,False
+2025-12-31,Aerospace & Defense,27,30.0,0.306,-0.072,72342.0,False
+2025-12-31,"Apparel, Accessories & Luxury Goods",8,10.0,0.731,0.077,21653.0,False
+2025-12-31,Application Software,29,30.0,0.445,0.003,131531.0,False
+2025-12-31,Asset Management & Custody Banks,19,30.0,0.192,-0.104,38312.0,False
+2025-12-31,Automobile Components,9,3.0,0.955,0.453,10647.0,False
+2025-12-31,Automobile Manufacturers,18,30.0,0.222,-0.116,42410.0,False
+2025-12-31,Biotechnology,17,30.0,0.206,-0.384,18575.0,False
+2025-12-31,Broadline Retail,12,30.0,0.342,-0.07,28228.0,False
+2025-12-31,Building Products,13,3.0,0.801,-0.056,21162.0,False
+2025-12-31,Casinos & Gaming,8,0.1,1.0,0.42,6163.0,False
+2025-12-31,Chemicals,20,30.0,0.45,0.204,22518.0,False
+2025-12-31,Commercial Services & Supplies,10,30.0,0.136,-0.462,16483.0,False
+2025-12-31,Communications Equipment,8,0.3,0.999,0.564,20367.0,False
+2025-12-31,Construction & Engineering,16,30.0,0.345,-0.158,36851.0,False
+2025-12-31,Construction Machinery & Heavy Transportation Equipment,15,30.0,0.132,-0.575,28594.0,False
+2025-12-31,Construction Materials,8,1.0,0.973,-0.031,7242.0,False
+2025-12-31,Consumer Discretionary,11,30.0,0.434,-0.129,16553.0,False
+2025-12-31,Consumer Staples,22,30.0,0.172,-0.314,28449.0,False
+2025-12-31,Consumer Staples Merchandise Retail,8,30.0,0.477,-0.127,95466.0,False
+2025-12-31,Diversified Banks,101,30.0,0.05,-0.137,319506.0,False
+2025-12-31,Electrical Components & Equipment,16,30.0,0.295,-0.456,32933.0,False
+2025-12-31,Electric Utilities,33,30.0,0.325,-0.059,22463.0,False
+2025-12-31,Electronic Components,10,3.0,0.817,-0.059,5362.0,False
+2025-12-31,Electronic Equipment & Instruments,9,30.0,0.374,-0.199,10763.0,False
+2025-12-31,Entertainment,9,30.0,0.555,-0.23,31089.0,False
+2025-12-31,Financial Exchanges & Data,14,30.0,0.536,0.035,22813.0,False
+2025-12-31,Financials,23,10.0,0.588,0.139,85389.0,False
+2025-12-31,Financial Services,8,30.0,0.623,-0.463,9815.0,False
+2025-12-31,Food Retail,9,0.1,0.999,0.286,87403.0,False
+2025-12-31,global,1222,30.0,0.066,0.047,3212655.0,False
+2025-12-31,Ground Transportation,8,30.0,0.329,-0.291,18680.0,False
+2025-12-31,Health Care Equipment,25,30.0,0.279,-0.146,61602.0,False
+2025-12-31,Health Care Providers & Services,16,30.0,0.475,-0.007,91441.0,False
+2025-12-31,Heavy Electrical Equipment,9,30.0,0.297,-0.726,19017.0,False
+2025-12-31,"Hotels, Resorts & Cruise Lines",15,30.0,0.187,-0.425,43845.0,False
+2025-12-31,Household Durables,12,30.0,0.438,-0.235,13065.0,False
+2025-12-31,Household Products,8,30.0,0.335,-0.404,37737.0,False
+2025-12-31,Independent Power & Renewable Electricity Producers,9,10.0,0.766,0.011,4877.0,False
+2025-12-31,Industrial Conglomerates,12,30.0,0.241,-0.318,39812.0,False
+2025-12-31,Industrial Machinery & Supplies & Components,25,30.0,0.126,-0.287,23268.0,False
+2025-12-31,Industrials,27,30.0,0.3,-0.047,86620.0,False
+2025-12-31,Integrated Oil & Gas,16,30.0,0.457,-0.224,36319.0,False
+2025-12-31,Integrated Telecommunication Services,22,30.0,0.385,-0.005,98551.0,False
+2025-12-31,Interactive Media & Services,13,0.1,0.999,0.293,12634.0,False
+2025-12-31,Internet Services & Infrastructure,9,3.0,0.829,-0.145,14661.0,False
+2025-12-31,Investment Banking & Brokerage,15,30.0,0.385,0.089,62623.0,False
+2025-12-31,IT Consulting & Other Services,16,3.0,0.786,0.049,204468.0,False
+2025-12-31,Life & Health Insurance,21,30.0,0.25,-0.111,47040.0,False
+2025-12-31,Life Sciences Tools & Services,15,30.0,0.255,-0.398,28349.0,False
+2025-12-31,Media,8,10.0,0.797,-0.2,9109.0,False
+2025-12-31,Metals & Mining,15,30.0,0.376,-0.088,12949.0,False
+2025-12-31,Multi-line Insurance,8,0.1,1.0,0.084,11663.0,False
+2025-12-31,Multi-Utilities,13,3.0,0.926,0.398,14863.0,False
+2025-12-31,Oil & Gas Exploration & Production,9,10.0,0.756,-0.004,5066.0,False
+2025-12-31,Oil & Gas Refining & Marketing,8,30.0,0.462,-0.248,12535.0,False
+2025-12-31,Oil & Gas Storage & Transportation,9,10.0,0.776,0.232,5706.0,False
+2025-12-31,Packaged Foods & Meats,22,3.0,0.875,0.576,29071.0,False
+2025-12-31,Passenger Airlines,9,30.0,0.334,-0.264,17660.0,False
+2025-12-31,Personal Care Products,8,1.0,0.985,0.666,9906.0,False
+2025-12-31,Pharmaceuticals,35,30.0,0.142,-0.313,82350.0,False
+2025-12-31,Property & Casualty Insurance,22,10.0,0.662,0.233,45737.0,False
+2025-12-31,Real Estate,15,30.0,0.266,-0.298,3318.0,False
+2025-12-31,Real Estate Management & Development,13,30.0,0.336,-0.119,9476.0,False
+2025-12-31,Research & Consulting Services,12,0.1,0.999,0.416,58485.0,False
+2025-12-31,Residential REITs,9,30.0,0.356,-0.381,6708.0,False
+2025-12-31,Restaurants,14,10.0,0.612,-0.179,108117.0,False
+2025-12-31,Semiconductor Materials & Equipment,10,30.0,0.254,-0.573,16678.0,False
+2025-12-31,Semiconductors,21,10.0,0.697,0.073,106303.0,False
+2025-12-31,Soft Drinks & Non-alcoholic Beverages,8,30.0,0.54,-0.438,32092.0,False
+2025-12-31,Specialized REITs,9,30.0,0.371,-0.308,15341.0,False
+2025-12-31,Specialty Chemicals,13,30.0,0.201,-0.441,19307.0,False
+2025-12-31,Specialty Retail,20,30.0,0.266,-0.156,82833.0,False
+2025-12-31,Steel,9,30.0,0.473,0.037,8701.0,False
+2025-12-31,Systems Software,12,10.0,0.777,0.096,36705.0,False
+2025-12-31,"Technology Hardware, Storage & Peripherals",20,3.0,0.62,0.061,43740.0,False
+2025-12-31,Trading Companies & Distributors,17,1.0,0.939,0.196,23684.0,False
+2025-12-31,Transaction & Payment Processing Services,11,0.1,0.999,0.653,33055.0,False
+2025-12-31,Wireless Telecommunication Services,10,3.0,0.865,0.081,61353.0,False
+2026-06-30,Aerospace & Defense,27,30.0,0.261,-0.129,74336.0,False
+2026-06-30,"Apparel, Accessories & Luxury Goods",8,3.0,0.882,0.309,22284.0,False
+2026-06-30,Application Software,30,30.0,0.398,0.013,136757.0,False
+2026-06-30,Asset Management & Custody Banks,19,30.0,0.166,-0.154,39468.0,False
+2026-06-30,Automobile Components,8,1.0,0.981,0.555,10786.0,False
+2026-06-30,Automobile Manufacturers,18,3.0,0.679,0.144,43519.0,False
+2026-06-30,Biotechnology,17,30.0,0.183,-0.379,19190.0,False
+2026-06-30,Broadline Retail,12,10.0,0.567,0.09,29075.0,False
+2026-06-30,Building Products,13,30.0,0.285,-0.306,21730.0,False
+2026-06-30,Casinos & Gaming,8,10.0,0.766,-0.181,6528.0,False
+2026-06-30,Chemicals,20,30.0,0.406,0.071,23101.0,False
+2026-06-30,Commercial Services & Supplies,10,30.0,0.155,-0.504,16958.0,False
+2026-06-30,Communications Equipment,8,10.0,0.76,-0.059,20934.0,False
+2026-06-30,Construction & Engineering,16,10.0,0.625,0.132,37872.0,False
+2026-06-30,Construction Machinery & Heavy Transportation Equipment,15,30.0,0.129,-0.586,29161.0,False
+2026-06-30,Construction Materials,8,0.1,1.0,0.296,7608.0,False
+2026-06-30,Consumer Discretionary,11,30.0,0.458,-0.112,17093.0,False
+2026-06-30,Consumer Staples,22,30.0,0.171,-0.296,29216.0,False
+2026-06-30,Consumer Staples Merchandise Retail,8,30.0,0.37,-0.384,98452.0,False
+2026-06-30,Diversified Banks,104,30.0,0.092,-0.084,327956.0,False
+2026-06-30,Electrical Components & Equipment,17,30.0,0.243,-0.523,34160.0,False
+2026-06-30,Electric Utilities,32,30.0,0.233,-0.255,22848.0,False
+2026-06-30,Electronic Components,10,1.0,0.97,0.333,5521.0,False
+2026-06-30,Electronic Equipment & Instruments,10,30.0,0.326,-0.138,11164.0,False
+2026-06-30,Entertainment,9,30.0,0.496,-0.32,31838.0,False
+2026-06-30,Financial Exchanges & Data,14,3.0,0.933,0.438,23792.0,False
+2026-06-30,Financials,23,30.0,0.384,0.107,88184.0,False
+2026-06-30,Financial Services,10,30.0,0.536,-0.313,10487.0,False
+2026-06-30,Food Retail,10,0.1,0.999,0.48,90106.0,False
+2026-06-30,global,1246,30.0,0.056,0.037,3312031.0,False
+2026-06-30,Ground Transportation,8,30.0,0.357,-0.309,19144.0,False
+2026-06-30,Health Care Equipment,25,3.0,0.705,0.157,63170.0,False
+2026-06-30,Health Care Providers & Services,17,1.0,0.876,0.131,93089.0,False
+2026-06-30,Heavy Electrical Equipment,9,30.0,0.202,-0.919,19570.0,False
+2026-06-30,"Hotels, Resorts & Cruise Lines",15,30.0,0.238,-0.243,44942.0,False
+2026-06-30,Household Durables,12,30.0,0.455,-0.221,13528.0,False
+2026-06-30,Household Products,8,30.0,0.347,-0.417,38607.0,False
+2026-06-30,Independent Power & Renewable Electricity Producers,9,30.0,0.46,-0.208,5076.0,False
+2026-06-30,Industrial Conglomerates,13,30.0,0.321,-0.24,40751.0,False
+2026-06-30,Industrial Machinery & Supplies & Components,27,30.0,0.18,-0.169,23998.0,False
+2026-06-30,Industrials,27,30.0,0.116,-0.201,88806.0,False
+2026-06-30,Integrated Oil & Gas,16,30.0,0.326,-0.462,37051.0,False
+2026-06-30,Integrated Telecommunication Services,22,30.0,0.284,-0.129,100628.0,False
+2026-06-30,Interactive Media & Services,13,0.3,0.981,-0.224,13570.0,False
+2026-06-30,Internet Services & Infrastructure,10,3.0,0.877,0.385,15386.0,False
+2026-06-30,Investment Banking & Brokerage,16,30.0,0.325,-0.019,64758.0,False
+2026-06-30,IT Consulting & Other Services,16,3.0,0.783,0.16,214282.0,False
+2026-06-30,Life & Health Insurance,22,30.0,0.261,-0.063,48036.0,False
+2026-06-30,Life Sciences Tools & Services,15,30.0,0.25,-0.462,29346.0,False
+2026-06-30,Media,8,30.0,0.414,-0.526,9585.0,False
+2026-06-30,Metals & Mining,15,30.0,0.326,-0.133,13253.0,False
+2026-06-30,Multi-line Insurance,8,10.0,0.688,-0.183,12141.0,False
+2026-06-30,Multi-Utilities,13,0.1,0.998,0.675,15431.0,False
+2026-06-30,Oil & Gas Exploration & Production,9,30.0,0.454,-0.229,5156.0,False
+2026-06-30,Oil & Gas Refining & Marketing,8,30.0,0.39,-0.44,12754.0,False
+2026-06-30,Oil & Gas Storage & Transportation,9,30.0,0.552,-0.269,5843.0,False
+2026-06-30,Packaged Foods & Meats,22,3.0,0.872,0.428,29730.0,False
+2026-06-30,Passenger Airlines,9,30.0,0.308,-0.308,18133.0,False
+2026-06-30,Personal Care Products,8,3.0,0.942,0.441,10295.0,False
+2026-06-30,Pharmaceuticals,35,30.0,0.124,-0.317,84995.0,False
+2026-06-30,Property & Casualty Insurance,22,30.0,0.424,0.054,46787.0,False
+2026-06-30,Real Estate,14,30.0,0.282,-0.233,3282.0,False
+2026-06-30,Real Estate Management & Development,14,30.0,0.43,0.029,10228.0,False
+2026-06-30,Research & Consulting Services,12,30.0,0.297,-0.337,60227.0,False
+2026-06-30,Residential REITs,9,30.0,0.424,-0.271,6855.0,False
+2026-06-30,Restaurants,16,30.0,0.274,-0.361,112787.0,False
+2026-06-30,Semiconductor Materials & Equipment,10,30.0,0.269,-0.561,17331.0,False
+2026-06-30,Semiconductors,22,30.0,0.439,-0.007,109517.0,False
+2026-06-30,Soft Drinks & Non-alcoholic Beverages,8,30.0,0.503,-0.527,32770.0,False
+2026-06-30,Specialized REITs,9,10.0,0.647,-0.175,15798.0,False
+2026-06-30,Specialty Chemicals,14,30.0,0.227,-0.311,19855.0,False
+2026-06-30,Specialty Retail,20,30.0,0.206,-0.251,85034.0,False
+2026-06-30,Steel,10,30.0,0.462,-0.042,9112.0,False
+2026-06-30,Systems Software,13,30.0,0.154,-0.303,38586.0,False
+2026-06-30,"Technology Hardware, Storage & Peripherals",20,3.0,0.655,0.002,45236.0,False
+2026-06-30,Trading Companies & Distributors,18,30.0,0.416,-0.147,24324.0,False
+2026-06-30,Transaction & Payment Processing Services,12,1.0,0.974,0.493,34362.0,False
+2026-06-30,Wireless Telecommunication Services,11,1.0,0.929,0.154,62802.0,False

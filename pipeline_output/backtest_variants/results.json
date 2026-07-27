@@ -1,0 +1,7624 @@
+{
+ "meta": {
+  "run_date": "2026-07-27",
+  "common_start": "2015-12-31",
+  "n_formation_quarters": 43,
+  "conf_convention": "sum over estimation set of company total scored reviews as of window end",
+  "split_rule": "formation snapshots < 2020-12-31 vs >= 2020-12-31",
+  "turnover_definition": "one-way: |names added to Q1| / |Q1|, averaged over rebalances",
+  "windows_used": [
+   "2015-12-31",
+   "2016-12-31",
+   "2017-12-31",
+   "2018-12-31",
+   "2019-12-31",
+   "2020-12-31",
+   "2021-12-31",
+   "2022-12-31",
+   "2023-12-31",
+   "2024-12-31",
+   "2025-12-31",
+   "2026-06-30"
+  ],
+  "variant_a_caveat": "Variant A is NOT free of look-ahead: every evaluation quarter lies inside at least one estimation window that fed the average. It is a robustness comparison, not the honest benchmark; Variant W is the walk-forward (honest) variant."
+ },
+ "variants": {
+  "C": {
+   "label": "Variant C \u2014 current weights",
+   "headline": [
+    {
+     "portfolio": "Q1",
+     "cumulative_pct": 490.9,
+     "annualized_pct": 17.97,
+     "avg_companies": 244.3
+    },
+    {
+     "portfolio": "Q2",
+     "cumulative_pct": 342.0,
+     "annualized_pct": 14.83,
+     "avg_companies": 241.0
+    },
+    {
+     "portfolio": "Q3",
+     "cumulative_pct": 283.4,
+     "annualized_pct": 13.32,
+     "avg_companies": 223.5
+    },
+    {
+     "portfolio": "Q4",
+     "cumulative_pct": 215.4,
+     "annualized_pct": 11.28,
+     "avg_companies": 222.1
+    },
+    {
+     "portfolio": "Benchmark",
+     "cumulative_pct": 326.2,
+     "annualized_pct": 14.44,
+     "avg_companies": null
+    },
+    {
+     "portfolio": "Q1-Q4 spread",
+     "cumulative_pct": 275.5,
+     "annualized_pct": 6.69,
+     "avg_companies": null
+    }
+   ],
+   "split": {
+    "2016-2020": {
+     "Q1": {
+      "cumulative_pct": 92.9,
+      "annualized_pct": 14.05
+     },
+     "Q2": {
+      "cumulative_pct": 94.5,
+      "annualized_pct": 14.23
+     },
+     "Q3": {
+      "cumulative_pct": 92.9,
+      "annualized_pct": 14.05
+     },
+     "Q4": {
+      "cumulative_pct": 101.7,
+      "annualized_pct": 15.06
+     },
+     "Benchmark": {
+      "cumulative_pct": 95.6,
+      "annualized_pct": 14.35
+     },
+     "Q1-Q4 spread": {
+      "cumulative_pct": -8.8,
+      "annualized_pct": -1.01
+     }
+    },
+    "2021-present": {
+     "Q1": {
+      "cumulative_pct": 206.2,
+      "annualized_pct": 21.49
+     },
+     "Q2": {
+      "cumulative_pct": 127.2,
+      "annualized_pct": 15.34
+     },
+     "Q3": {
+      "cumulative_pct": 98.7,
+      "annualized_pct": 12.68
+     },
+     "Q4": {
+      "cumulative_pct": 56.4,
+      "annualized_pct": 8.09
+     },
+     "Benchmark": {
+      "cumulative_pct": 117.9,
+      "annualized_pct": 14.51
+     },
+     "Q1-Q4 spread": {
+      "cumulative_pct": 149.8,
+      "annualized_pct": 13.4
+     }
+    }
+   },
+   "rolling_3y_spread": [
+    {
+     "through": "2018-09-30",
+     "spread_ann_pct": 0.55
+    },
+    {
+     "through": "2018-12-31",
+     "spread_ann_pct": 1.7
+    },
+    {
+     "through": "2019-03-31",
+     "spread_ann_pct": 1.54
+    },
+    {
+     "through": "2019-06-30",
+     "spread_ann_pct": 1.09
+    },
+    {
+     "through": "2019-09-30",
+     "spread_ann_pct": 0.73
+    },
+    {
+     "through": "2019-12-31",
+     "spread_ann_pct": -1.01
+    },
+    {
+     "through": "2020-03-31",
+     "spread_ann_pct": -2.11
+    },
+    {
+     "through": "2020-06-30",
+     "spread_ann_pct": -2.89
+    },
+    {
+     "through": "2020-09-30",
+     "spread_ann_pct": -2.67
+    },
+    {
+     "through": "2020-12-31",
+     "spread_ann_pct": -1.54
+    },
+    {
+     "through": "2021-03-31",
+     "spread_ann_pct": -0.78
+    },
+    {
+     "through": "2021-06-30",
+     "spread_ann_pct": 0.87
+    },
+    {
+     "through": "2021-09-30",
+     "spread_ann_pct": 0.29
+    },
+    {
+     "through": "2021-12-31",
+     "spread_ann_pct": 2.14
+    },
+    {
+     "through": "2022-03-31",
+     "spread_ann_pct": 3.48
+    },
+    {
+     "through": "2022-06-30",
+     "spread_ann_pct": 5.21
+    },
+    {
+     "through": "2022-09-30",
+     "spread_ann_pct": 6.31
+    },
+    {
+     "through": "2022-12-31",
+     "spread_ann_pct": 6.84
+    },
+    {
+     "through": "2023-03-31",
+     "spread_ann_pct": 9.53
+    },
+    {
+     "through": "2023-06-30",
+     "spread_ann_pct": 12.61
+    },
+    {
+     "through": "2023-09-30",
+     "spread_ann_pct": 12.41
+    },
+    {
+     "through": "2023-12-31",
+     "spread_ann_pct": 15.07
+    },
+    {
+     "through": "2024-03-31",
+     "spread_ann_pct": 16.76
+    },
+    {
+     "through": "2024-06-30",
+     "spread_ann_pct": 15.09
+    },
+    {
+     "through": "2024-09-30",
+     "spread_ann_pct": 15.92
+    },
+    {
+     "through": "2024-12-31",
+     "spread_ann_pct": 15.46
+    },
+    {
+     "through": "2025-03-31",
+     "spread_ann_pct": 16.63
+    },
+    {
+     "through": "2025-06-30",
+     "spread_ann_pct": 16.17
+    },
+    {
+     "through": "2025-09-30",
+     "spread_ann_pct": 16.27
+    },
+    {
+     "through": "2025-12-31",
+     "spread_ann_pct": 17.07
+    },
+    {
+     "through": "2026-03-31",
+     "spread_ann_pct": 14.72
+    },
+    {
+     "through": "2026-06-30",
+     "spread_ann_pct": 12.32
+    }
+   ],
+   "turnover_q1_oneway_avg": 13.2
+  },
+  "A": {
+   "label": "Variant A \u2014 averaged windows",
+   "headline": [
+    {
+     "portfolio": "Q1",
+     "cumulative_pct": 603.1,
+     "annualized_pct": 19.89,
+     "avg_companies": 237.4
+    },
+    {
+     "portfolio": "Q2",
+     "cumulative_pct": 334.8,
+     "annualized_pct": 14.65,
+     "avg_companies": 240.7
+    },
+    {
+     "portfolio": "Q3",
+     "cumulative_pct": 267.8,
+     "annualized_pct": 12.88,
+     "avg_companies": 227.7
+    },
+    {
+     "portfolio": "Q4",
+     "cumulative_pct": 180.2,
+     "annualized_pct": 10.06,
+     "avg_companies": 225.2
+    },
+    {
+     "portfolio": "Benchmark",
+     "cumulative_pct": 326.2,
+     "annualized_pct": 14.44,
+     "avg_companies": null
+    },
+    {
+     "portfolio": "Q1-Q4 spread",
+     "cumulative_pct": 422.9,
+     "annualized_pct": 9.83,
+     "avg_companies": null
+    }
+   ],
+   "split": {
+    "2016-2020": {
+     "Q1": {
+      "cumulative_pct": 151.0,
+      "annualized_pct": 20.21
+     },
+     "Q2": {
+      "cumulative_pct": 100.6,
+      "annualized_pct": 14.94
+     },
+     "Q3": {
+      "cumulative_pct": 83.7,
+      "annualized_pct": 12.93
+     },
+     "Q4": {
+      "cumulative_pct": 54.7,
+      "annualized_pct": 9.12
+     },
+     "Benchmark": {
+      "cumulative_pct": 95.6,
+      "annualized_pct": 14.35
+     },
+     "Q1-Q4 spread": {
+      "cumulative_pct": 96.3,
+      "annualized_pct": 11.09
+     }
+    },
+    "2021-present": {
+     "Q1": {
+      "cumulative_pct": 180.1,
+      "annualized_pct": 19.62
+     },
+     "Q2": {
+      "cumulative_pct": 116.8,
+      "annualized_pct": 14.4
+     },
+     "Q3": {
+      "cumulative_pct": 100.2,
+      "annualized_pct": 12.83
+     },
+     "Q4": {
+      "cumulative_pct": 81.1,
+      "annualized_pct": 10.88
+     },
+     "Benchmark": {
+      "cumulative_pct": 117.9,
+      "annualized_pct": 14.51
+     },
+     "Q1-Q4 spread": {
+      "cumulative_pct": 99.0,
+      "annualized_pct": 8.74
+     }
+    }
+   },
+   "rolling_3y_spread": [
+    {
+     "through": "2018-09-30",
+     "spread_ann_pct": 8.35
+    },
+    {
+     "through": "2018-12-31",
+     "spread_ann_pct": 9.1
+    },
+    {
+     "through": "2019-03-31",
+     "spread_ann_pct": 8.81
+    },
+    {
+     "through": "2019-06-30",
+     "spread_ann_pct": 8.77
+    },
+    {
+     "through": "2019-09-30",
+     "spread_ann_pct": 9.67
+    },
+    {
+     "through": "2019-12-31",
+     "spread_ann_pct": 8.2
+    },
+    {
+     "through": "2020-03-31",
+     "spread_ann_pct": 10.51
+    },
+    {
+     "through": "2020-06-30",
+     "spread_ann_pct": 12.11
+    },
+    {
+     "through": "2020-09-30",
+     "spread_ann_pct": 12.25
+    },
+    {
+     "through": "2020-12-31",
+     "spread_ann_pct": 11.41
+    },
+    {
+     "through": "2021-03-31",
+     "spread_ann_pct": 13.32
+    },
+    {
+     "through": "2021-06-30",
+     "spread_ann_pct": 14.83
+    },
+    {
+     "through": "2021-09-30",
+     "spread_ann_pct": 13.21
+    },
+    {
+     "through": "2021-12-31",
+     "spread_ann_pct": 11.55
+    },
+    {
+     "through": "2022-03-31",
+     "spread_ann_pct": 10.16
+    },
+    {
+     "through": "2022-06-30",
+     "spread_ann_pct": 12.47
+    },
+    {
+     "through": "2022-09-30",
+     "spread_ann_pct": 10.69
+    },
+    {
+     "through": "2022-12-31",
+     "spread_ann_pct": 10.49
+    },
+    {
+     "through": "2023-03-31",
+     "spread_ann_pct": 10.37
+    },
+    {
+     "through": "2023-06-30",
+     "spread_ann_pct": 9.22
+    },
+    {
+     "through": "2023-09-30",
+     "spread_ann_pct": 9.39
+    },
+    {
+     "through": "2023-12-31",
+     "spread_ann_pct": 11.05
+    },
+    {
+     "through": "2024-03-31",
+     "spread_ann_pct": 10.41
+    },
+    {
+     "through": "2024-06-30",
+     "spread_ann_pct": 8.62
+    },
+    {
+     "through": "2024-09-30",
+     "spread_ann_pct": 10.22
+    },
+    {
+     "through": "2024-12-31",
+     "spread_ann_pct": 10.55
+    },
+    {
+     "through": "2025-03-31",
+     "spread_ann_pct": 13.22
+    },
+    {
+     "through": "2025-06-30",
+     "spread_ann_pct": 10.74
+    },
+    {
+     "through": "2025-09-30",
+     "spread_ann_pct": 12.74
+    },
+    {
+     "through": "2025-12-31",
+     "spread_ann_pct": 11.1
+    },
+    {
+     "through": "2026-03-31",
+     "spread_ann_pct": 8.64
+    },
+    {
+     "through": "2026-06-30",
+     "spread_ann_pct": 7.41
+    }
+   ],
+   "turnover_q1_oneway_avg": 12.1
+  },
+  "W": {
+   "label": "Variant W \u2014 walk-forward",
+   "headline": [
+    {
+     "portfolio": "Q1",
+     "cumulative_pct": 423.4,
+     "annualized_pct": 16.64,
+     "avg_companies": 237.3
+    },
+    {
+     "portfolio": "Q2",
+     "cumulative_pct": 316.2,
+     "annualized_pct": 14.18,
+     "avg_companies": 240.2
+    },
+    {
+     "portfolio": "Q3",
+     "cumulative_pct": 281.8,
+     "annualized_pct": 13.27,
+     "avg_companies": 228.2
+    },
+    {
+     "portfolio": "Q4",
+     "cumulative_pct": 288.7,
+     "annualized_pct": 13.46,
+     "avg_companies": 225.3
+    },
+    {
+     "portfolio": "Benchmark",
+     "cumulative_pct": 326.2,
+     "annualized_pct": 14.44,
+     "avg_companies": null
+    },
+    {
+     "portfolio": "Q1-Q4 spread",
+     "cumulative_pct": 134.7,
+     "annualized_pct": 3.18,
+     "avg_companies": null
+    }
+   ],
+   "split": {
+    "2016-2020": {
+     "Q1": {
+      "cumulative_pct": 139.5,
+      "annualized_pct": 19.09
+     },
+     "Q2": {
+      "cumulative_pct": 91.7,
+      "annualized_pct": 13.9
+     },
+     "Q3": {
+      "cumulative_pct": 85.2,
+      "annualized_pct": 13.12
+     },
+     "Q4": {
+      "cumulative_pct": 69.8,
+      "annualized_pct": 11.17
+     },
+     "Benchmark": {
+      "cumulative_pct": 95.6,
+      "annualized_pct": 14.35
+     },
+     "Q1-Q4 spread": {
+      "cumulative_pct": 69.7,
+      "annualized_pct": 7.92
+     }
+    },
+    "2021-present": {
+     "Q1": {
+      "cumulative_pct": 118.5,
+      "annualized_pct": 14.56
+     },
+     "Q2": {
+      "cumulative_pct": 117.1,
+      "annualized_pct": 14.43
+     },
+     "Q3": {
+      "cumulative_pct": 106.1,
+      "annualized_pct": 13.4
+     },
+     "Q4": {
+      "cumulative_pct": 129.0,
+      "annualized_pct": 15.5
+     },
+     "Benchmark": {
+      "cumulative_pct": 117.9,
+      "annualized_pct": 14.51
+     },
+     "Q1-Q4 spread": {
+      "cumulative_pct": -10.5,
+      "annualized_pct": -0.94
+     }
+    }
+   },
+   "rolling_3y_spread": [
+    {
+     "through": "2018-09-30",
+     "spread_ann_pct": 4.01
+    },
+    {
+     "through": "2018-12-31",
+     "spread_ann_pct": 4.19
+    },
+    {
+     "through": "2019-03-31",
+     "spread_ann_pct": 4.09
+    },
+    {
+     "through": "2019-06-30",
+     "spread_ann_pct": 3.93
+    },
+    {
+     "through": "2019-09-30",
+     "spread_ann_pct": 5.82
+    },
+    {
+     "through": "2019-12-31",
+     "spread_ann_pct": 6.14
+    },
+    {
+     "through": "2020-03-31",
+     "spread_ann_pct": 7.03
+    },
+    {
+     "through": "2020-06-30",
+     "spread_ann_pct": 8.78
+    },
+    {
+     "through": "2020-09-30",
+     "spread_ann_pct": 10.34
+    },
+    {
+     "through": "2020-12-31",
+     "spread_ann_pct": 6.86
+    },
+    {
+     "through": "2021-03-31",
+     "spread_ann_pct": 7.48
+    },
+    {
+     "through": "2021-06-30",
+     "spread_ann_pct": 8.72
+    },
+    {
+     "through": "2021-09-30",
+     "spread_ann_pct": 7.28
+    },
+    {
+     "through": "2021-12-31",
+     "spread_ann_pct": 4.38
+    },
+    {
+     "through": "2022-03-31",
+     "spread_ann_pct": 2.6
+    },
+    {
+     "through": "2022-06-30",
+     "spread_ann_pct": 4.52
+    },
+    {
+     "through": "2022-09-30",
+     "spread_ann_pct": 2.96
+    },
+    {
+     "through": "2022-12-31",
+     "spread_ann_pct": 1.89
+    },
+    {
+     "through": "2023-03-31",
+     "spread_ann_pct": 1.78
+    },
+    {
+     "through": "2023-06-30",
+     "spread_ann_pct": -0.6
+    },
+    {
+     "through": "2023-09-30",
+     "spread_ann_pct": -0.88
+    },
+    {
+     "through": "2023-12-31",
+     "spread_ann_pct": 1.93
+    },
+    {
+     "through": "2024-03-31",
+     "spread_ann_pct": 0.88
+    },
+    {
+     "through": "2024-06-30",
+     "spread_ann_pct": 0.18
+    },
+    {
+     "through": "2024-09-30",
+     "spread_ann_pct": 1.6
+    },
+    {
+     "through": "2024-12-31",
+     "spread_ann_pct": 2.65
+    },
+    {
+     "through": "2025-03-31",
+     "spread_ann_pct": 5.51
+    },
+    {
+     "through": "2025-06-30",
+     "spread_ann_pct": 2.86
+    },
+    {
+     "through": "2025-09-30",
+     "spread_ann_pct": 4.03
+    },
+    {
+     "through": "2025-12-31",
+     "spread_ann_pct": 1.95
+    },
+    {
+     "through": "2026-03-31",
+     "spread_ann_pct": 0.07
+    },
+    {
+     "through": "2026-06-30",
+     "spread_ann_pct": 0.13
+    }
+   ],
+   "turnover_q1_oneway_avg": 13.6
+  }
+ },
+ "walk_forward_global_weight_stability": [
+  {
+   "window_end": "2015-12-31",
+   "coefs": {
+    "b01": 0.0235,
+    "b02": 0.0691,
+    "b03": -0.0054,
+    "b04": 0.0074,
+    "b05": 0.0018,
+    "b06": 0.0078,
+    "b07": 0.0591,
+    "b08": 0.0062,
+    "b09": -0.0521,
+    "b10": -0.0141,
+    "b11": -0.0337,
+    "b12": -0.016
+   }
+  },
+  {
+   "window_end": "2016-12-31",
+   "coefs": {
+    "b01": 0.0153,
+    "b02": 0.0758,
+    "b03": 0.0061,
+    "b04": 0.0045,
+    "b05": -0.0004,
+    "b06": 0.0085,
+    "b07": 0.0575,
+    "b08": 0.0005,
+    "b09": -0.0408,
+    "b10": -0.0057,
+    "b11": -0.0301,
+    "b12": -0.0229
+   },
+   "mean_abs_coef_change": 0.0058
+  },
+  {
+   "window_end": "2017-12-31",
+   "coefs": {
+    "b01": 0.0105,
+    "b02": 0.057,
+    "b03": 0.0095,
+    "b04": 0.0093,
+    "b05": -0.0044,
+    "b06": 0.0046,
+    "b07": 0.0487,
+    "b08": 0.0003,
+    "b09": -0.0306,
+    "b10": -0.0031,
+    "b11": -0.024,
+    "b12": -0.0223
+   },
+   "mean_abs_coef_change": 0.0057
+  },
+  {
+   "window_end": "2018-12-31",
+   "coefs": {
+    "b01": 0.0078,
+    "b02": 0.0494,
+    "b03": 0.0114,
+    "b04": 0.0104,
+    "b05": 0.0011,
+    "b06": 0.0025,
+    "b07": 0.0443,
+    "b08": 0.0049,
+    "b09": -0.0281,
+    "b10": -0.0054,
+    "b11": -0.0217,
+    "b12": -0.0227
+   },
+   "mean_abs_coef_change": 0.0031
+  },
+  {
+   "window_end": "2019-12-31",
+   "coefs": {
+    "b01": 0.0087,
+    "b02": 0.0448,
+    "b03": 0.0143,
+    "b04": 0.0132,
+    "b05": -0.0004,
+    "b06": -0.0001,
+    "b07": 0.0393,
+    "b08": 0.0053,
+    "b09": -0.0286,
+    "b10": -0.0087,
+    "b11": -0.0191,
+    "b12": -0.0188
+   },
+   "mean_abs_coef_change": 0.0026
+  },
+  {
+   "window_end": "2020-12-31",
+   "coefs": {
+    "b01": 0.0103,
+    "b02": 0.0423,
+    "b03": 0.0202,
+    "b04": 0.0204,
+    "b05": -0.0021,
+    "b06": -0.004,
+    "b07": 0.0333,
+    "b08": 0.0033,
+    "b09": -0.0268,
+    "b10": -0.0119,
+    "b11": -0.0178,
+    "b12": -0.0171
+   },
+   "mean_abs_coef_change": 0.0032
+  },
+  {
+   "window_end": "2021-12-31",
+   "coefs": {
+    "b01": 0.0121,
+    "b02": 0.0515,
+    "b03": 0.0269,
+    "b04": 0.0269,
+    "b05": -0.0063,
+    "b06": -0.0092,
+    "b07": 0.0359,
+    "b08": -0.0009,
+    "b09": -0.028,
+    "b10": -0.0139,
+    "b11": -0.0219,
+    "b12": -0.0135
+   },
+   "mean_abs_coef_change": 0.0043
+  },
+  {
+   "window_end": "2022-12-31",
+   "coefs": {
+    "b01": 0.0148,
+    "b02": 0.0586,
+    "b03": 0.0282,
+    "b04": 0.0273,
+    "b05": -0.0062,
+    "b06": -0.016,
+    "b07": 0.031,
+    "b08": 0.0003,
+    "b09": -0.0291,
+    "b10": -0.0162,
+    "b11": -0.026,
+    "b12": -0.0113
+   },
+   "mean_abs_coef_change": 0.0029
+  },
+  {
+   "window_end": "2023-12-31",
+   "coefs": {
+    "b01": 0.0118,
+    "b02": 0.0602,
+    "b03": 0.0271,
+    "b04": 0.031,
+    "b05": -0.0093,
+    "b06": -0.0202,
+    "b07": 0.0272,
+    "b08": 0.0005,
+    "b09": -0.0184,
+    "b10": -0.0147,
+    "b11": -0.03,
+    "b12": -0.0126
+   },
+   "mean_abs_coef_change": 0.0032
+  },
+  {
+   "window_end": "2024-12-31",
+   "coefs": {
+    "b01": 0.0086,
+    "b02": 0.0581,
+    "b03": 0.025,
+    "b04": 0.0307,
+    "b05": -0.0086,
+    "b06": -0.0207,
+    "b07": 0.0238,
+    "b08": 0.002,
+    "b09": -0.0111,
+    "b10": -0.0106,
+    "b11": -0.0308,
+    "b12": -0.0127
+   },
+   "mean_abs_coef_change": 0.0022
+  },
+  {
+   "window_end": "2025-12-31",
+   "coefs": {
+    "b01": 0.0054,
+    "b02": 0.055,
+    "b03": 0.0195,
+    "b04": 0.0253,
+    "b05": -0.005,
+    "b06": -0.0207,
+    "b07": 0.0163,
+    "b08": 0.0042,
+    "b09": -0.0022,
+    "b10": -0.0032,
+    "b11": -0.0348,
+    "b12": -0.0128
+   },
+   "mean_abs_coef_change": 0.0042
+  },
+  {
+   "window_end": "2026-06-30",
+   "coefs": {
+    "b01": 0.0042,
+    "b02": 0.0502,
+    "b03": 0.0138,
+    "b04": 0.0228,
+    "b05": -0.0031,
+    "b06": -0.0204,
+    "b07": 0.0118,
+    "b08": 0.0048,
+    "b09": 0.004,
+    "b10": 0.0024,
+    "b11": -0.0372,
+    "b12": -0.0135
+   },
+   "mean_abs_coef_change": 0.003
+  }
+ ],
+ "window_log": [
+  {
+   "window_end": "2015-12-31",
+   "bucket": "Aerospace & Defense",
+   "n_est": 15,
+   "alpha": 0.3,
+   "r2": 0.963,
+   "cv_r2": 0.322,
+   "conf": 10510.0,
+   "thin_vs_current": true
+  },
+  {
+   "window_end": "2015-12-31",
+   "bucket": "Application Software",
+   "n_est": 16,
+   "alpha": 10.0,
+   "r2": 0.629,
+   "cv_r2": 0.17,
+   "conf": 10897.0,
+   "thin_vs_current": true
+  },
+  {
+   "window_end": "2015-12-31",
+   "bucket": "Automobile Manufacturers",
+   "n_est": 8,
+   "alpha": 30.0,
+   "r2": 0.345,
+   "cv_r2": -0.693,
+   "conf": 2265.0,
+   "thin_vs_current": true
+  },
+  {
+   "window_end": "2015-12-31",
+   "bucket": "Consumer Staples",
+   "n_est": 8,
+   "alpha": 30.0,
+   "r2": 0.386,
+   "cv_r2": -0.306,
+   "conf": 2348.0,
+   "thin_vs_current": true
+  },
+  {
+   "window_end": "2015-12-31",
+   "bucket": "Diversified Banks",
+   "n_est": 41,
+   "alpha": 30.0,
+   "r2": 0.264,
+   "cv_r2": -0.107,
+   "conf": 31942.0,
+   "thin_vs_current": true
+  },
+  {
+   "window_end": "2015-12-31",
+   "bucket": "Electric Utilities",
+   "n_est": 13,
+   "alpha": 30.0,
+   "r2": 0.411,
+   "cv_r2": -0.228,
+   "conf": 2250.0,
+   "thin_vs_current": true
+  },
+  {
+   "window_end": "2015-12-31",
+   "bucket": "Financials",
+   "n_est": 11,
+   "alpha": 30.0,
+   "r2": 0.454,
+   "cv_r2": -0.302,
+   "conf": 6727.0,
+   "thin_vs_current": true
+  },
+  {
+   "window_end": "2015-12-31",
+   "bucket": "global",
+   "n_est": 557,
+   "alpha": 30.0,
+   "r2": 0.247,
+   "cv_r2": 0.211,
+   "conf": 285312.0,
+   "thin_vs_current": true
+  },
+  {
+   "window_end": "2015-12-31",
+   "bucket": "Health Care Equipment",
+   "n_est": 15,
+   "alpha": 30.0,
+   "r2": 0.297,
+   "cv_r2": -0.226,
+   "conf": 4339.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2015-12-31",
+   "bucket": "Hotels, Resorts & Cruise Lines",
+   "n_est": 8,
+   "alpha": 30.0,
+   "r2": 0.384,
+   "cv_r2": -0.382,
+   "conf": 3946.0,
+   "thin_vs_current": true
+  },
+  {
+   "window_end": "2015-12-31",
+   "bucket": "Industrial Machinery & Supplies & Components",
+   "n_est": 14,
+   "alpha": 30.0,
+   "r2": 0.436,
+   "cv_r2": -0.156,
+   "conf": 2067.0,
+   "thin_vs_current": true
+  },
+  {
+   "window_end": "2015-12-31",
+   "bucket": "Industrials",
+   "n_est": 9,
+   "alpha": 10.0,
+   "r2": 0.724,
+   "cv_r2": 0.039,
+   "conf": 6895.0,
+   "thin_vs_current": true
+  },
+  {
+   "window_end": "2015-12-31",
+   "bucket": "Integrated Oil & Gas",
+   "n_est": 11,
+   "alpha": 30.0,
+   "r2": 0.39,
+   "cv_r2": -0.25,
+   "conf": 4197.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2015-12-31",
+   "bucket": "Integrated Telecommunication Services",
+   "n_est": 9,
+   "alpha": 30.0,
+   "r2": 0.331,
+   "cv_r2": -0.655,
+   "conf": 15217.0,
+   "thin_vs_current": true
+  },
+  {
+   "window_end": "2015-12-31",
+   "bucket": "Life & Health Insurance",
+   "n_est": 11,
+   "alpha": 30.0,
+   "r2": 0.467,
+   "cv_r2": -0.092,
+   "conf": 6157.0,
+   "thin_vs_current": true
+  },
+  {
+   "window_end": "2015-12-31",
+   "bucket": "Metals & Mining",
+   "n_est": 8,
+   "alpha": 30.0,
+   "r2": 0.466,
+   "cv_r2": -0.407,
+   "conf": 1297.0,
+   "thin_vs_current": true
+  },
+  {
+   "window_end": "2015-12-31",
+   "bucket": "Multi-Utilities",
+   "n_est": 11,
+   "alpha": 30.0,
+   "r2": 0.328,
+   "cv_r2": -0.422,
+   "conf": 1512.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2015-12-31",
+   "bucket": "Packaged Foods & Meats",
+   "n_est": 11,
+   "alpha": 30.0,
+   "r2": 0.542,
+   "cv_r2": -0.173,
+   "conf": 4077.0,
+   "thin_vs_current": true
+  },
+  {
+   "window_end": "2015-12-31",
+   "bucket": "Pharmaceuticals",
+   "n_est": 18,
+   "alpha": 30.0,
+   "r2": 0.494,
+   "cv_r2": 0.058,
+   "conf": 7589.0,
+   "thin_vs_current": true
+  },
+  {
+   "window_end": "2015-12-31",
+   "bucket": "Property & Casualty Insurance",
+   "n_est": 10,
+   "alpha": 30.0,
+   "r2": 0.365,
+   "cv_r2": -0.391,
+   "conf": 6823.0,
+   "thin_vs_current": true
+  },
+  {
+   "window_end": "2015-12-31",
+   "bucket": "Research & Consulting Services",
+   "n_est": 12,
+   "alpha": 0.1,
+   "r2": 0.997,
+   "cv_r2": 0.253,
+   "conf": 10624.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2015-12-31",
+   "bucket": "Semiconductors",
+   "n_est": 15,
+   "alpha": 30.0,
+   "r2": 0.401,
+   "cv_r2": -0.161,
+   "conf": 16529.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2015-12-31",
+   "bucket": "Specialty Retail",
+   "n_est": 8,
+   "alpha": 30.0,
+   "r2": 0.334,
+   "cv_r2": -0.612,
+   "conf": 8247.0,
+   "thin_vs_current": true
+  },
+  {
+   "window_end": "2015-12-31",
+   "bucket": "Technology Hardware, Storage & Peripherals",
+   "n_est": 8,
+   "alpha": 0.1,
+   "r2": 1.0,
+   "cv_r2": 0.118,
+   "conf": 2898.0,
+   "thin_vs_current": true
+  },
+  {
+   "window_end": "2015-12-31",
+   "bucket": "Trading Companies & Distributors",
+   "n_est": 10,
+   "alpha": 0.1,
+   "r2": 1.0,
+   "cv_r2": 0.253,
+   "conf": 3327.0,
+   "thin_vs_current": true
+  },
+  {
+   "window_end": "2016-12-31",
+   "bucket": "Aerospace & Defense",
+   "n_est": 15,
+   "alpha": 3.0,
+   "r2": 0.757,
+   "cv_r2": -0.205,
+   "conf": 13782.0,
+   "thin_vs_current": true
+  },
+  {
+   "window_end": "2016-12-31",
+   "bucket": "Application Software",
+   "n_est": 16,
+   "alpha": 10.0,
+   "r2": 0.716,
+   "cv_r2": 0.353,
+   "conf": 15483.0,
+   "thin_vs_current": true
+  },
+  {
+   "window_end": "2016-12-31",
+   "bucket": "Asset Management & Custody Banks",
+   "n_est": 12,
+   "alpha": 30.0,
+   "r2": 0.184,
+   "cv_r2": -0.431,
+   "conf": 7208.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2016-12-31",
+   "bucket": "Automobile Manufacturers",
+   "n_est": 8,
+   "alpha": 30.0,
+   "r2": 0.467,
+   "cv_r2": -0.384,
+   "conf": 3106.0,
+   "thin_vs_current": true
+  },
+  {
+   "window_end": "2016-12-31",
+   "bucket": "Commercial Services & Supplies",
+   "n_est": 8,
+   "alpha": 0.1,
+   "r2": 1.0,
+   "cv_r2": 0.144,
+   "conf": 2837.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2016-12-31",
+   "bucket": "Consumer Staples",
+   "n_est": 12,
+   "alpha": 0.1,
+   "r2": 0.997,
+   "cv_r2": 0.457,
+   "conf": 3778.0,
+   "thin_vs_current": true
+  },
+  {
+   "window_end": "2016-12-31",
+   "bucket": "Diversified Banks",
+   "n_est": 55,
+   "alpha": 30.0,
+   "r2": 0.209,
+   "cv_r2": -0.148,
+   "conf": 45676.0,
+   "thin_vs_current": true
+  },
+  {
+   "window_end": "2016-12-31",
+   "bucket": "Electrical Components & Equipment",
+   "n_est": 8,
+   "alpha": 30.0,
+   "r2": 0.341,
+   "cv_r2": -0.414,
+   "conf": 5113.0,
+   "thin_vs_current": true
+  },
+  {
+   "window_end": "2016-12-31",
+   "bucket": "Electric Utilities",
+   "n_est": 18,
+   "alpha": 30.0,
+   "r2": 0.282,
+   "cv_r2": -0.283,
+   "conf": 3626.0,
+   "thin_vs_current": true
+  },
+  {
+   "window_end": "2016-12-31",
+   "bucket": "Financials",
+   "n_est": 14,
+   "alpha": 30.0,
+   "r2": 0.438,
+   "cv_r2": -0.126,
+   "conf": 9995.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2016-12-31",
+   "bucket": "global",
+   "n_est": 663,
+   "alpha": 30.0,
+   "r2": 0.226,
+   "cv_r2": 0.195,
+   "conf": 411398.0,
+   "thin_vs_current": true
+  },
+  {
+   "window_end": "2016-12-31",
+   "bucket": "Health Care Equipment",
+   "n_est": 15,
+   "alpha": 30.0,
+   "r2": 0.35,
+   "cv_r2": -0.26,
+   "conf": 6136.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2016-12-31",
+   "bucket": "Health Care Providers & Services",
+   "n_est": 8,
+   "alpha": 30.0,
+   "r2": 0.189,
+   "cv_r2": -0.933,
+   "conf": 6359.0,
+   "thin_vs_current": true
+  },
+  {
+   "window_end": "2016-12-31",
+   "bucket": "Hotels, Resorts & Cruise Lines",
+   "n_est": 8,
+   "alpha": 3.0,
+   "r2": 0.937,
+   "cv_r2": 0.026,
+   "conf": 5772.0,
+   "thin_vs_current": true
+  },
+  {
+   "window_end": "2016-12-31",
+   "bucket": "Industrial Machinery & Supplies & Components",
+   "n_est": 19,
+   "alpha": 30.0,
+   "r2": 0.226,
+   "cv_r2": -0.315,
+   "conf": 3381.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2016-12-31",
+   "bucket": "Industrials",
+   "n_est": 13,
+   "alpha": 0.1,
+   "r2": 0.998,
+   "cv_r2": 0.405,
+   "conf": 10164.0,
+   "thin_vs_current": true
+  },
+  {
+   "window_end": "2016-12-31",
+   "bucket": "Integrated Oil & Gas",
+   "n_est": 13,
+   "alpha": 1.0,
+   "r2": 0.986,
+   "cv_r2": 0.875,
+   "conf": 6610.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2016-12-31",
+   "bucket": "Integrated Telecommunication Services",
+   "n_est": 15,
+   "alpha": 30.0,
+   "r2": 0.199,
+   "cv_r2": -0.415,
+   "conf": 21774.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2016-12-31",
+   "bucket": "Life & Health Insurance",
+   "n_est": 13,
+   "alpha": 10.0,
+   "r2": 0.659,
+   "cv_r2": 0.09,
+   "conf": 8645.0,
+   "thin_vs_current": true
+  },
+  {
+   "window_end": "2016-12-31",
+   "bucket": "Life Sciences Tools & Services",
+   "n_est": 9,
+   "alpha": 10.0,
+   "r2": 0.73,
+   "cv_r2": -0.114,
+   "conf": 2563.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2016-12-31",
+   "bucket": "Metals & Mining",
+   "n_est": 9,
+   "alpha": 30.0,
+   "r2": 0.269,
+   "cv_r2": -0.684,
+   "conf": 1969.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2016-12-31",
+   "bucket": "Multi-Utilities",
+   "n_est": 11,
+   "alpha": 0.1,
+   "r2": 1.0,
+   "cv_r2": 0.414,
+   "conf": 2233.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2016-12-31",
+   "bucket": "Packaged Foods & Meats",
+   "n_est": 15,
+   "alpha": 30.0,
+   "r2": 0.309,
+   "cv_r2": -0.217,
+   "conf": 6055.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2016-12-31",
+   "bucket": "Pharmaceuticals",
+   "n_est": 20,
+   "alpha": 30.0,
+   "r2": 0.452,
+   "cv_r2": 0.214,
+   "conf": 10747.0,
+   "thin_vs_current": true
+  },
+  {
+   "window_end": "2016-12-31",
+   "bucket": "Property & Casualty Insurance",
+   "n_est": 12,
+   "alpha": 1.0,
+   "r2": 0.922,
+   "cv_r2": 0.136,
+   "conf": 9564.0,
+   "thin_vs_current": true
+  },
+  {
+   "window_end": "2016-12-31",
+   "bucket": "Research & Consulting Services",
+   "n_est": 12,
+   "alpha": 30.0,
+   "r2": 0.409,
+   "cv_r2": -0.136,
+   "conf": 13999.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2016-12-31",
+   "bucket": "Residential REITs",
+   "n_est": 9,
+   "alpha": 10.0,
+   "r2": 0.74,
+   "cv_r2": 0.163,
+   "conf": 1432.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2016-12-31",
+   "bucket": "Semiconductors",
+   "n_est": 16,
+   "alpha": 30.0,
+   "r2": 0.284,
+   "cv_r2": -0.334,
+   "conf": 22490.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2016-12-31",
+   "bucket": "Specialized REITs",
+   "n_est": 9,
+   "alpha": 10.0,
+   "r2": 0.803,
+   "cv_r2": -0.12,
+   "conf": 3037.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2016-12-31",
+   "bucket": "Specialty Chemicals",
+   "n_est": 8,
+   "alpha": 0.1,
+   "r2": 1.0,
+   "cv_r2": 0.681,
+   "conf": 3663.0,
+   "thin_vs_current": true
+  },
+  {
+   "window_end": "2016-12-31",
+   "bucket": "Specialty Retail",
+   "n_est": 9,
+   "alpha": 3.0,
+   "r2": 0.917,
+   "cv_r2": -0.259,
+   "conf": 11776.0,
+   "thin_vs_current": true
+  },
+  {
+   "window_end": "2016-12-31",
+   "bucket": "Technology Hardware, Storage & Peripherals",
+   "n_est": 11,
+   "alpha": 30.0,
+   "r2": 0.322,
+   "cv_r2": -0.591,
+   "conf": 4399.0,
+   "thin_vs_current": true
+  },
+  {
+   "window_end": "2016-12-31",
+   "bucket": "Trading Companies & Distributors",
+   "n_est": 10,
+   "alpha": 30.0,
+   "r2": 0.47,
+   "cv_r2": -0.087,
+   "conf": 4802.0,
+   "thin_vs_current": true
+  },
+  {
+   "window_end": "2017-12-31",
+   "bucket": "Aerospace & Defense",
+   "n_est": 19,
+   "alpha": 0.1,
+   "r2": 0.984,
+   "cv_r2": 0.765,
+   "conf": 17724.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2017-12-31",
+   "bucket": "Application Software",
+   "n_est": 17,
+   "alpha": 1.0,
+   "r2": 0.897,
+   "cv_r2": 0.356,
+   "conf": 20898.0,
+   "thin_vs_current": true
+  },
+  {
+   "window_end": "2017-12-31",
+   "bucket": "Asset Management & Custody Banks",
+   "n_est": 14,
+   "alpha": 30.0,
+   "r2": 0.235,
+   "cv_r2": -0.338,
+   "conf": 9260.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2017-12-31",
+   "bucket": "Automobile Manufacturers",
+   "n_est": 10,
+   "alpha": 30.0,
+   "r2": 0.369,
+   "cv_r2": -0.427,
+   "conf": 4295.0,
+   "thin_vs_current": true
+  },
+  {
+   "window_end": "2017-12-31",
+   "bucket": "Biotechnology",
+   "n_est": 8,
+   "alpha": 1.0,
+   "r2": 0.989,
+   "cv_r2": 0.609,
+   "conf": 2884.0,
+   "thin_vs_current": true
+  },
+  {
+   "window_end": "2017-12-31",
+   "bucket": "Building Products",
+   "n_est": 8,
+   "alpha": 30.0,
+   "r2": 0.345,
+   "cv_r2": -0.495,
+   "conf": 3899.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2017-12-31",
+   "bucket": "Chemicals",
+   "n_est": 10,
+   "alpha": 30.0,
+   "r2": 0.267,
+   "cv_r2": -0.418,
+   "conf": 4477.0,
+   "thin_vs_current": true
+  },
+  {
+   "window_end": "2017-12-31",
+   "bucket": "Commercial Services & Supplies",
+   "n_est": 8,
+   "alpha": 30.0,
+   "r2": 0.16,
+   "cv_r2": -1.166,
+   "conf": 4385.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2017-12-31",
+   "bucket": "Construction & Engineering",
+   "n_est": 11,
+   "alpha": 30.0,
+   "r2": 0.155,
+   "cv_r2": -0.502,
+   "conf": 7906.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2017-12-31",
+   "bucket": "Consumer Staples",
+   "n_est": 14,
+   "alpha": 30.0,
+   "r2": 0.295,
+   "cv_r2": -0.163,
+   "conf": 5328.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2017-12-31",
+   "bucket": "Diversified Banks",
+   "n_est": 66,
+   "alpha": 30.0,
+   "r2": 0.155,
+   "cv_r2": -0.123,
+   "conf": 60516.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2017-12-31",
+   "bucket": "Electrical Components & Equipment",
+   "n_est": 9,
+   "alpha": 30.0,
+   "r2": 0.289,
+   "cv_r2": -0.281,
+   "conf": 6724.0,
+   "thin_vs_current": true
+  },
+  {
+   "window_end": "2017-12-31",
+   "bucket": "Electric Utilities",
+   "n_est": 21,
+   "alpha": 30.0,
+   "r2": 0.273,
+   "cv_r2": -0.337,
+   "conf": 4912.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2017-12-31",
+   "bucket": "Financial Exchanges & Data",
+   "n_est": 9,
+   "alpha": 10.0,
+   "r2": 0.673,
+   "cv_r2": -0.11,
+   "conf": 4620.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2017-12-31",
+   "bucket": "Financials",
+   "n_est": 14,
+   "alpha": 3.0,
+   "r2": 0.921,
+   "cv_r2": 0.428,
+   "conf": 13794.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2017-12-31",
+   "bucket": "global",
+   "n_est": 751,
+   "alpha": 30.0,
+   "r2": 0.142,
+   "cv_r2": 0.113,
+   "conf": 545710.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2017-12-31",
+   "bucket": "Health Care Equipment",
+   "n_est": 18,
+   "alpha": 30.0,
+   "r2": 0.312,
+   "cv_r2": -0.235,
+   "conf": 8363.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2017-12-31",
+   "bucket": "Health Care Providers & Services",
+   "n_est": 12,
+   "alpha": 30.0,
+   "r2": 0.248,
+   "cv_r2": -0.384,
+   "conf": 10582.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2017-12-31",
+   "bucket": "Hotels, Resorts & Cruise Lines",
+   "n_est": 8,
+   "alpha": 3.0,
+   "r2": 0.906,
+   "cv_r2": 0.195,
+   "conf": 7832.0,
+   "thin_vs_current": true
+  },
+  {
+   "window_end": "2017-12-31",
+   "bucket": "Industrial Machinery & Supplies & Components",
+   "n_est": 21,
+   "alpha": 30.0,
+   "r2": 0.255,
+   "cv_r2": -0.131,
+   "conf": 4759.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2017-12-31",
+   "bucket": "Industrials",
+   "n_est": 17,
+   "alpha": 30.0,
+   "r2": 0.343,
+   "cv_r2": -0.122,
+   "conf": 13827.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2017-12-31",
+   "bucket": "Integrated Oil & Gas",
+   "n_est": 13,
+   "alpha": 10.0,
+   "r2": 0.746,
+   "cv_r2": -0.097,
+   "conf": 8723.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2017-12-31",
+   "bucket": "Integrated Telecommunication Services",
+   "n_est": 14,
+   "alpha": 10.0,
+   "r2": 0.57,
+   "cv_r2": -0.189,
+   "conf": 27868.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2017-12-31",
+   "bucket": "Life & Health Insurance",
+   "n_est": 15,
+   "alpha": 30.0,
+   "r2": 0.483,
+   "cv_r2": 0.057,
+   "conf": 11156.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2017-12-31",
+   "bucket": "Life Sciences Tools & Services",
+   "n_est": 10,
+   "alpha": 30.0,
+   "r2": 0.468,
+   "cv_r2": -0.255,
+   "conf": 3398.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2017-12-31",
+   "bucket": "Metals & Mining",
+   "n_est": 10,
+   "alpha": 30.0,
+   "r2": 0.23,
+   "cv_r2": -0.682,
+   "conf": 2642.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2017-12-31",
+   "bucket": "Multi-Utilities",
+   "n_est": 10,
+   "alpha": 0.1,
+   "r2": 1.0,
+   "cv_r2": 0.514,
+   "conf": 2784.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2017-12-31",
+   "bucket": "Packaged Foods & Meats",
+   "n_est": 14,
+   "alpha": 0.1,
+   "r2": 0.991,
+   "cv_r2": -0.27,
+   "conf": 7605.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2017-12-31",
+   "bucket": "Pharmaceuticals",
+   "n_est": 21,
+   "alpha": 30.0,
+   "r2": 0.279,
+   "cv_r2": -0.026,
+   "conf": 14202.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2017-12-31",
+   "bucket": "Property & Casualty Insurance",
+   "n_est": 13,
+   "alpha": 30.0,
+   "r2": 0.454,
+   "cv_r2": -0.223,
+   "conf": 12411.0,
+   "thin_vs_current": true
+  },
+  {
+   "window_end": "2017-12-31",
+   "bucket": "Research & Consulting Services",
+   "n_est": 12,
+   "alpha": 10.0,
+   "r2": 0.701,
+   "cv_r2": 0.216,
+   "conf": 17368.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2017-12-31",
+   "bucket": "Residential REITs",
+   "n_est": 9,
+   "alpha": 10.0,
+   "r2": 0.799,
+   "cv_r2": 0.116,
+   "conf": 1979.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2017-12-31",
+   "bucket": "Semiconductors",
+   "n_est": 18,
+   "alpha": 30.0,
+   "r2": 0.318,
+   "cv_r2": -0.206,
+   "conf": 27701.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2017-12-31",
+   "bucket": "Specialized REITs",
+   "n_est": 9,
+   "alpha": 3.0,
+   "r2": 0.936,
+   "cv_r2": 0.194,
+   "conf": 3914.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2017-12-31",
+   "bucket": "Specialty Chemicals",
+   "n_est": 9,
+   "alpha": 30.0,
+   "r2": 0.325,
+   "cv_r2": -0.146,
+   "conf": 4747.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2017-12-31",
+   "bucket": "Specialty Retail",
+   "n_est": 9,
+   "alpha": 30.0,
+   "r2": 0.312,
+   "cv_r2": -0.532,
+   "conf": 15230.0,
+   "thin_vs_current": true
+  },
+  {
+   "window_end": "2017-12-31",
+   "bucket": "Technology Hardware, Storage & Peripherals",
+   "n_est": 12,
+   "alpha": 30.0,
+   "r2": 0.524,
+   "cv_r2": -0.069,
+   "conf": 5604.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2017-12-31",
+   "bucket": "Trading Companies & Distributors",
+   "n_est": 10,
+   "alpha": 30.0,
+   "r2": 0.354,
+   "cv_r2": -0.295,
+   "conf": 6177.0,
+   "thin_vs_current": true
+  },
+  {
+   "window_end": "2018-12-31",
+   "bucket": "Aerospace & Defense",
+   "n_est": 18,
+   "alpha": 0.3,
+   "r2": 0.932,
+   "cv_r2": 0.309,
+   "conf": 20514.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2018-12-31",
+   "bucket": "Application Software",
+   "n_est": 17,
+   "alpha": 30.0,
+   "r2": 0.322,
+   "cv_r2": -0.241,
+   "conf": 27142.0,
+   "thin_vs_current": true
+  },
+  {
+   "window_end": "2018-12-31",
+   "bucket": "Asset Management & Custody Banks",
+   "n_est": 14,
+   "alpha": 30.0,
+   "r2": 0.181,
+   "cv_r2": -0.345,
+   "conf": 10964.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2018-12-31",
+   "bucket": "Automobile Manufacturers",
+   "n_est": 12,
+   "alpha": 30.0,
+   "r2": 0.374,
+   "cv_r2": -0.256,
+   "conf": 5625.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2018-12-31",
+   "bucket": "Biotechnology",
+   "n_est": 9,
+   "alpha": 0.1,
+   "r2": 1.0,
+   "cv_r2": 0.595,
+   "conf": 3725.0,
+   "thin_vs_current": true
+  },
+  {
+   "window_end": "2018-12-31",
+   "bucket": "Building Products",
+   "n_est": 9,
+   "alpha": 0.1,
+   "r2": 1.0,
+   "cv_r2": 0.519,
+   "conf": 4811.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2018-12-31",
+   "bucket": "Chemicals",
+   "n_est": 13,
+   "alpha": 30.0,
+   "r2": 0.453,
+   "cv_r2": 0.017,
+   "conf": 5428.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2018-12-31",
+   "bucket": "Construction & Engineering",
+   "n_est": 11,
+   "alpha": 0.3,
+   "r2": 0.985,
+   "cv_r2": 0.314,
+   "conf": 9682.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2018-12-31",
+   "bucket": "Consumer Staples",
+   "n_est": 16,
+   "alpha": 30.0,
+   "r2": 0.371,
+   "cv_r2": -0.139,
+   "conf": 6820.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2018-12-31",
+   "bucket": "Diversified Banks",
+   "n_est": 67,
+   "alpha": 30.0,
+   "r2": 0.229,
+   "cv_r2": -0.068,
+   "conf": 74195.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2018-12-31",
+   "bucket": "Electrical Components & Equipment",
+   "n_est": 12,
+   "alpha": 30.0,
+   "r2": 0.347,
+   "cv_r2": -0.183,
+   "conf": 8616.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2018-12-31",
+   "bucket": "Electric Utilities",
+   "n_est": 23,
+   "alpha": 30.0,
+   "r2": 0.266,
+   "cv_r2": -0.355,
+   "conf": 6238.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2018-12-31",
+   "bucket": "Financial Exchanges & Data",
+   "n_est": 12,
+   "alpha": 30.0,
+   "r2": 0.509,
+   "cv_r2": -0.097,
+   "conf": 5750.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2018-12-31",
+   "bucket": "Financials",
+   "n_est": 17,
+   "alpha": 30.0,
+   "r2": 0.363,
+   "cv_r2": -0.081,
+   "conf": 17783.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2018-12-31",
+   "bucket": "global",
+   "n_est": 807,
+   "alpha": 30.0,
+   "r2": 0.148,
+   "cv_r2": 0.122,
+   "conf": 671575.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2018-12-31",
+   "bucket": "Health Care Equipment",
+   "n_est": 18,
+   "alpha": 30.0,
+   "r2": 0.369,
+   "cv_r2": -0.138,
+   "conf": 10116.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2018-12-31",
+   "bucket": "Health Care Providers & Services",
+   "n_est": 12,
+   "alpha": 30.0,
+   "r2": 0.426,
+   "cv_r2": -0.275,
+   "conf": 14658.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2018-12-31",
+   "bucket": "Hotels, Resorts & Cruise Lines",
+   "n_est": 9,
+   "alpha": 30.0,
+   "r2": 0.222,
+   "cv_r2": -0.572,
+   "conf": 9780.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2018-12-31",
+   "bucket": "Household Products",
+   "n_est": 8,
+   "alpha": 30.0,
+   "r2": 0.217,
+   "cv_r2": -0.745,
+   "conf": 11464.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2018-12-31",
+   "bucket": "Industrial Machinery & Supplies & Components",
+   "n_est": 19,
+   "alpha": 30.0,
+   "r2": 0.202,
+   "cv_r2": -0.211,
+   "conf": 5454.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2018-12-31",
+   "bucket": "Industrials",
+   "n_est": 18,
+   "alpha": 30.0,
+   "r2": 0.186,
+   "cv_r2": -0.211,
+   "conf": 17347.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2018-12-31",
+   "bucket": "Integrated Oil & Gas",
+   "n_est": 13,
+   "alpha": 30.0,
+   "r2": 0.457,
+   "cv_r2": -0.284,
+   "conf": 10655.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2018-12-31",
+   "bucket": "Integrated Telecommunication Services",
+   "n_est": 15,
+   "alpha": 30.0,
+   "r2": 0.152,
+   "cv_r2": -0.444,
+   "conf": 33107.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2018-12-31",
+   "bucket": "Life & Health Insurance",
+   "n_est": 16,
+   "alpha": 1.0,
+   "r2": 0.895,
+   "cv_r2": 0.455,
+   "conf": 13355.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2018-12-31",
+   "bucket": "Life Sciences Tools & Services",
+   "n_est": 9,
+   "alpha": 30.0,
+   "r2": 0.397,
+   "cv_r2": -0.428,
+   "conf": 4140.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2018-12-31",
+   "bucket": "Metals & Mining",
+   "n_est": 9,
+   "alpha": 30.0,
+   "r2": 0.432,
+   "cv_r2": -0.312,
+   "conf": 3058.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2018-12-31",
+   "bucket": "Multi-Utilities",
+   "n_est": 13,
+   "alpha": 0.1,
+   "r2": 0.998,
+   "cv_r2": 0.346,
+   "conf": 3741.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2018-12-31",
+   "bucket": "Packaged Foods & Meats",
+   "n_est": 15,
+   "alpha": 30.0,
+   "r2": 0.347,
+   "cv_r2": -0.23,
+   "conf": 9416.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2018-12-31",
+   "bucket": "Passenger Airlines",
+   "n_est": 8,
+   "alpha": 30.0,
+   "r2": 0.318,
+   "cv_r2": -0.237,
+   "conf": 4027.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2018-12-31",
+   "bucket": "Pharmaceuticals",
+   "n_est": 22,
+   "alpha": 30.0,
+   "r2": 0.285,
+   "cv_r2": -0.101,
+   "conf": 17492.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2018-12-31",
+   "bucket": "Property & Casualty Insurance",
+   "n_est": 13,
+   "alpha": 0.3,
+   "r2": 0.98,
+   "cv_r2": -0.39,
+   "conf": 14620.0,
+   "thin_vs_current": true
+  },
+  {
+   "window_end": "2018-12-31",
+   "bucket": "Research & Consulting Services",
+   "n_est": 12,
+   "alpha": 10.0,
+   "r2": 0.587,
+   "cv_r2": -0.121,
+   "conf": 20422.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2018-12-31",
+   "bucket": "Residential REITs",
+   "n_est": 9,
+   "alpha": 30.0,
+   "r2": 0.326,
+   "cv_r2": -0.388,
+   "conf": 2505.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2018-12-31",
+   "bucket": "Semiconductor Materials & Equipment",
+   "n_est": 9,
+   "alpha": 0.1,
+   "r2": 1.0,
+   "cv_r2": 0.382,
+   "conf": 3726.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2018-12-31",
+   "bucket": "Semiconductors",
+   "n_est": 18,
+   "alpha": 30.0,
+   "r2": 0.39,
+   "cv_r2": -0.181,
+   "conf": 32334.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2018-12-31",
+   "bucket": "Specialized REITs",
+   "n_est": 9,
+   "alpha": 0.1,
+   "r2": 1.0,
+   "cv_r2": 0.35,
+   "conf": 4840.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2018-12-31",
+   "bucket": "Specialty Chemicals",
+   "n_est": 10,
+   "alpha": 3.0,
+   "r2": 0.935,
+   "cv_r2": 0.026,
+   "conf": 5760.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2018-12-31",
+   "bucket": "Specialty Retail",
+   "n_est": 10,
+   "alpha": 30.0,
+   "r2": 0.416,
+   "cv_r2": -0.076,
+   "conf": 18147.0,
+   "thin_vs_current": true
+  },
+  {
+   "window_end": "2018-12-31",
+   "bucket": "Systems Software",
+   "n_est": 8,
+   "alpha": 30.0,
+   "r2": 0.315,
+   "cv_r2": -0.417,
+   "conf": 3198.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2018-12-31",
+   "bucket": "Technology Hardware, Storage & Peripherals",
+   "n_est": 13,
+   "alpha": 0.1,
+   "r2": 0.999,
+   "cv_r2": 0.811,
+   "conf": 7085.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2018-12-31",
+   "bucket": "Trading Companies & Distributors",
+   "n_est": 10,
+   "alpha": 30.0,
+   "r2": 0.127,
+   "cv_r2": -0.685,
+   "conf": 7396.0,
+   "thin_vs_current": true
+  },
+  {
+   "window_end": "2018-12-31",
+   "bucket": "Wireless Telecommunication Services",
+   "n_est": 8,
+   "alpha": 1.0,
+   "r2": 0.979,
+   "cv_r2": 0.276,
+   "conf": 16458.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2019-12-31",
+   "bucket": "Aerospace & Defense",
+   "n_est": 20,
+   "alpha": 10.0,
+   "r2": 0.585,
+   "cv_r2": 0.002,
+   "conf": 24181.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2019-12-31",
+   "bucket": "Application Software",
+   "n_est": 21,
+   "alpha": 30.0,
+   "r2": 0.216,
+   "cv_r2": -0.439,
+   "conf": 34867.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2019-12-31",
+   "bucket": "Asset Management & Custody Banks",
+   "n_est": 14,
+   "alpha": 30.0,
+   "r2": 0.164,
+   "cv_r2": -0.392,
+   "conf": 12981.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2019-12-31",
+   "bucket": "Automobile Manufacturers",
+   "n_est": 13,
+   "alpha": 30.0,
+   "r2": 0.206,
+   "cv_r2": -0.523,
+   "conf": 7911.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2019-12-31",
+   "bucket": "Biotechnology",
+   "n_est": 8,
+   "alpha": 30.0,
+   "r2": 0.246,
+   "cv_r2": -0.96,
+   "conf": 4335.0,
+   "thin_vs_current": true
+  },
+  {
+   "window_end": "2019-12-31",
+   "bucket": "Building Products",
+   "n_est": 10,
+   "alpha": 1.0,
+   "r2": 0.943,
+   "cv_r2": 0.089,
+   "conf": 6437.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2019-12-31",
+   "bucket": "Chemicals",
+   "n_est": 15,
+   "alpha": 3.0,
+   "r2": 0.789,
+   "cv_r2": 0.17,
+   "conf": 6703.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2019-12-31",
+   "bucket": "Commercial Services & Supplies",
+   "n_est": 9,
+   "alpha": 30.0,
+   "r2": 0.405,
+   "cv_r2": -0.581,
+   "conf": 6259.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2019-12-31",
+   "bucket": "Construction & Engineering",
+   "n_est": 10,
+   "alpha": 30.0,
+   "r2": 0.234,
+   "cv_r2": -0.336,
+   "conf": 11561.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2019-12-31",
+   "bucket": "Construction Materials",
+   "n_est": 8,
+   "alpha": 10.0,
+   "r2": 0.672,
+   "cv_r2": -0.33,
+   "conf": 2638.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2019-12-31",
+   "bucket": "Consumer Staples",
+   "n_est": 16,
+   "alpha": 30.0,
+   "r2": 0.363,
+   "cv_r2": -0.075,
+   "conf": 8626.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2019-12-31",
+   "bucket": "Diversified Banks",
+   "n_est": 72,
+   "alpha": 30.0,
+   "r2": 0.134,
+   "cv_r2": -0.109,
+   "conf": 91376.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2019-12-31",
+   "bucket": "Electrical Components & Equipment",
+   "n_est": 11,
+   "alpha": 0.1,
+   "r2": 1.0,
+   "cv_r2": 0.269,
+   "conf": 10261.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2019-12-31",
+   "bucket": "Electric Utilities",
+   "n_est": 22,
+   "alpha": 0.3,
+   "r2": 0.851,
+   "cv_r2": 0.297,
+   "conf": 7171.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2019-12-31",
+   "bucket": "Entertainment",
+   "n_est": 8,
+   "alpha": 0.3,
+   "r2": 0.999,
+   "cv_r2": 0.219,
+   "conf": 10095.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2019-12-31",
+   "bucket": "Financial Exchanges & Data",
+   "n_est": 12,
+   "alpha": 10.0,
+   "r2": 0.842,
+   "cv_r2": 0.477,
+   "conf": 6863.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2019-12-31",
+   "bucket": "Financials",
+   "n_est": 18,
+   "alpha": 3.0,
+   "r2": 0.846,
+   "cv_r2": 0.483,
+   "conf": 22159.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2019-12-31",
+   "bucket": "global",
+   "n_est": 866,
+   "alpha": 30.0,
+   "r2": 0.142,
+   "cv_r2": 0.115,
+   "conf": 820635.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2019-12-31",
+   "bucket": "Health Care Equipment",
+   "n_est": 19,
+   "alpha": 10.0,
+   "r2": 0.563,
+   "cv_r2": -0.075,
+   "conf": 12485.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2019-12-31",
+   "bucket": "Health Care Providers & Services",
+   "n_est": 13,
+   "alpha": 30.0,
+   "r2": 0.388,
+   "cv_r2": -0.35,
+   "conf": 17996.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2019-12-31",
+   "bucket": "Hotels, Resorts & Cruise Lines",
+   "n_est": 11,
+   "alpha": 30.0,
+   "r2": 0.357,
+   "cv_r2": -0.52,
+   "conf": 12855.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2019-12-31",
+   "bucket": "Household Products",
+   "n_est": 8,
+   "alpha": 30.0,
+   "r2": 0.293,
+   "cv_r2": -0.621,
+   "conf": 13383.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2019-12-31",
+   "bucket": "Industrial Machinery & Supplies & Components",
+   "n_est": 21,
+   "alpha": 30.0,
+   "r2": 0.134,
+   "cv_r2": -0.274,
+   "conf": 7279.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2019-12-31",
+   "bucket": "Industrials",
+   "n_est": 17,
+   "alpha": 30.0,
+   "r2": 0.336,
+   "cv_r2": -0.287,
+   "conf": 20882.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2019-12-31",
+   "bucket": "Integrated Oil & Gas",
+   "n_est": 13,
+   "alpha": 0.3,
+   "r2": 0.996,
+   "cv_r2": 0.395,
+   "conf": 12574.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2019-12-31",
+   "bucket": "Integrated Telecommunication Services",
+   "n_est": 14,
+   "alpha": 30.0,
+   "r2": 0.302,
+   "cv_r2": -0.248,
+   "conf": 37843.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2019-12-31",
+   "bucket": "Interactive Media & Services",
+   "n_est": 9,
+   "alpha": 30.0,
+   "r2": 0.261,
+   "cv_r2": -0.502,
+   "conf": 2516.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2019-12-31",
+   "bucket": "Investment Banking & Brokerage",
+   "n_est": 8,
+   "alpha": 1.0,
+   "r2": 0.988,
+   "cv_r2": 0.787,
+   "conf": 19249.0,
+   "thin_vs_current": true
+  },
+  {
+   "window_end": "2019-12-31",
+   "bucket": "Life & Health Insurance",
+   "n_est": 17,
+   "alpha": 30.0,
+   "r2": 0.38,
+   "cv_r2": -0.135,
+   "conf": 15986.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2019-12-31",
+   "bucket": "Life Sciences Tools & Services",
+   "n_est": 10,
+   "alpha": 0.1,
+   "r2": 1.0,
+   "cv_r2": 0.348,
+   "conf": 5365.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2019-12-31",
+   "bucket": "Metals & Mining",
+   "n_est": 10,
+   "alpha": 30.0,
+   "r2": 0.436,
+   "cv_r2": -0.182,
+   "conf": 3711.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2019-12-31",
+   "bucket": "Multi-Utilities",
+   "n_est": 14,
+   "alpha": 30.0,
+   "r2": 0.441,
+   "cv_r2": -0.095,
+   "conf": 4633.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2019-12-31",
+   "bucket": "Oil & Gas Storage & Transportation",
+   "n_est": 8,
+   "alpha": 30.0,
+   "r2": 0.344,
+   "cv_r2": -0.335,
+   "conf": 1915.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2019-12-31",
+   "bucket": "Packaged Foods & Meats",
+   "n_est": 16,
+   "alpha": 30.0,
+   "r2": 0.33,
+   "cv_r2": -0.213,
+   "conf": 10824.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2019-12-31",
+   "bucket": "Passenger Airlines",
+   "n_est": 9,
+   "alpha": 30.0,
+   "r2": 0.343,
+   "cv_r2": -0.236,
+   "conf": 4966.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2019-12-31",
+   "bucket": "Pharmaceuticals",
+   "n_est": 25,
+   "alpha": 30.0,
+   "r2": 0.293,
+   "cv_r2": -0.093,
+   "conf": 21796.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2019-12-31",
+   "bucket": "Property & Casualty Insurance",
+   "n_est": 14,
+   "alpha": 3.0,
+   "r2": 0.895,
+   "cv_r2": -0.008,
+   "conf": 16976.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2019-12-31",
+   "bucket": "Real Estate",
+   "n_est": 8,
+   "alpha": 30.0,
+   "r2": 0.499,
+   "cv_r2": -0.362,
+   "conf": 930.0,
+   "thin_vs_current": true
+  },
+  {
+   "window_end": "2019-12-31",
+   "bucket": "Research & Consulting Services",
+   "n_est": 12,
+   "alpha": 30.0,
+   "r2": 0.421,
+   "cv_r2": -0.151,
+   "conf": 23491.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2019-12-31",
+   "bucket": "Residential REITs",
+   "n_est": 9,
+   "alpha": 0.1,
+   "r2": 1.0,
+   "cv_r2": 0.423,
+   "conf": 2919.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2019-12-31",
+   "bucket": "Semiconductor Materials & Equipment",
+   "n_est": 9,
+   "alpha": 10.0,
+   "r2": 0.827,
+   "cv_r2": 0.357,
+   "conf": 4394.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2019-12-31",
+   "bucket": "Semiconductors",
+   "n_est": 18,
+   "alpha": 30.0,
+   "r2": 0.44,
+   "cv_r2": -0.089,
+   "conf": 37493.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2019-12-31",
+   "bucket": "Specialized REITs",
+   "n_est": 9,
+   "alpha": 0.1,
+   "r2": 1.0,
+   "cv_r2": 0.654,
+   "conf": 5606.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2019-12-31",
+   "bucket": "Specialty Chemicals",
+   "n_est": 10,
+   "alpha": 0.1,
+   "r2": 0.999,
+   "cv_r2": 0.198,
+   "conf": 6807.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2019-12-31",
+   "bucket": "Specialty Retail",
+   "n_est": 10,
+   "alpha": 10.0,
+   "r2": 0.631,
+   "cv_r2": 0.007,
+   "conf": 21188.0,
+   "thin_vs_current": true
+  },
+  {
+   "window_end": "2019-12-31",
+   "bucket": "Systems Software",
+   "n_est": 9,
+   "alpha": 0.1,
+   "r2": 1.0,
+   "cv_r2": 0.895,
+   "conf": 4404.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2019-12-31",
+   "bucket": "Technology Hardware, Storage & Peripherals",
+   "n_est": 12,
+   "alpha": 3.0,
+   "r2": 0.943,
+   "cv_r2": 0.157,
+   "conf": 8722.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2019-12-31",
+   "bucket": "Trading Companies & Distributors",
+   "n_est": 12,
+   "alpha": 30.0,
+   "r2": 0.14,
+   "cv_r2": -0.402,
+   "conf": 8742.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2019-12-31",
+   "bucket": "Wireless Telecommunication Services",
+   "n_est": 9,
+   "alpha": 10.0,
+   "r2": 0.827,
+   "cv_r2": 0.322,
+   "conf": 20131.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2020-12-31",
+   "bucket": "Aerospace & Defense",
+   "n_est": 22,
+   "alpha": 1.0,
+   "r2": 0.749,
+   "cv_r2": 0.073,
+   "conf": 29014.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2020-12-31",
+   "bucket": "Application Software",
+   "n_est": 24,
+   "alpha": 30.0,
+   "r2": 0.196,
+   "cv_r2": -0.428,
+   "conf": 45065.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2020-12-31",
+   "bucket": "Asset Management & Custody Banks",
+   "n_est": 10,
+   "alpha": 30.0,
+   "r2": 0.364,
+   "cv_r2": -0.364,
+   "conf": 14900.0,
+   "thin_vs_current": true
+  },
+  {
+   "window_end": "2020-12-31",
+   "bucket": "Automobile Manufacturers",
+   "n_est": 14,
+   "alpha": 30.0,
+   "r2": 0.351,
+   "cv_r2": -0.197,
+   "conf": 10987.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2020-12-31",
+   "bucket": "Biotechnology",
+   "n_est": 10,
+   "alpha": 30.0,
+   "r2": 0.396,
+   "cv_r2": -0.488,
+   "conf": 5790.0,
+   "thin_vs_current": true
+  },
+  {
+   "window_end": "2020-12-31",
+   "bucket": "Broadline Retail",
+   "n_est": 8,
+   "alpha": 30.0,
+   "r2": 0.29,
+   "cv_r2": -0.397,
+   "conf": 10038.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2020-12-31",
+   "bucket": "Building Products",
+   "n_est": 9,
+   "alpha": 10.0,
+   "r2": 0.798,
+   "cv_r2": -0.068,
+   "conf": 7571.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2020-12-31",
+   "bucket": "Chemicals",
+   "n_est": 13,
+   "alpha": 30.0,
+   "r2": 0.35,
+   "cv_r2": -0.258,
+   "conf": 7790.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2020-12-31",
+   "bucket": "Commercial Services & Supplies",
+   "n_est": 9,
+   "alpha": 30.0,
+   "r2": 0.386,
+   "cv_r2": -0.503,
+   "conf": 7417.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2020-12-31",
+   "bucket": "Construction & Engineering",
+   "n_est": 12,
+   "alpha": 30.0,
+   "r2": 0.228,
+   "cv_r2": -0.39,
+   "conf": 14349.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2020-12-31",
+   "bucket": "Construction Machinery & Heavy Transportation Equipment",
+   "n_est": 8,
+   "alpha": 30.0,
+   "r2": 0.426,
+   "cv_r2": -0.309,
+   "conf": 7835.0,
+   "thin_vs_current": true
+  },
+  {
+   "window_end": "2020-12-31",
+   "bucket": "Consumer Discretionary",
+   "n_est": 9,
+   "alpha": 10.0,
+   "r2": 0.711,
+   "cv_r2": 0.087,
+   "conf": 7082.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2020-12-31",
+   "bucket": "Consumer Staples",
+   "n_est": 17,
+   "alpha": 30.0,
+   "r2": 0.343,
+   "cv_r2": -0.193,
+   "conf": 10551.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2020-12-31",
+   "bucket": "Diversified Banks",
+   "n_est": 74,
+   "alpha": 30.0,
+   "r2": 0.294,
+   "cv_r2": 0.085,
+   "conf": 113187.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2020-12-31",
+   "bucket": "Electrical Components & Equipment",
+   "n_est": 12,
+   "alpha": 10.0,
+   "r2": 0.627,
+   "cv_r2": -0.228,
+   "conf": 12669.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2020-12-31",
+   "bucket": "Electric Utilities",
+   "n_est": 19,
+   "alpha": 30.0,
+   "r2": 0.354,
+   "cv_r2": -0.314,
+   "conf": 7973.0,
+   "thin_vs_current": true
+  },
+  {
+   "window_end": "2020-12-31",
+   "bucket": "Entertainment",
+   "n_est": 8,
+   "alpha": 0.3,
+   "r2": 0.999,
+   "cv_r2": 0.352,
+   "conf": 12425.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2020-12-31",
+   "bucket": "Financial Exchanges & Data",
+   "n_est": 13,
+   "alpha": 10.0,
+   "r2": 0.705,
+   "cv_r2": 0.241,
+   "conf": 8076.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2020-12-31",
+   "bucket": "Financials",
+   "n_est": 19,
+   "alpha": 3.0,
+   "r2": 0.786,
+   "cv_r2": 0.238,
+   "conf": 27743.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2020-12-31",
+   "bucket": "Food Retail",
+   "n_est": 8,
+   "alpha": 0.1,
+   "r2": 1.0,
+   "cv_r2": -0.117,
+   "conf": 21686.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2020-12-31",
+   "bucket": "global",
+   "n_est": 894,
+   "alpha": 30.0,
+   "r2": 0.149,
+   "cv_r2": 0.122,
+   "conf": 1009128.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2020-12-31",
+   "bucket": "Health Care Equipment",
+   "n_est": 19,
+   "alpha": 10.0,
+   "r2": 0.695,
+   "cv_r2": 0.351,
+   "conf": 15716.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2020-12-31",
+   "bucket": "Health Care Providers & Services",
+   "n_est": 12,
+   "alpha": 30.0,
+   "r2": 0.368,
+   "cv_r2": -0.307,
+   "conf": 21507.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2020-12-31",
+   "bucket": "Hotels, Resorts & Cruise Lines",
+   "n_est": 10,
+   "alpha": 30.0,
+   "r2": 0.274,
+   "cv_r2": -0.407,
+   "conf": 16130.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2020-12-31",
+   "bucket": "Household Durables",
+   "n_est": 8,
+   "alpha": 30.0,
+   "r2": 0.455,
+   "cv_r2": -0.341,
+   "conf": 5055.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2020-12-31",
+   "bucket": "Household Products",
+   "n_est": 9,
+   "alpha": 30.0,
+   "r2": 0.267,
+   "cv_r2": -0.752,
+   "conf": 16036.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2020-12-31",
+   "bucket": "Industrial Conglomerates",
+   "n_est": 10,
+   "alpha": 30.0,
+   "r2": 0.265,
+   "cv_r2": -0.425,
+   "conf": 6972.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2020-12-31",
+   "bucket": "Industrial Machinery & Supplies & Components",
+   "n_est": 22,
+   "alpha": 30.0,
+   "r2": 0.141,
+   "cv_r2": -0.259,
+   "conf": 9078.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2020-12-31",
+   "bucket": "Industrials",
+   "n_est": 17,
+   "alpha": 30.0,
+   "r2": 0.384,
+   "cv_r2": -0.302,
+   "conf": 25114.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2020-12-31",
+   "bucket": "Integrated Oil & Gas",
+   "n_est": 14,
+   "alpha": 3.0,
+   "r2": 0.893,
+   "cv_r2": 0.034,
+   "conf": 15386.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2020-12-31",
+   "bucket": "Integrated Telecommunication Services",
+   "n_est": 16,
+   "alpha": 30.0,
+   "r2": 0.267,
+   "cv_r2": -0.411,
+   "conf": 43095.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2020-12-31",
+   "bucket": "Interactive Media & Services",
+   "n_est": 9,
+   "alpha": 30.0,
+   "r2": 0.474,
+   "cv_r2": -0.397,
+   "conf": 3268.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2020-12-31",
+   "bucket": "Investment Banking & Brokerage",
+   "n_est": 10,
+   "alpha": 30.0,
+   "r2": 0.403,
+   "cv_r2": -0.203,
+   "conf": 23534.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2020-12-31",
+   "bucket": "Life & Health Insurance",
+   "n_est": 18,
+   "alpha": 30.0,
+   "r2": 0.204,
+   "cv_r2": -0.411,
+   "conf": 19022.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2020-12-31",
+   "bucket": "Life Sciences Tools & Services",
+   "n_est": 10,
+   "alpha": 0.1,
+   "r2": 0.999,
+   "cv_r2": 0.169,
+   "conf": 6606.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2020-12-31",
+   "bucket": "Metals & Mining",
+   "n_est": 12,
+   "alpha": 30.0,
+   "r2": 0.423,
+   "cv_r2": -0.355,
+   "conf": 4676.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2020-12-31",
+   "bucket": "Multi-Utilities",
+   "n_est": 13,
+   "alpha": 3.0,
+   "r2": 0.896,
+   "cv_r2": -0.08,
+   "conf": 5548.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2020-12-31",
+   "bucket": "Oil & Gas Storage & Transportation",
+   "n_est": 8,
+   "alpha": 3.0,
+   "r2": 0.865,
+   "cv_r2": -0.056,
+   "conf": 2312.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2020-12-31",
+   "bucket": "Packaged Foods & Meats",
+   "n_est": 16,
+   "alpha": 30.0,
+   "r2": 0.39,
+   "cv_r2": -0.098,
+   "conf": 12620.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2020-12-31",
+   "bucket": "Passenger Airlines",
+   "n_est": 9,
+   "alpha": 30.0,
+   "r2": 0.391,
+   "cv_r2": -0.541,
+   "conf": 6653.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2020-12-31",
+   "bucket": "Pharmaceuticals",
+   "n_est": 23,
+   "alpha": 30.0,
+   "r2": 0.186,
+   "cv_r2": -0.397,
+   "conf": 26402.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2020-12-31",
+   "bucket": "Property & Casualty Insurance",
+   "n_est": 14,
+   "alpha": 30.0,
+   "r2": 0.441,
+   "cv_r2": -0.191,
+   "conf": 19678.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2020-12-31",
+   "bucket": "Real Estate",
+   "n_est": 8,
+   "alpha": 1.0,
+   "r2": 0.989,
+   "cv_r2": -0.301,
+   "conf": 1087.0,
+   "thin_vs_current": true
+  },
+  {
+   "window_end": "2020-12-31",
+   "bucket": "Research & Consulting Services",
+   "n_est": 12,
+   "alpha": 10.0,
+   "r2": 0.741,
+   "cv_r2": 0.149,
+   "conf": 27211.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2020-12-31",
+   "bucket": "Residential REITs",
+   "n_est": 9,
+   "alpha": 0.1,
+   "r2": 1.0,
+   "cv_r2": 0.28,
+   "conf": 3382.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2020-12-31",
+   "bucket": "Restaurants",
+   "n_est": 8,
+   "alpha": 0.3,
+   "r2": 0.998,
+   "cv_r2": 0.128,
+   "conf": 11547.0,
+   "thin_vs_current": true
+  },
+  {
+   "window_end": "2020-12-31",
+   "bucket": "Semiconductor Materials & Equipment",
+   "n_est": 11,
+   "alpha": 30.0,
+   "r2": 0.34,
+   "cv_r2": -0.236,
+   "conf": 5409.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2020-12-31",
+   "bucket": "Semiconductors",
+   "n_est": 19,
+   "alpha": 30.0,
+   "r2": 0.276,
+   "cv_r2": -0.254,
+   "conf": 44316.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2020-12-31",
+   "bucket": "Specialized REITs",
+   "n_est": 9,
+   "alpha": 1.0,
+   "r2": 0.995,
+   "cv_r2": 0.573,
+   "conf": 6674.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2020-12-31",
+   "bucket": "Specialty Chemicals",
+   "n_est": 8,
+   "alpha": 30.0,
+   "r2": 0.513,
+   "cv_r2": -0.424,
+   "conf": 7755.0,
+   "thin_vs_current": true
+  },
+  {
+   "window_end": "2020-12-31",
+   "bucket": "Specialty Retail",
+   "n_est": 11,
+   "alpha": 10.0,
+   "r2": 0.717,
+   "cv_r2": 0.101,
+   "conf": 25470.0,
+   "thin_vs_current": true
+  },
+  {
+   "window_end": "2020-12-31",
+   "bucket": "Systems Software",
+   "n_est": 9,
+   "alpha": 3.0,
+   "r2": 0.916,
+   "cv_r2": 0.291,
+   "conf": 5760.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2020-12-31",
+   "bucket": "Technology Hardware, Storage & Peripherals",
+   "n_est": 11,
+   "alpha": 10.0,
+   "r2": 0.714,
+   "cv_r2": -0.212,
+   "conf": 10993.0,
+   "thin_vs_current": true
+  },
+  {
+   "window_end": "2020-12-31",
+   "bucket": "Trading Companies & Distributors",
+   "n_est": 12,
+   "alpha": 30.0,
+   "r2": 0.459,
+   "cv_r2": -0.069,
+   "conf": 10256.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2020-12-31",
+   "bucket": "Transaction & Payment Processing Services",
+   "n_est": 8,
+   "alpha": 30.0,
+   "r2": 0.449,
+   "cv_r2": -0.332,
+   "conf": 7339.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2020-12-31",
+   "bucket": "Wireless Telecommunication Services",
+   "n_est": 10,
+   "alpha": 10.0,
+   "r2": 0.817,
+   "cv_r2": 0.215,
+   "conf": 24586.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2021-12-31",
+   "bucket": "Aerospace & Defense",
+   "n_est": 21,
+   "alpha": 30.0,
+   "r2": 0.369,
+   "cv_r2": -0.119,
+   "conf": 38273.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2021-12-31",
+   "bucket": "Apparel, Accessories & Luxury Goods",
+   "n_est": 9,
+   "alpha": 3.0,
+   "r2": 0.944,
+   "cv_r2": 0.589,
+   "conf": 9372.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2021-12-31",
+   "bucket": "Application Software",
+   "n_est": 23,
+   "alpha": 30.0,
+   "r2": 0.266,
+   "cv_r2": -0.257,
+   "conf": 61280.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2021-12-31",
+   "bucket": "Asset Management & Custody Banks",
+   "n_est": 10,
+   "alpha": 0.3,
+   "r2": 0.993,
+   "cv_r2": -0.033,
+   "conf": 20000.0,
+   "thin_vs_current": true
+  },
+  {
+   "window_end": "2021-12-31",
+   "bucket": "Automobile Components",
+   "n_est": 8,
+   "alpha": 1.0,
+   "r2": 0.992,
+   "cv_r2": 0.767,
+   "conf": 5207.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2021-12-31",
+   "bucket": "Automobile Manufacturers",
+   "n_est": 15,
+   "alpha": 30.0,
+   "r2": 0.314,
+   "cv_r2": -0.289,
+   "conf": 18022.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2021-12-31",
+   "bucket": "Biotechnology",
+   "n_est": 10,
+   "alpha": 30.0,
+   "r2": 0.402,
+   "cv_r2": -0.47,
+   "conf": 8377.0,
+   "thin_vs_current": true
+  },
+  {
+   "window_end": "2021-12-31",
+   "bucket": "Broadline Retail",
+   "n_est": 9,
+   "alpha": 30.0,
+   "r2": 0.25,
+   "cv_r2": -0.521,
+   "conf": 14140.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2021-12-31",
+   "bucket": "Building Products",
+   "n_est": 9,
+   "alpha": 0.1,
+   "r2": 1.0,
+   "cv_r2": -0.022,
+   "conf": 10299.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2021-12-31",
+   "bucket": "Chemicals",
+   "n_est": 16,
+   "alpha": 30.0,
+   "r2": 0.274,
+   "cv_r2": -0.243,
+   "conf": 11347.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2021-12-31",
+   "bucket": "Commercial Services & Supplies",
+   "n_est": 9,
+   "alpha": 30.0,
+   "r2": 0.388,
+   "cv_r2": -0.255,
+   "conf": 9621.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2021-12-31",
+   "bucket": "Construction & Engineering",
+   "n_est": 10,
+   "alpha": 30.0,
+   "r2": 0.27,
+   "cv_r2": -0.464,
+   "conf": 19237.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2021-12-31",
+   "bucket": "Construction Machinery & Heavy Transportation Equipment",
+   "n_est": 11,
+   "alpha": 30.0,
+   "r2": 0.267,
+   "cv_r2": -0.129,
+   "conf": 11375.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2021-12-31",
+   "bucket": "Consumer Discretionary",
+   "n_est": 11,
+   "alpha": 3.0,
+   "r2": 0.856,
+   "cv_r2": 0.104,
+   "conf": 9394.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2021-12-31",
+   "bucket": "Consumer Staples",
+   "n_est": 17,
+   "alpha": 30.0,
+   "r2": 0.225,
+   "cv_r2": -0.336,
+   "conf": 14779.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2021-12-31",
+   "bucket": "Diversified Banks",
+   "n_est": 79,
+   "alpha": 30.0,
+   "r2": 0.269,
+   "cv_r2": 0.043,
+   "conf": 160917.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2021-12-31",
+   "bucket": "Electrical Components & Equipment",
+   "n_est": 15,
+   "alpha": 0.1,
+   "r2": 0.995,
+   "cv_r2": 0.693,
+   "conf": 17391.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2021-12-31",
+   "bucket": "Electric Utilities",
+   "n_est": 22,
+   "alpha": 30.0,
+   "r2": 0.337,
+   "cv_r2": -0.263,
+   "conf": 10883.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2021-12-31",
+   "bucket": "Electronic Components",
+   "n_est": 8,
+   "alpha": 30.0,
+   "r2": 0.496,
+   "cv_r2": -0.29,
+   "conf": 1955.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2021-12-31",
+   "bucket": "Electronic Equipment & Instruments",
+   "n_est": 8,
+   "alpha": 30.0,
+   "r2": 0.468,
+   "cv_r2": -0.233,
+   "conf": 5261.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2021-12-31",
+   "bucket": "Entertainment",
+   "n_est": 9,
+   "alpha": 10.0,
+   "r2": 0.854,
+   "cv_r2": 0.029,
+   "conf": 17190.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2021-12-31",
+   "bucket": "Financial Exchanges & Data",
+   "n_est": 14,
+   "alpha": 10.0,
+   "r2": 0.784,
+   "cv_r2": 0.132,
+   "conf": 11052.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2021-12-31",
+   "bucket": "Financials",
+   "n_est": 20,
+   "alpha": 10.0,
+   "r2": 0.664,
+   "cv_r2": 0.158,
+   "conf": 39946.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2021-12-31",
+   "bucket": "Financial Services",
+   "n_est": 8,
+   "alpha": 3.0,
+   "r2": 0.946,
+   "cv_r2": 0.09,
+   "conf": 5315.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2021-12-31",
+   "bucket": "Food Retail",
+   "n_est": 9,
+   "alpha": 0.1,
+   "r2": 1.0,
+   "cv_r2": 0.079,
+   "conf": 38210.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2021-12-31",
+   "bucket": "global",
+   "n_est": 975,
+   "alpha": 30.0,
+   "r2": 0.226,
+   "cv_r2": 0.204,
+   "conf": 1438248.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2021-12-31",
+   "bucket": "Health Care Equipment",
+   "n_est": 23,
+   "alpha": 10.0,
+   "r2": 0.705,
+   "cv_r2": 0.355,
+   "conf": 27779.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2021-12-31",
+   "bucket": "Health Care Providers & Services",
+   "n_est": 14,
+   "alpha": 10.0,
+   "r2": 0.599,
+   "cv_r2": -0.165,
+   "conf": 38026.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2021-12-31",
+   "bucket": "Hotels, Resorts & Cruise Lines",
+   "n_est": 10,
+   "alpha": 30.0,
+   "r2": 0.379,
+   "cv_r2": -0.182,
+   "conf": 21222.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2021-12-31",
+   "bucket": "Household Durables",
+   "n_est": 8,
+   "alpha": 30.0,
+   "r2": 0.463,
+   "cv_r2": -0.455,
+   "conf": 6623.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2021-12-31",
+   "bucket": "Household Products",
+   "n_est": 9,
+   "alpha": 30.0,
+   "r2": 0.227,
+   "cv_r2": -0.819,
+   "conf": 21225.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2021-12-31",
+   "bucket": "Independent Power & Renewable Electricity Producers",
+   "n_est": 8,
+   "alpha": 30.0,
+   "r2": 0.259,
+   "cv_r2": -0.683,
+   "conf": 2366.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2021-12-31",
+   "bucket": "Industrial Conglomerates",
+   "n_est": 9,
+   "alpha": 0.1,
+   "r2": 0.999,
+   "cv_r2": 0.397,
+   "conf": 14977.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2021-12-31",
+   "bucket": "Industrial Machinery & Supplies & Components",
+   "n_est": 22,
+   "alpha": 30.0,
+   "r2": 0.314,
+   "cv_r2": -0.106,
+   "conf": 12247.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2021-12-31",
+   "bucket": "Industrials",
+   "n_est": 18,
+   "alpha": 30.0,
+   "r2": 0.331,
+   "cv_r2": -0.313,
+   "conf": 37915.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2021-12-31",
+   "bucket": "Integrated Oil & Gas",
+   "n_est": 15,
+   "alpha": 10.0,
+   "r2": 0.531,
+   "cv_r2": 0.114,
+   "conf": 20867.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2021-12-31",
+   "bucket": "Integrated Telecommunication Services",
+   "n_est": 16,
+   "alpha": 30.0,
+   "r2": 0.234,
+   "cv_r2": -0.416,
+   "conf": 54219.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2021-12-31",
+   "bucket": "Interactive Media & Services",
+   "n_est": 9,
+   "alpha": 30.0,
+   "r2": 0.394,
+   "cv_r2": -0.384,
+   "conf": 4709.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2021-12-31",
+   "bucket": "Internet Services & Infrastructure",
+   "n_est": 8,
+   "alpha": 10.0,
+   "r2": 0.783,
+   "cv_r2": -0.096,
+   "conf": 5629.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2021-12-31",
+   "bucket": "Investment Banking & Brokerage",
+   "n_est": 13,
+   "alpha": 30.0,
+   "r2": 0.364,
+   "cv_r2": -0.118,
+   "conf": 33181.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2021-12-31",
+   "bucket": "Life & Health Insurance",
+   "n_est": 19,
+   "alpha": 10.0,
+   "r2": 0.696,
+   "cv_r2": 0.161,
+   "conf": 25689.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2021-12-31",
+   "bucket": "Life Sciences Tools & Services",
+   "n_est": 12,
+   "alpha": 30.0,
+   "r2": 0.38,
+   "cv_r2": -0.211,
+   "conf": 9743.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2021-12-31",
+   "bucket": "Metals & Mining",
+   "n_est": 13,
+   "alpha": 30.0,
+   "r2": 0.362,
+   "cv_r2": -0.283,
+   "conf": 6793.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2021-12-31",
+   "bucket": "Multi-Utilities",
+   "n_est": 13,
+   "alpha": 30.0,
+   "r2": 0.517,
+   "cv_r2": -0.089,
+   "conf": 7849.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2021-12-31",
+   "bucket": "Oil & Gas Exploration & Production",
+   "n_est": 8,
+   "alpha": 30.0,
+   "r2": 0.537,
+   "cv_r2": -0.178,
+   "conf": 3067.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2021-12-31",
+   "bucket": "Packaged Foods & Meats",
+   "n_est": 17,
+   "alpha": 30.0,
+   "r2": 0.302,
+   "cv_r2": -0.115,
+   "conf": 16658.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2021-12-31",
+   "bucket": "Passenger Airlines",
+   "n_est": 11,
+   "alpha": 30.0,
+   "r2": 0.344,
+   "cv_r2": -0.229,
+   "conf": 9731.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2021-12-31",
+   "bucket": "Pharmaceuticals",
+   "n_est": 24,
+   "alpha": 30.0,
+   "r2": 0.206,
+   "cv_r2": -0.347,
+   "conf": 37071.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2021-12-31",
+   "bucket": "Property & Casualty Insurance",
+   "n_est": 14,
+   "alpha": 30.0,
+   "r2": 0.368,
+   "cv_r2": -0.289,
+   "conf": 25954.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2021-12-31",
+   "bucket": "Real Estate",
+   "n_est": 9,
+   "alpha": 30.0,
+   "r2": 0.33,
+   "cv_r2": -0.558,
+   "conf": 1483.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2021-12-31",
+   "bucket": "Real Estate Management & Development",
+   "n_est": 10,
+   "alpha": 30.0,
+   "r2": 0.451,
+   "cv_r2": -0.378,
+   "conf": 4850.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2021-12-31",
+   "bucket": "Research & Consulting Services",
+   "n_est": 12,
+   "alpha": 0.1,
+   "r2": 1.0,
+   "cv_r2": 0.588,
+   "conf": 34547.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2021-12-31",
+   "bucket": "Residential REITs",
+   "n_est": 9,
+   "alpha": 10.0,
+   "r2": 0.743,
+   "cv_r2": -0.036,
+   "conf": 4224.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2021-12-31",
+   "bucket": "Semiconductor Materials & Equipment",
+   "n_est": 11,
+   "alpha": 0.3,
+   "r2": 0.994,
+   "cv_r2": 0.243,
+   "conf": 7692.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2021-12-31",
+   "bucket": "Semiconductors",
+   "n_est": 18,
+   "alpha": 30.0,
+   "r2": 0.436,
+   "cv_r2": 0.022,
+   "conf": 58045.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2021-12-31",
+   "bucket": "Specialized REITs",
+   "n_est": 9,
+   "alpha": 0.1,
+   "r2": 1.0,
+   "cv_r2": 0.747,
+   "conf": 8431.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2021-12-31",
+   "bucket": "Specialty Chemicals",
+   "n_est": 10,
+   "alpha": 3.0,
+   "r2": 0.837,
+   "cv_r2": 0.02,
+   "conf": 10606.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2021-12-31",
+   "bucket": "Specialty Retail",
+   "n_est": 13,
+   "alpha": 30.0,
+   "r2": 0.306,
+   "cv_r2": -0.154,
+   "conf": 34980.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2021-12-31",
+   "bucket": "Systems Software",
+   "n_est": 10,
+   "alpha": 3.0,
+   "r2": 0.952,
+   "cv_r2": 0.503,
+   "conf": 9137.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2021-12-31",
+   "bucket": "Technology Hardware, Storage & Peripherals",
+   "n_est": 14,
+   "alpha": 30.0,
+   "r2": 0.44,
+   "cv_r2": -0.176,
+   "conf": 17013.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2021-12-31",
+   "bucket": "Trading Companies & Distributors",
+   "n_est": 14,
+   "alpha": 30.0,
+   "r2": 0.348,
+   "cv_r2": -0.144,
+   "conf": 13571.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2021-12-31",
+   "bucket": "Transaction & Payment Processing Services",
+   "n_est": 10,
+   "alpha": 30.0,
+   "r2": 0.325,
+   "cv_r2": -0.456,
+   "conf": 13328.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2021-12-31",
+   "bucket": "Wireless Telecommunication Services",
+   "n_est": 8,
+   "alpha": 10.0,
+   "r2": 0.753,
+   "cv_r2": -0.158,
+   "conf": 34077.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2022-12-31",
+   "bucket": "Aerospace & Defense",
+   "n_est": 24,
+   "alpha": 30.0,
+   "r2": 0.359,
+   "cv_r2": -0.06,
+   "conf": 48344.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2022-12-31",
+   "bucket": "Apparel, Accessories & Luxury Goods",
+   "n_est": 9,
+   "alpha": 3.0,
+   "r2": 0.937,
+   "cv_r2": 0.717,
+   "conf": 12870.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2022-12-31",
+   "bucket": "Application Software",
+   "n_est": 26,
+   "alpha": 30.0,
+   "r2": 0.282,
+   "cv_r2": -0.173,
+   "conf": 77458.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2022-12-31",
+   "bucket": "Asset Management & Custody Banks",
+   "n_est": 15,
+   "alpha": 30.0,
+   "r2": 0.404,
+   "cv_r2": -0.026,
+   "conf": 25631.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2022-12-31",
+   "bucket": "Automobile Components",
+   "n_est": 8,
+   "alpha": 30.0,
+   "r2": 0.294,
+   "cv_r2": -0.378,
+   "conf": 6735.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2022-12-31",
+   "bucket": "Automobile Manufacturers",
+   "n_est": 14,
+   "alpha": 30.0,
+   "r2": 0.197,
+   "cv_r2": -0.671,
+   "conf": 24625.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2022-12-31",
+   "bucket": "Biotechnology",
+   "n_est": 13,
+   "alpha": 30.0,
+   "r2": 0.467,
+   "cv_r2": -0.244,
+   "conf": 11385.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2022-12-31",
+   "bucket": "Broadline Retail",
+   "n_est": 9,
+   "alpha": 1.0,
+   "r2": 0.941,
+   "cv_r2": 0.194,
+   "conf": 18288.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2022-12-31",
+   "bucket": "Building Products",
+   "n_est": 10,
+   "alpha": 0.1,
+   "r2": 1.0,
+   "cv_r2": 0.561,
+   "conf": 13069.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2022-12-31",
+   "bucket": "Chemicals",
+   "n_est": 19,
+   "alpha": 30.0,
+   "r2": 0.332,
+   "cv_r2": -0.045,
+   "conf": 14645.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2022-12-31",
+   "bucket": "Commercial Services & Supplies",
+   "n_est": 10,
+   "alpha": 30.0,
+   "r2": 0.519,
+   "cv_r2": -0.081,
+   "conf": 12131.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2022-12-31",
+   "bucket": "Construction & Engineering",
+   "n_est": 10,
+   "alpha": 30.0,
+   "r2": 0.204,
+   "cv_r2": -0.606,
+   "conf": 23604.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2022-12-31",
+   "bucket": "Construction Machinery & Heavy Transportation Equipment",
+   "n_est": 11,
+   "alpha": 30.0,
+   "r2": 0.176,
+   "cv_r2": -0.35,
+   "conf": 14965.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2022-12-31",
+   "bucket": "Consumer Discretionary",
+   "n_est": 10,
+   "alpha": 30.0,
+   "r2": 0.388,
+   "cv_r2": -0.25,
+   "conf": 11198.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2022-12-31",
+   "bucket": "Consumer Staples",
+   "n_est": 20,
+   "alpha": 30.0,
+   "r2": 0.409,
+   "cv_r2": -0.024,
+   "conf": 19085.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2022-12-31",
+   "bucket": "Diversified Banks",
+   "n_est": 90,
+   "alpha": 30.0,
+   "r2": 0.14,
+   "cv_r2": -0.07,
+   "conf": 206783.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2022-12-31",
+   "bucket": "Electrical Components & Equipment",
+   "n_est": 15,
+   "alpha": 30.0,
+   "r2": 0.422,
+   "cv_r2": -0.218,
+   "conf": 21633.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2022-12-31",
+   "bucket": "Electric Utilities",
+   "n_est": 26,
+   "alpha": 30.0,
+   "r2": 0.321,
+   "cv_r2": -0.184,
+   "conf": 14288.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2022-12-31",
+   "bucket": "Electronic Equipment & Instruments",
+   "n_est": 9,
+   "alpha": 30.0,
+   "r2": 0.42,
+   "cv_r2": -0.137,
+   "conf": 6821.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2022-12-31",
+   "bucket": "Entertainment",
+   "n_est": 9,
+   "alpha": 0.1,
+   "r2": 0.999,
+   "cv_r2": -0.172,
+   "conf": 21358.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2022-12-31",
+   "bucket": "Financial Exchanges & Data",
+   "n_est": 12,
+   "alpha": 30.0,
+   "r2": 0.533,
+   "cv_r2": -0.268,
+   "conf": 13982.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2022-12-31",
+   "bucket": "Financials",
+   "n_est": 20,
+   "alpha": 10.0,
+   "r2": 0.662,
+   "cv_r2": 0.162,
+   "conf": 51436.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2022-12-31",
+   "bucket": "Financial Services",
+   "n_est": 9,
+   "alpha": 30.0,
+   "r2": 0.425,
+   "cv_r2": -0.535,
+   "conf": 7204.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2022-12-31",
+   "bucket": "Food Retail",
+   "n_est": 10,
+   "alpha": 30.0,
+   "r2": 0.341,
+   "cv_r2": -0.301,
+   "conf": 53507.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2022-12-31",
+   "bucket": "global",
+   "n_est": 1053,
+   "alpha": 30.0,
+   "r2": 0.157,
+   "cv_r2": 0.135,
+   "conf": 1891752.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2022-12-31",
+   "bucket": "Health Care Equipment",
+   "n_est": 23,
+   "alpha": 10.0,
+   "r2": 0.647,
+   "cv_r2": 0.261,
+   "conf": 37475.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2022-12-31",
+   "bucket": "Health Care Providers & Services",
+   "n_est": 15,
+   "alpha": 1.0,
+   "r2": 0.884,
+   "cv_r2": -0.082,
+   "conf": 55348.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2022-12-31",
+   "bucket": "Hotels, Resorts & Cruise Lines",
+   "n_est": 12,
+   "alpha": 0.1,
+   "r2": 0.998,
+   "cv_r2": 0.177,
+   "conf": 26676.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2022-12-31",
+   "bucket": "Household Products",
+   "n_est": 9,
+   "alpha": 30.0,
+   "r2": 0.273,
+   "cv_r2": -0.791,
+   "conf": 25987.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2022-12-31",
+   "bucket": "Independent Power & Renewable Electricity Producers",
+   "n_est": 8,
+   "alpha": 10.0,
+   "r2": 0.735,
+   "cv_r2": -0.138,
+   "conf": 2831.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2022-12-31",
+   "bucket": "Industrial Conglomerates",
+   "n_est": 10,
+   "alpha": 30.0,
+   "r2": 0.602,
+   "cv_r2": -0.519,
+   "conf": 22904.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2022-12-31",
+   "bucket": "Industrial Machinery & Supplies & Components",
+   "n_est": 24,
+   "alpha": 10.0,
+   "r2": 0.545,
+   "cv_r2": 0.052,
+   "conf": 15619.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2022-12-31",
+   "bucket": "Industrials",
+   "n_est": 20,
+   "alpha": 30.0,
+   "r2": 0.251,
+   "cv_r2": -0.384,
+   "conf": 53210.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2022-12-31",
+   "bucket": "Integrated Oil & Gas",
+   "n_est": 15,
+   "alpha": 0.1,
+   "r2": 0.992,
+   "cv_r2": 0.542,
+   "conf": 25525.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2022-12-31",
+   "bucket": "Integrated Telecommunication Services",
+   "n_est": 22,
+   "alpha": 30.0,
+   "r2": 0.263,
+   "cv_r2": -0.246,
+   "conf": 67092.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2022-12-31",
+   "bucket": "Interactive Media & Services",
+   "n_est": 8,
+   "alpha": 1.0,
+   "r2": 0.982,
+   "cv_r2": 0.083,
+   "conf": 6226.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2022-12-31",
+   "bucket": "Internet Services & Infrastructure",
+   "n_est": 8,
+   "alpha": 3.0,
+   "r2": 0.967,
+   "cv_r2": 0.202,
+   "conf": 7986.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2022-12-31",
+   "bucket": "Investment Banking & Brokerage",
+   "n_est": 12,
+   "alpha": 0.3,
+   "r2": 0.979,
+   "cv_r2": 0.199,
+   "conf": 41147.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2022-12-31",
+   "bucket": "IT Consulting & Other Services",
+   "n_est": 9,
+   "alpha": 30.0,
+   "r2": 0.421,
+   "cv_r2": -0.264,
+   "conf": 36165.0,
+   "thin_vs_current": true
+  },
+  {
+   "window_end": "2022-12-31",
+   "bucket": "Life & Health Insurance",
+   "n_est": 21,
+   "alpha": 30.0,
+   "r2": 0.275,
+   "cv_r2": -0.04,
+   "conf": 32611.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2022-12-31",
+   "bucket": "Life Sciences Tools & Services",
+   "n_est": 14,
+   "alpha": 30.0,
+   "r2": 0.2,
+   "cv_r2": -0.381,
+   "conf": 13581.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2022-12-31",
+   "bucket": "Metals & Mining",
+   "n_est": 15,
+   "alpha": 30.0,
+   "r2": 0.343,
+   "cv_r2": -0.129,
+   "conf": 8624.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2022-12-31",
+   "bucket": "Multi-Utilities",
+   "n_est": 13,
+   "alpha": 30.0,
+   "r2": 0.432,
+   "cv_r2": -0.328,
+   "conf": 9877.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2022-12-31",
+   "bucket": "Oil & Gas Exploration & Production",
+   "n_est": 9,
+   "alpha": 10.0,
+   "r2": 0.802,
+   "cv_r2": 0.132,
+   "conf": 3797.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2022-12-31",
+   "bucket": "Oil & Gas Refining & Marketing",
+   "n_est": 8,
+   "alpha": 0.1,
+   "r2": 1.0,
+   "cv_r2": 0.116,
+   "conf": 7787.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2022-12-31",
+   "bucket": "Packaged Foods & Meats",
+   "n_est": 18,
+   "alpha": 0.1,
+   "r2": 0.943,
+   "cv_r2": 0.282,
+   "conf": 20303.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2022-12-31",
+   "bucket": "Passenger Airlines",
+   "n_est": 10,
+   "alpha": 30.0,
+   "r2": 0.16,
+   "cv_r2": -0.533,
+   "conf": 12094.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2022-12-31",
+   "bucket": "Pharmaceuticals",
+   "n_est": 29,
+   "alpha": 30.0,
+   "r2": 0.311,
+   "cv_r2": -0.114,
+   "conf": 49174.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2022-12-31",
+   "bucket": "Property & Casualty Insurance",
+   "n_est": 17,
+   "alpha": 30.0,
+   "r2": 0.427,
+   "cv_r2": -0.105,
+   "conf": 31996.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2022-12-31",
+   "bucket": "Real Estate",
+   "n_est": 11,
+   "alpha": 30.0,
+   "r2": 0.42,
+   "cv_r2": -0.247,
+   "conf": 1936.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2022-12-31",
+   "bucket": "Real Estate Management & Development",
+   "n_est": 11,
+   "alpha": 30.0,
+   "r2": 0.431,
+   "cv_r2": -0.364,
+   "conf": 6337.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2022-12-31",
+   "bucket": "Research & Consulting Services",
+   "n_est": 12,
+   "alpha": 3.0,
+   "r2": 0.909,
+   "cv_r2": 0.268,
+   "conf": 41102.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2022-12-31",
+   "bucket": "Residential REITs",
+   "n_est": 9,
+   "alpha": 3.0,
+   "r2": 0.941,
+   "cv_r2": 0.21,
+   "conf": 5057.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2022-12-31",
+   "bucket": "Restaurants",
+   "n_est": 11,
+   "alpha": 30.0,
+   "r2": 0.415,
+   "cv_r2": -0.367,
+   "conf": 34535.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2022-12-31",
+   "bucket": "Semiconductor Materials & Equipment",
+   "n_est": 11,
+   "alpha": 30.0,
+   "r2": 0.422,
+   "cv_r2": -0.388,
+   "conf": 10141.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2022-12-31",
+   "bucket": "Semiconductors",
+   "n_est": 18,
+   "alpha": 30.0,
+   "r2": 0.491,
+   "cv_r2": 0.049,
+   "conf": 70533.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2022-12-31",
+   "bucket": "Specialized REITs",
+   "n_est": 9,
+   "alpha": 10.0,
+   "r2": 0.791,
+   "cv_r2": -0.098,
+   "conf": 10200.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2022-12-31",
+   "bucket": "Specialty Chemicals",
+   "n_est": 11,
+   "alpha": 3.0,
+   "r2": 0.889,
+   "cv_r2": 0.514,
+   "conf": 13246.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2022-12-31",
+   "bucket": "Specialty Retail",
+   "n_est": 14,
+   "alpha": 30.0,
+   "r2": 0.297,
+   "cv_r2": -0.126,
+   "conf": 46728.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2022-12-31",
+   "bucket": "Systems Software",
+   "n_est": 10,
+   "alpha": 3.0,
+   "r2": 0.955,
+   "cv_r2": 0.433,
+   "conf": 12568.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2022-12-31",
+   "bucket": "Technology Hardware, Storage & Peripherals",
+   "n_est": 14,
+   "alpha": 30.0,
+   "r2": 0.593,
+   "cv_r2": 0.072,
+   "conf": 22004.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2022-12-31",
+   "bucket": "Trading Companies & Distributors",
+   "n_est": 15,
+   "alpha": 30.0,
+   "r2": 0.317,
+   "cv_r2": -0.177,
+   "conf": 16747.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2022-12-31",
+   "bucket": "Transaction & Payment Processing Services",
+   "n_est": 10,
+   "alpha": 0.1,
+   "r2": 1.0,
+   "cv_r2": 0.012,
+   "conf": 18730.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2022-12-31",
+   "bucket": "Wireless Telecommunication Services",
+   "n_est": 8,
+   "alpha": 0.1,
+   "r2": 1.0,
+   "cv_r2": 0.515,
+   "conf": 43747.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2023-12-31",
+   "bucket": "Aerospace & Defense",
+   "n_est": 26,
+   "alpha": 3.0,
+   "r2": 0.705,
+   "cv_r2": 0.016,
+   "conf": 56669.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2023-12-31",
+   "bucket": "Apparel, Accessories & Luxury Goods",
+   "n_est": 10,
+   "alpha": 10.0,
+   "r2": 0.778,
+   "cv_r2": -0.022,
+   "conf": 16410.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2023-12-31",
+   "bucket": "Application Software",
+   "n_est": 27,
+   "alpha": 1.0,
+   "r2": 0.638,
+   "cv_r2": -0.041,
+   "conf": 92500.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2023-12-31",
+   "bucket": "Asset Management & Custody Banks",
+   "n_est": 16,
+   "alpha": 30.0,
+   "r2": 0.434,
+   "cv_r2": -0.008,
+   "conf": 29861.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2023-12-31",
+   "bucket": "Automobile Components",
+   "n_est": 8,
+   "alpha": 30.0,
+   "r2": 0.34,
+   "cv_r2": -0.381,
+   "conf": 8115.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2023-12-31",
+   "bucket": "Automobile Manufacturers",
+   "n_est": 16,
+   "alpha": 30.0,
+   "r2": 0.365,
+   "cv_r2": 0.053,
+   "conf": 32815.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2023-12-31",
+   "bucket": "Biotechnology",
+   "n_est": 17,
+   "alpha": 30.0,
+   "r2": 0.43,
+   "cv_r2": -0.18,
+   "conf": 13933.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2023-12-31",
+   "bucket": "Broadline Retail",
+   "n_est": 9,
+   "alpha": 30.0,
+   "r2": 0.189,
+   "cv_r2": -0.552,
+   "conf": 21605.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2023-12-31",
+   "bucket": "Building Products",
+   "n_est": 12,
+   "alpha": 3.0,
+   "r2": 0.885,
+   "cv_r2": 0.116,
+   "conf": 15910.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2023-12-31",
+   "bucket": "Chemicals",
+   "n_est": 20,
+   "alpha": 30.0,
+   "r2": 0.335,
+   "cv_r2": -0.025,
+   "conf": 17779.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2023-12-31",
+   "bucket": "Commercial Services & Supplies",
+   "n_est": 10,
+   "alpha": 10.0,
+   "r2": 0.802,
+   "cv_r2": 0.087,
+   "conf": 13792.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2023-12-31",
+   "bucket": "Construction & Engineering",
+   "n_est": 14,
+   "alpha": 30.0,
+   "r2": 0.175,
+   "cv_r2": -0.551,
+   "conf": 28536.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2023-12-31",
+   "bucket": "Construction Machinery & Heavy Transportation Equipment",
+   "n_est": 13,
+   "alpha": 30.0,
+   "r2": 0.286,
+   "cv_r2": -0.163,
+   "conf": 18288.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2023-12-31",
+   "bucket": "Construction Materials",
+   "n_est": 8,
+   "alpha": 30.0,
+   "r2": 0.423,
+   "cv_r2": -0.36,
+   "conf": 5801.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2023-12-31",
+   "bucket": "Consumer Discretionary",
+   "n_est": 11,
+   "alpha": 0.3,
+   "r2": 0.996,
+   "cv_r2": 0.213,
+   "conf": 13133.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2023-12-31",
+   "bucket": "Consumer Staples",
+   "n_est": 17,
+   "alpha": 30.0,
+   "r2": 0.334,
+   "cv_r2": -0.069,
+   "conf": 22190.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2023-12-31",
+   "bucket": "Diversified Banks",
+   "n_est": 92,
+   "alpha": 30.0,
+   "r2": 0.144,
+   "cv_r2": -0.067,
+   "conf": 246286.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2023-12-31",
+   "bucket": "Electrical Components & Equipment",
+   "n_est": 15,
+   "alpha": 30.0,
+   "r2": 0.267,
+   "cv_r2": -0.528,
+   "conf": 25796.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2023-12-31",
+   "bucket": "Electric Utilities",
+   "n_est": 28,
+   "alpha": 10.0,
+   "r2": 0.537,
+   "cv_r2": 0.001,
+   "conf": 17083.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2023-12-31",
+   "bucket": "Electronic Components",
+   "n_est": 9,
+   "alpha": 10.0,
+   "r2": 0.701,
+   "cv_r2": -0.065,
+   "conf": 3733.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2023-12-31",
+   "bucket": "Electronic Equipment & Instruments",
+   "n_est": 9,
+   "alpha": 30.0,
+   "r2": 0.462,
+   "cv_r2": -0.242,
+   "conf": 8198.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2023-12-31",
+   "bucket": "Entertainment",
+   "n_est": 9,
+   "alpha": 30.0,
+   "r2": 0.531,
+   "cv_r2": -0.305,
+   "conf": 25108.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2023-12-31",
+   "bucket": "Financial Exchanges & Data",
+   "n_est": 11,
+   "alpha": 30.0,
+   "r2": 0.578,
+   "cv_r2": -0.027,
+   "conf": 16511.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2023-12-31",
+   "bucket": "Financials",
+   "n_est": 20,
+   "alpha": 30.0,
+   "r2": 0.473,
+   "cv_r2": 0.092,
+   "conf": 63053.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2023-12-31",
+   "bucket": "Financial Services",
+   "n_est": 9,
+   "alpha": 30.0,
+   "r2": 0.469,
+   "cv_r2": -0.367,
+   "conf": 8343.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2023-12-31",
+   "bucket": "Food Retail",
+   "n_est": 9,
+   "alpha": 30.0,
+   "r2": 0.366,
+   "cv_r2": -0.492,
+   "conf": 65297.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2023-12-31",
+   "bucket": "global",
+   "n_est": 1109,
+   "alpha": 30.0,
+   "r2": 0.147,
+   "cv_r2": 0.128,
+   "conf": 2322326.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2023-12-31",
+   "bucket": "Ground Transportation",
+   "n_est": 8,
+   "alpha": 10.0,
+   "r2": 0.783,
+   "cv_r2": 0.053,
+   "conf": 15245.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2023-12-31",
+   "bucket": "Health Care Equipment",
+   "n_est": 24,
+   "alpha": 30.0,
+   "r2": 0.575,
+   "cv_r2": 0.314,
+   "conf": 46700.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2023-12-31",
+   "bucket": "Health Care Providers & Services",
+   "n_est": 15,
+   "alpha": 10.0,
+   "r2": 0.645,
+   "cv_r2": 0.206,
+   "conf": 69536.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2023-12-31",
+   "bucket": "Heavy Electrical Equipment",
+   "n_est": 8,
+   "alpha": 30.0,
+   "r2": 0.33,
+   "cv_r2": -0.4,
+   "conf": 14816.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2023-12-31",
+   "bucket": "Hotels, Resorts & Cruise Lines",
+   "n_est": 14,
+   "alpha": 30.0,
+   "r2": 0.306,
+   "cv_r2": -0.181,
+   "conf": 32819.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2023-12-31",
+   "bucket": "Household Durables",
+   "n_est": 8,
+   "alpha": 30.0,
+   "r2": 0.28,
+   "cv_r2": -0.643,
+   "conf": 9499.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2023-12-31",
+   "bucket": "Household Products",
+   "n_est": 8,
+   "alpha": 30.0,
+   "r2": 0.248,
+   "cv_r2": -0.783,
+   "conf": 30441.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2023-12-31",
+   "bucket": "Independent Power & Renewable Electricity Producers",
+   "n_est": 9,
+   "alpha": 10.0,
+   "r2": 0.834,
+   "cv_r2": 0.36,
+   "conf": 3603.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2023-12-31",
+   "bucket": "Industrial Conglomerates",
+   "n_est": 12,
+   "alpha": 30.0,
+   "r2": 0.272,
+   "cv_r2": -0.571,
+   "conf": 29790.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2023-12-31",
+   "bucket": "Industrial Machinery & Supplies & Components",
+   "n_est": 25,
+   "alpha": 30.0,
+   "r2": 0.356,
+   "cv_r2": -0.025,
+   "conf": 18638.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2023-12-31",
+   "bucket": "Industrials",
+   "n_est": 20,
+   "alpha": 30.0,
+   "r2": 0.368,
+   "cv_r2": 0.024,
+   "conf": 65666.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2023-12-31",
+   "bucket": "Integrated Oil & Gas",
+   "n_est": 14,
+   "alpha": 30.0,
+   "r2": 0.502,
+   "cv_r2": -0.096,
+   "conf": 29329.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2023-12-31",
+   "bucket": "Integrated Telecommunication Services",
+   "n_est": 23,
+   "alpha": 30.0,
+   "r2": 0.309,
+   "cv_r2": -0.188,
+   "conf": 79460.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2023-12-31",
+   "bucket": "Interactive Media & Services",
+   "n_est": 10,
+   "alpha": 10.0,
+   "r2": 0.765,
+   "cv_r2": 0.054,
+   "conf": 8123.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2023-12-31",
+   "bucket": "Internet Services & Infrastructure",
+   "n_est": 8,
+   "alpha": 30.0,
+   "r2": 0.501,
+   "cv_r2": -0.362,
+   "conf": 10337.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2023-12-31",
+   "bucket": "Investment Banking & Brokerage",
+   "n_est": 12,
+   "alpha": 0.1,
+   "r2": 0.993,
+   "cv_r2": 0.577,
+   "conf": 48831.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2023-12-31",
+   "bucket": "IT Consulting & Other Services",
+   "n_est": 13,
+   "alpha": 30.0,
+   "r2": 0.432,
+   "cv_r2": -0.126,
+   "conf": 71369.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2023-12-31",
+   "bucket": "Life & Health Insurance",
+   "n_est": 21,
+   "alpha": 0.3,
+   "r2": 0.874,
+   "cv_r2": 0.324,
+   "conf": 38113.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2023-12-31",
+   "bucket": "Life Sciences Tools & Services",
+   "n_est": 14,
+   "alpha": 30.0,
+   "r2": 0.296,
+   "cv_r2": -0.373,
+   "conf": 18219.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2023-12-31",
+   "bucket": "Metals & Mining",
+   "n_est": 15,
+   "alpha": 30.0,
+   "r2": 0.354,
+   "cv_r2": -0.164,
+   "conf": 10230.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2023-12-31",
+   "bucket": "Multi-Utilities",
+   "n_est": 13,
+   "alpha": 3.0,
+   "r2": 0.957,
+   "cv_r2": 0.525,
+   "conf": 11576.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2023-12-31",
+   "bucket": "Oil & Gas Exploration & Production",
+   "n_est": 11,
+   "alpha": 0.1,
+   "r2": 1.0,
+   "cv_r2": -0.054,
+   "conf": 4453.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2023-12-31",
+   "bucket": "Oil & Gas Storage & Transportation",
+   "n_est": 8,
+   "alpha": 30.0,
+   "r2": 0.442,
+   "cv_r2": -0.097,
+   "conf": 4281.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2023-12-31",
+   "bucket": "Packaged Foods & Meats",
+   "n_est": 20,
+   "alpha": 10.0,
+   "r2": 0.511,
+   "cv_r2": 0.053,
+   "conf": 23512.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2023-12-31",
+   "bucket": "Passenger Airlines",
+   "n_est": 10,
+   "alpha": 30.0,
+   "r2": 0.322,
+   "cv_r2": -0.504,
+   "conf": 14504.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2023-12-31",
+   "bucket": "Personal Care Products",
+   "n_est": 8,
+   "alpha": 30.0,
+   "r2": 0.514,
+   "cv_r2": -0.098,
+   "conf": 7006.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2023-12-31",
+   "bucket": "Pharmaceuticals",
+   "n_est": 33,
+   "alpha": 30.0,
+   "r2": 0.3,
+   "cv_r2": -0.083,
+   "conf": 60584.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2023-12-31",
+   "bucket": "Property & Casualty Insurance",
+   "n_est": 18,
+   "alpha": 30.0,
+   "r2": 0.177,
+   "cv_r2": -0.447,
+   "conf": 36590.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2023-12-31",
+   "bucket": "Real Estate",
+   "n_est": 13,
+   "alpha": 0.3,
+   "r2": 0.975,
+   "cv_r2": 0.0,
+   "conf": 2373.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2023-12-31",
+   "bucket": "Real Estate Management & Development",
+   "n_est": 12,
+   "alpha": 30.0,
+   "r2": 0.302,
+   "cv_r2": -0.127,
+   "conf": 7466.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2023-12-31",
+   "bucket": "Research & Consulting Services",
+   "n_est": 12,
+   "alpha": 0.1,
+   "r2": 0.999,
+   "cv_r2": 0.733,
+   "conf": 47379.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2023-12-31",
+   "bucket": "Residential REITs",
+   "n_est": 9,
+   "alpha": 0.1,
+   "r2": 1.0,
+   "cv_r2": 0.661,
+   "conf": 5690.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2023-12-31",
+   "bucket": "Restaurants",
+   "n_est": 9,
+   "alpha": 30.0,
+   "r2": 0.573,
+   "cv_r2": -0.249,
+   "conf": 53309.0,
+   "thin_vs_current": true
+  },
+  {
+   "window_end": "2023-12-31",
+   "bucket": "Semiconductor Materials & Equipment",
+   "n_est": 11,
+   "alpha": 0.1,
+   "r2": 0.999,
+   "cv_r2": 0.516,
+   "conf": 12537.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2023-12-31",
+   "bucket": "Semiconductors",
+   "n_est": 20,
+   "alpha": 30.0,
+   "r2": 0.489,
+   "cv_r2": 0.127,
+   "conf": 83157.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2023-12-31",
+   "bucket": "Specialized REITs",
+   "n_est": 9,
+   "alpha": 3.0,
+   "r2": 0.92,
+   "cv_r2": -0.004,
+   "conf": 12238.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2023-12-31",
+   "bucket": "Specialty Chemicals",
+   "n_est": 10,
+   "alpha": 0.1,
+   "r2": 1.0,
+   "cv_r2": 0.638,
+   "conf": 15397.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2023-12-31",
+   "bucket": "Specialty Retail",
+   "n_est": 14,
+   "alpha": 30.0,
+   "r2": 0.324,
+   "cv_r2": -0.085,
+   "conf": 59783.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2023-12-31",
+   "bucket": "Systems Software",
+   "n_est": 12,
+   "alpha": 3.0,
+   "r2": 0.933,
+   "cv_r2": 0.438,
+   "conf": 16273.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2023-12-31",
+   "bucket": "Technology Hardware, Storage & Peripherals",
+   "n_est": 15,
+   "alpha": 3.0,
+   "r2": 0.85,
+   "cv_r2": 0.258,
+   "conf": 26543.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2023-12-31",
+   "bucket": "Trading Companies & Distributors",
+   "n_est": 12,
+   "alpha": 10.0,
+   "r2": 0.751,
+   "cv_r2": 0.155,
+   "conf": 18877.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2023-12-31",
+   "bucket": "Transaction & Payment Processing Services",
+   "n_est": 12,
+   "alpha": 0.1,
+   "r2": 0.998,
+   "cv_r2": 0.683,
+   "conf": 23648.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2023-12-31",
+   "bucket": "Wireless Telecommunication Services",
+   "n_est": 8,
+   "alpha": 3.0,
+   "r2": 0.919,
+   "cv_r2": -0.159,
+   "conf": 50690.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2024-12-31",
+   "bucket": "Aerospace & Defense",
+   "n_est": 27,
+   "alpha": 10.0,
+   "r2": 0.606,
+   "cv_r2": 0.132,
+   "conf": 66168.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2024-12-31",
+   "bucket": "Apparel, Accessories & Luxury Goods",
+   "n_est": 8,
+   "alpha": 30.0,
+   "r2": 0.45,
+   "cv_r2": -0.29,
+   "conf": 19393.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2024-12-31",
+   "bucket": "Application Software",
+   "n_est": 29,
+   "alpha": 3.0,
+   "r2": 0.622,
+   "cv_r2": 0.092,
+   "conf": 113691.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2024-12-31",
+   "bucket": "Asset Management & Custody Banks",
+   "n_est": 18,
+   "alpha": 30.0,
+   "r2": 0.239,
+   "cv_r2": -0.125,
+   "conf": 34906.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2024-12-31",
+   "bucket": "Automobile Components",
+   "n_est": 9,
+   "alpha": 30.0,
+   "r2": 0.403,
+   "cv_r2": -0.19,
+   "conf": 9558.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2024-12-31",
+   "bucket": "Automobile Manufacturers",
+   "n_est": 17,
+   "alpha": 30.0,
+   "r2": 0.318,
+   "cv_r2": -0.04,
+   "conf": 37075.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2024-12-31",
+   "bucket": "Biotechnology",
+   "n_est": 17,
+   "alpha": 30.0,
+   "r2": 0.393,
+   "cv_r2": -0.214,
+   "conf": 16376.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2024-12-31",
+   "bucket": "Broadline Retail",
+   "n_est": 10,
+   "alpha": 30.0,
+   "r2": 0.264,
+   "cv_r2": -0.428,
+   "conf": 25334.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2024-12-31",
+   "bucket": "Building Products",
+   "n_est": 13,
+   "alpha": 0.1,
+   "r2": 0.995,
+   "cv_r2": 0.689,
+   "conf": 19019.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2024-12-31",
+   "bucket": "Chemicals",
+   "n_est": 20,
+   "alpha": 30.0,
+   "r2": 0.359,
+   "cv_r2": 0.015,
+   "conf": 20539.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2024-12-31",
+   "bucket": "Commercial Services & Supplies",
+   "n_est": 11,
+   "alpha": 30.0,
+   "r2": 0.322,
+   "cv_r2": -0.262,
+   "conf": 15437.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2024-12-31",
+   "bucket": "Communications Equipment",
+   "n_est": 8,
+   "alpha": 0.1,
+   "r2": 1.0,
+   "cv_r2": 0.679,
+   "conf": 17032.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2024-12-31",
+   "bucket": "Construction & Engineering",
+   "n_est": 16,
+   "alpha": 30.0,
+   "r2": 0.145,
+   "cv_r2": -0.443,
+   "conf": 33673.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2024-12-31",
+   "bucket": "Construction Machinery & Heavy Transportation Equipment",
+   "n_est": 14,
+   "alpha": 30.0,
+   "r2": 0.213,
+   "cv_r2": -0.491,
+   "conf": 21500.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2024-12-31",
+   "bucket": "Construction Materials",
+   "n_est": 8,
+   "alpha": 30.0,
+   "r2": 0.315,
+   "cv_r2": -0.485,
+   "conf": 6579.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2024-12-31",
+   "bucket": "Consumer Discretionary",
+   "n_est": 10,
+   "alpha": 3.0,
+   "r2": 0.905,
+   "cv_r2": -0.041,
+   "conf": 14540.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2024-12-31",
+   "bucket": "Consumer Staples",
+   "n_est": 20,
+   "alpha": 30.0,
+   "r2": 0.359,
+   "cv_r2": -0.114,
+   "conf": 25905.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2024-12-31",
+   "bucket": "Diversified Banks",
+   "n_est": 96,
+   "alpha": 30.0,
+   "r2": 0.066,
+   "cv_r2": -0.139,
+   "conf": 289490.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2024-12-31",
+   "bucket": "Electrical Components & Equipment",
+   "n_est": 16,
+   "alpha": 30.0,
+   "r2": 0.236,
+   "cv_r2": -0.386,
+   "conf": 29865.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2024-12-31",
+   "bucket": "Electric Utilities",
+   "n_est": 33,
+   "alpha": 30.0,
+   "r2": 0.351,
+   "cv_r2": 0.001,
+   "conf": 20401.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2024-12-31",
+   "bucket": "Electronic Components",
+   "n_est": 10,
+   "alpha": 1.0,
+   "r2": 0.944,
+   "cv_r2": 0.219,
+   "conf": 4812.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2024-12-31",
+   "bucket": "Electronic Equipment & Instruments",
+   "n_est": 9,
+   "alpha": 10.0,
+   "r2": 0.59,
+   "cv_r2": -0.141,
+   "conf": 9728.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2024-12-31",
+   "bucket": "Entertainment",
+   "n_est": 9,
+   "alpha": 10.0,
+   "r2": 0.789,
+   "cv_r2": 0.123,
+   "conf": 28682.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2024-12-31",
+   "bucket": "Financial Exchanges & Data",
+   "n_est": 14,
+   "alpha": 10.0,
+   "r2": 0.767,
+   "cv_r2": 0.075,
+   "conf": 20262.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2024-12-31",
+   "bucket": "Financials",
+   "n_est": 23,
+   "alpha": 30.0,
+   "r2": 0.394,
+   "cv_r2": -0.037,
+   "conf": 76354.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2024-12-31",
+   "bucket": "Financial Services",
+   "n_est": 8,
+   "alpha": 30.0,
+   "r2": 0.525,
+   "cv_r2": -0.477,
+   "conf": 9203.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2024-12-31",
+   "bucket": "Food Retail",
+   "n_est": 8,
+   "alpha": 0.1,
+   "r2": 1.0,
+   "cv_r2": 0.391,
+   "conf": 77718.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2024-12-31",
+   "bucket": "global",
+   "n_est": 1181,
+   "alpha": 30.0,
+   "r2": 0.097,
+   "cv_r2": 0.078,
+   "conf": 2819917.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2024-12-31",
+   "bucket": "Ground Transportation",
+   "n_est": 8,
+   "alpha": 10.0,
+   "r2": 0.682,
+   "cv_r2": 0.074,
+   "conf": 17326.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2024-12-31",
+   "bucket": "Health Care Equipment",
+   "n_est": 23,
+   "alpha": 10.0,
+   "r2": 0.546,
+   "cv_r2": 0.028,
+   "conf": 55155.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2024-12-31",
+   "bucket": "Health Care Providers & Services",
+   "n_est": 16,
+   "alpha": 3.0,
+   "r2": 0.855,
+   "cv_r2": 0.346,
+   "conf": 83177.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2024-12-31",
+   "bucket": "Heavy Electrical Equipment",
+   "n_est": 8,
+   "alpha": 30.0,
+   "r2": 0.349,
+   "cv_r2": -0.571,
+   "conf": 17275.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2024-12-31",
+   "bucket": "Hotels, Resorts & Cruise Lines",
+   "n_est": 14,
+   "alpha": 30.0,
+   "r2": 0.327,
+   "cv_r2": -0.414,
+   "conf": 39267.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2024-12-31",
+   "bucket": "Household Durables",
+   "n_est": 10,
+   "alpha": 30.0,
+   "r2": 0.319,
+   "cv_r2": -0.425,
+   "conf": 11242.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2024-12-31",
+   "bucket": "Household Products",
+   "n_est": 8,
+   "alpha": 30.0,
+   "r2": 0.292,
+   "cv_r2": -0.717,
+   "conf": 34720.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2024-12-31",
+   "bucket": "Independent Power & Renewable Electricity Producers",
+   "n_est": 9,
+   "alpha": 30.0,
+   "r2": 0.459,
+   "cv_r2": -0.367,
+   "conf": 4274.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2024-12-31",
+   "bucket": "Industrial Conglomerates",
+   "n_est": 12,
+   "alpha": 30.0,
+   "r2": 0.194,
+   "cv_r2": -0.445,
+   "conf": 35786.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2024-12-31",
+   "bucket": "Industrial Machinery & Supplies & Components",
+   "n_est": 26,
+   "alpha": 30.0,
+   "r2": 0.21,
+   "cv_r2": -0.302,
+   "conf": 21541.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2024-12-31",
+   "bucket": "Industrials",
+   "n_est": 23,
+   "alpha": 30.0,
+   "r2": 0.352,
+   "cv_r2": 0.019,
+   "conf": 78346.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2024-12-31",
+   "bucket": "Integrated Oil & Gas",
+   "n_est": 15,
+   "alpha": 30.0,
+   "r2": 0.5,
+   "cv_r2": -0.174,
+   "conf": 33451.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2024-12-31",
+   "bucket": "Integrated Telecommunication Services",
+   "n_est": 22,
+   "alpha": 30.0,
+   "r2": 0.313,
+   "cv_r2": -0.249,
+   "conf": 90639.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2024-12-31",
+   "bucket": "Interactive Media & Services",
+   "n_est": 11,
+   "alpha": 0.1,
+   "r2": 1.0,
+   "cv_r2": 0.323,
+   "conf": 9912.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2024-12-31",
+   "bucket": "Internet Services & Infrastructure",
+   "n_est": 8,
+   "alpha": 30.0,
+   "r2": 0.433,
+   "cv_r2": -0.207,
+   "conf": 12783.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2024-12-31",
+   "bucket": "Investment Banking & Brokerage",
+   "n_est": 15,
+   "alpha": 30.0,
+   "r2": 0.531,
+   "cv_r2": 0.196,
+   "conf": 56916.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2024-12-31",
+   "bucket": "IT Consulting & Other Services",
+   "n_est": 15,
+   "alpha": 30.0,
+   "r2": 0.387,
+   "cv_r2": -0.177,
+   "conf": 139064.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2024-12-31",
+   "bucket": "Life & Health Insurance",
+   "n_est": 20,
+   "alpha": 30.0,
+   "r2": 0.195,
+   "cv_r2": -0.342,
+   "conf": 43182.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2024-12-31",
+   "bucket": "Life Sciences Tools & Services",
+   "n_est": 14,
+   "alpha": 30.0,
+   "r2": 0.18,
+   "cv_r2": -0.581,
+   "conf": 23484.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2024-12-31",
+   "bucket": "Metals & Mining",
+   "n_est": 15,
+   "alpha": 10.0,
+   "r2": 0.714,
+   "cv_r2": 0.181,
+   "conf": 11941.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2024-12-31",
+   "bucket": "Multi-Utilities",
+   "n_est": 13,
+   "alpha": 3.0,
+   "r2": 0.949,
+   "cv_r2": 0.461,
+   "conf": 13384.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2024-12-31",
+   "bucket": "Oil & Gas Exploration & Production",
+   "n_est": 11,
+   "alpha": 30.0,
+   "r2": 0.388,
+   "cv_r2": -0.288,
+   "conf": 5014.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2024-12-31",
+   "bucket": "Oil & Gas Refining & Marketing",
+   "n_est": 8,
+   "alpha": 30.0,
+   "r2": 0.304,
+   "cv_r2": -0.649,
+   "conf": 11367.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2024-12-31",
+   "bucket": "Oil & Gas Storage & Transportation",
+   "n_est": 9,
+   "alpha": 30.0,
+   "r2": 0.441,
+   "cv_r2": -0.001,
+   "conf": 5249.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2024-12-31",
+   "bucket": "Packaged Foods & Meats",
+   "n_est": 21,
+   "alpha": 30.0,
+   "r2": 0.44,
+   "cv_r2": 0.089,
+   "conf": 26860.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2024-12-31",
+   "bucket": "Passenger Airlines",
+   "n_est": 9,
+   "alpha": 30.0,
+   "r2": 0.32,
+   "cv_r2": -0.302,
+   "conf": 16333.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2024-12-31",
+   "bucket": "Personal Care Products",
+   "n_est": 8,
+   "alpha": 0.1,
+   "r2": 1.0,
+   "cv_r2": 0.733,
+   "conf": 8659.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2024-12-31",
+   "bucket": "Pharmaceuticals",
+   "n_est": 34,
+   "alpha": 30.0,
+   "r2": 0.262,
+   "cv_r2": -0.119,
+   "conf": 73506.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2024-12-31",
+   "bucket": "Property & Casualty Insurance",
+   "n_est": 20,
+   "alpha": 30.0,
+   "r2": 0.31,
+   "cv_r2": -0.293,
+   "conf": 41467.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2024-12-31",
+   "bucket": "Real Estate",
+   "n_est": 12,
+   "alpha": 30.0,
+   "r2": 0.206,
+   "cv_r2": -0.232,
+   "conf": 2626.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2024-12-31",
+   "bucket": "Real Estate Management & Development",
+   "n_est": 12,
+   "alpha": 30.0,
+   "r2": 0.29,
+   "cv_r2": -0.058,
+   "conf": 8518.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2024-12-31",
+   "bucket": "Research & Consulting Services",
+   "n_est": 12,
+   "alpha": 1.0,
+   "r2": 0.94,
+   "cv_r2": 0.09,
+   "conf": 53743.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2024-12-31",
+   "bucket": "Residential REITs",
+   "n_est": 9,
+   "alpha": 30.0,
+   "r2": 0.518,
+   "cv_r2": -0.067,
+   "conf": 6303.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2024-12-31",
+   "bucket": "Restaurants",
+   "n_est": 13,
+   "alpha": 3.0,
+   "r2": 0.888,
+   "cv_r2": 0.279,
+   "conf": 79684.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2024-12-31",
+   "bucket": "Semiconductor Materials & Equipment",
+   "n_est": 11,
+   "alpha": 30.0,
+   "r2": 0.407,
+   "cv_r2": -0.293,
+   "conf": 15058.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2024-12-31",
+   "bucket": "Semiconductors",
+   "n_est": 23,
+   "alpha": 10.0,
+   "r2": 0.67,
+   "cv_r2": 0.168,
+   "conf": 96889.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2024-12-31",
+   "bucket": "Soft Drinks & Non-alcoholic Beverages",
+   "n_est": 8,
+   "alpha": 30.0,
+   "r2": 0.587,
+   "cv_r2": -0.404,
+   "conf": 29641.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2024-12-31",
+   "bucket": "Specialized REITs",
+   "n_est": 9,
+   "alpha": 10.0,
+   "r2": 0.655,
+   "cv_r2": -0.187,
+   "conf": 14142.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2024-12-31",
+   "bucket": "Specialty Chemicals",
+   "n_est": 12,
+   "alpha": 30.0,
+   "r2": 0.238,
+   "cv_r2": -0.396,
+   "conf": 17787.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2024-12-31",
+   "bucket": "Specialty Retail",
+   "n_est": 17,
+   "alpha": 30.0,
+   "r2": 0.31,
+   "cv_r2": -0.006,
+   "conf": 72430.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2024-12-31",
+   "bucket": "Steel",
+   "n_est": 9,
+   "alpha": 10.0,
+   "r2": 0.658,
+   "cv_r2": 0.202,
+   "conf": 7977.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2024-12-31",
+   "bucket": "Systems Software",
+   "n_est": 12,
+   "alpha": 3.0,
+   "r2": 0.923,
+   "cv_r2": 0.464,
+   "conf": 27494.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2024-12-31",
+   "bucket": "Technology Hardware, Storage & Peripherals",
+   "n_est": 19,
+   "alpha": 30.0,
+   "r2": 0.478,
+   "cv_r2": 0.023,
+   "conf": 36817.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2024-12-31",
+   "bucket": "Trading Companies & Distributors",
+   "n_est": 14,
+   "alpha": 3.0,
+   "r2": 0.873,
+   "cv_r2": 0.065,
+   "conf": 21372.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2024-12-31",
+   "bucket": "Transaction & Payment Processing Services",
+   "n_est": 12,
+   "alpha": 30.0,
+   "r2": 0.346,
+   "cv_r2": -0.26,
+   "conf": 29236.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2024-12-31",
+   "bucket": "Wireless Telecommunication Services",
+   "n_est": 11,
+   "alpha": 10.0,
+   "r2": 0.745,
+   "cv_r2": -0.207,
+   "conf": 57578.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2025-12-31",
+   "bucket": "Aerospace & Defense",
+   "n_est": 27,
+   "alpha": 30.0,
+   "r2": 0.306,
+   "cv_r2": -0.072,
+   "conf": 72342.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2025-12-31",
+   "bucket": "Apparel, Accessories & Luxury Goods",
+   "n_est": 8,
+   "alpha": 10.0,
+   "r2": 0.731,
+   "cv_r2": 0.077,
+   "conf": 21653.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2025-12-31",
+   "bucket": "Application Software",
+   "n_est": 29,
+   "alpha": 30.0,
+   "r2": 0.445,
+   "cv_r2": 0.003,
+   "conf": 131531.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2025-12-31",
+   "bucket": "Asset Management & Custody Banks",
+   "n_est": 19,
+   "alpha": 30.0,
+   "r2": 0.192,
+   "cv_r2": -0.104,
+   "conf": 38312.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2025-12-31",
+   "bucket": "Automobile Components",
+   "n_est": 9,
+   "alpha": 3.0,
+   "r2": 0.955,
+   "cv_r2": 0.453,
+   "conf": 10647.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2025-12-31",
+   "bucket": "Automobile Manufacturers",
+   "n_est": 18,
+   "alpha": 30.0,
+   "r2": 0.222,
+   "cv_r2": -0.116,
+   "conf": 42410.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2025-12-31",
+   "bucket": "Biotechnology",
+   "n_est": 17,
+   "alpha": 30.0,
+   "r2": 0.206,
+   "cv_r2": -0.384,
+   "conf": 18575.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2025-12-31",
+   "bucket": "Broadline Retail",
+   "n_est": 12,
+   "alpha": 30.0,
+   "r2": 0.342,
+   "cv_r2": -0.07,
+   "conf": 28228.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2025-12-31",
+   "bucket": "Building Products",
+   "n_est": 13,
+   "alpha": 3.0,
+   "r2": 0.801,
+   "cv_r2": -0.056,
+   "conf": 21162.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2025-12-31",
+   "bucket": "Casinos & Gaming",
+   "n_est": 8,
+   "alpha": 0.1,
+   "r2": 1.0,
+   "cv_r2": 0.42,
+   "conf": 6163.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2025-12-31",
+   "bucket": "Chemicals",
+   "n_est": 20,
+   "alpha": 30.0,
+   "r2": 0.45,
+   "cv_r2": 0.204,
+   "conf": 22518.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2025-12-31",
+   "bucket": "Commercial Services & Supplies",
+   "n_est": 10,
+   "alpha": 30.0,
+   "r2": 0.136,
+   "cv_r2": -0.462,
+   "conf": 16483.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2025-12-31",
+   "bucket": "Communications Equipment",
+   "n_est": 8,
+   "alpha": 0.3,
+   "r2": 0.999,
+   "cv_r2": 0.564,
+   "conf": 20367.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2025-12-31",
+   "bucket": "Construction & Engineering",
+   "n_est": 16,
+   "alpha": 30.0,
+   "r2": 0.345,
+   "cv_r2": -0.158,
+   "conf": 36851.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2025-12-31",
+   "bucket": "Construction Machinery & Heavy Transportation Equipment",
+   "n_est": 15,
+   "alpha": 30.0,
+   "r2": 0.132,
+   "cv_r2": -0.575,
+   "conf": 28594.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2025-12-31",
+   "bucket": "Construction Materials",
+   "n_est": 8,
+   "alpha": 1.0,
+   "r2": 0.973,
+   "cv_r2": -0.031,
+   "conf": 7242.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2025-12-31",
+   "bucket": "Consumer Discretionary",
+   "n_est": 11,
+   "alpha": 30.0,
+   "r2": 0.434,
+   "cv_r2": -0.129,
+   "conf": 16553.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2025-12-31",
+   "bucket": "Consumer Staples",
+   "n_est": 22,
+   "alpha": 30.0,
+   "r2": 0.172,
+   "cv_r2": -0.314,
+   "conf": 28449.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2025-12-31",
+   "bucket": "Consumer Staples Merchandise Retail",
+   "n_est": 8,
+   "alpha": 30.0,
+   "r2": 0.477,
+   "cv_r2": -0.127,
+   "conf": 95466.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2025-12-31",
+   "bucket": "Diversified Banks",
+   "n_est": 101,
+   "alpha": 30.0,
+   "r2": 0.05,
+   "cv_r2": -0.137,
+   "conf": 319506.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2025-12-31",
+   "bucket": "Electrical Components & Equipment",
+   "n_est": 16,
+   "alpha": 30.0,
+   "r2": 0.295,
+   "cv_r2": -0.456,
+   "conf": 32933.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2025-12-31",
+   "bucket": "Electric Utilities",
+   "n_est": 33,
+   "alpha": 30.0,
+   "r2": 0.325,
+   "cv_r2": -0.059,
+   "conf": 22463.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2025-12-31",
+   "bucket": "Electronic Components",
+   "n_est": 10,
+   "alpha": 3.0,
+   "r2": 0.817,
+   "cv_r2": -0.059,
+   "conf": 5362.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2025-12-31",
+   "bucket": "Electronic Equipment & Instruments",
+   "n_est": 9,
+   "alpha": 30.0,
+   "r2": 0.374,
+   "cv_r2": -0.199,
+   "conf": 10763.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2025-12-31",
+   "bucket": "Entertainment",
+   "n_est": 9,
+   "alpha": 30.0,
+   "r2": 0.555,
+   "cv_r2": -0.23,
+   "conf": 31089.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2025-12-31",
+   "bucket": "Financial Exchanges & Data",
+   "n_est": 14,
+   "alpha": 30.0,
+   "r2": 0.536,
+   "cv_r2": 0.035,
+   "conf": 22813.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2025-12-31",
+   "bucket": "Financials",
+   "n_est": 23,
+   "alpha": 10.0,
+   "r2": 0.588,
+   "cv_r2": 0.139,
+   "conf": 85389.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2025-12-31",
+   "bucket": "Financial Services",
+   "n_est": 8,
+   "alpha": 30.0,
+   "r2": 0.623,
+   "cv_r2": -0.463,
+   "conf": 9815.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2025-12-31",
+   "bucket": "Food Retail",
+   "n_est": 9,
+   "alpha": 0.1,
+   "r2": 0.999,
+   "cv_r2": 0.286,
+   "conf": 87403.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2025-12-31",
+   "bucket": "global",
+   "n_est": 1222,
+   "alpha": 30.0,
+   "r2": 0.066,
+   "cv_r2": 0.047,
+   "conf": 3212655.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2025-12-31",
+   "bucket": "Ground Transportation",
+   "n_est": 8,
+   "alpha": 30.0,
+   "r2": 0.329,
+   "cv_r2": -0.291,
+   "conf": 18680.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2025-12-31",
+   "bucket": "Health Care Equipment",
+   "n_est": 25,
+   "alpha": 30.0,
+   "r2": 0.279,
+   "cv_r2": -0.146,
+   "conf": 61602.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2025-12-31",
+   "bucket": "Health Care Providers & Services",
+   "n_est": 16,
+   "alpha": 30.0,
+   "r2": 0.475,
+   "cv_r2": -0.007,
+   "conf": 91441.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2025-12-31",
+   "bucket": "Heavy Electrical Equipment",
+   "n_est": 9,
+   "alpha": 30.0,
+   "r2": 0.297,
+   "cv_r2": -0.726,
+   "conf": 19017.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2025-12-31",
+   "bucket": "Hotels, Resorts & Cruise Lines",
+   "n_est": 15,
+   "alpha": 30.0,
+   "r2": 0.187,
+   "cv_r2": -0.425,
+   "conf": 43845.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2025-12-31",
+   "bucket": "Household Durables",
+   "n_est": 12,
+   "alpha": 30.0,
+   "r2": 0.438,
+   "cv_r2": -0.235,
+   "conf": 13065.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2025-12-31",
+   "bucket": "Household Products",
+   "n_est": 8,
+   "alpha": 30.0,
+   "r2": 0.335,
+   "cv_r2": -0.404,
+   "conf": 37737.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2025-12-31",
+   "bucket": "Independent Power & Renewable Electricity Producers",
+   "n_est": 9,
+   "alpha": 10.0,
+   "r2": 0.766,
+   "cv_r2": 0.011,
+   "conf": 4877.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2025-12-31",
+   "bucket": "Industrial Conglomerates",
+   "n_est": 12,
+   "alpha": 30.0,
+   "r2": 0.241,
+   "cv_r2": -0.318,
+   "conf": 39812.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2025-12-31",
+   "bucket": "Industrial Machinery & Supplies & Components",
+   "n_est": 25,
+   "alpha": 30.0,
+   "r2": 0.126,
+   "cv_r2": -0.287,
+   "conf": 23268.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2025-12-31",
+   "bucket": "Industrials",
+   "n_est": 27,
+   "alpha": 30.0,
+   "r2": 0.3,
+   "cv_r2": -0.047,
+   "conf": 86620.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2025-12-31",
+   "bucket": "Integrated Oil & Gas",
+   "n_est": 16,
+   "alpha": 30.0,
+   "r2": 0.457,
+   "cv_r2": -0.224,
+   "conf": 36319.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2025-12-31",
+   "bucket": "Integrated Telecommunication Services",
+   "n_est": 22,
+   "alpha": 30.0,
+   "r2": 0.385,
+   "cv_r2": -0.005,
+   "conf": 98551.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2025-12-31",
+   "bucket": "Interactive Media & Services",
+   "n_est": 13,
+   "alpha": 0.1,
+   "r2": 0.999,
+   "cv_r2": 0.293,
+   "conf": 12634.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2025-12-31",
+   "bucket": "Internet Services & Infrastructure",
+   "n_est": 9,
+   "alpha": 3.0,
+   "r2": 0.829,
+   "cv_r2": -0.145,
+   "conf": 14661.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2025-12-31",
+   "bucket": "Investment Banking & Brokerage",
+   "n_est": 15,
+   "alpha": 30.0,
+   "r2": 0.385,
+   "cv_r2": 0.089,
+   "conf": 62623.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2025-12-31",
+   "bucket": "IT Consulting & Other Services",
+   "n_est": 16,
+   "alpha": 3.0,
+   "r2": 0.786,
+   "cv_r2": 0.049,
+   "conf": 204468.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2025-12-31",
+   "bucket": "Life & Health Insurance",
+   "n_est": 21,
+   "alpha": 30.0,
+   "r2": 0.25,
+   "cv_r2": -0.111,
+   "conf": 47040.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2025-12-31",
+   "bucket": "Life Sciences Tools & Services",
+   "n_est": 15,
+   "alpha": 30.0,
+   "r2": 0.255,
+   "cv_r2": -0.398,
+   "conf": 28349.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2025-12-31",
+   "bucket": "Media",
+   "n_est": 8,
+   "alpha": 10.0,
+   "r2": 0.797,
+   "cv_r2": -0.2,
+   "conf": 9109.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2025-12-31",
+   "bucket": "Metals & Mining",
+   "n_est": 15,
+   "alpha": 30.0,
+   "r2": 0.376,
+   "cv_r2": -0.088,
+   "conf": 12949.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2025-12-31",
+   "bucket": "Multi-line Insurance",
+   "n_est": 8,
+   "alpha": 0.1,
+   "r2": 1.0,
+   "cv_r2": 0.084,
+   "conf": 11663.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2025-12-31",
+   "bucket": "Multi-Utilities",
+   "n_est": 13,
+   "alpha": 3.0,
+   "r2": 0.926,
+   "cv_r2": 0.398,
+   "conf": 14863.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2025-12-31",
+   "bucket": "Oil & Gas Exploration & Production",
+   "n_est": 9,
+   "alpha": 10.0,
+   "r2": 0.756,
+   "cv_r2": -0.004,
+   "conf": 5066.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2025-12-31",
+   "bucket": "Oil & Gas Refining & Marketing",
+   "n_est": 8,
+   "alpha": 30.0,
+   "r2": 0.462,
+   "cv_r2": -0.248,
+   "conf": 12535.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2025-12-31",
+   "bucket": "Oil & Gas Storage & Transportation",
+   "n_est": 9,
+   "alpha": 10.0,
+   "r2": 0.776,
+   "cv_r2": 0.232,
+   "conf": 5706.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2025-12-31",
+   "bucket": "Packaged Foods & Meats",
+   "n_est": 22,
+   "alpha": 3.0,
+   "r2": 0.875,
+   "cv_r2": 0.576,
+   "conf": 29071.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2025-12-31",
+   "bucket": "Passenger Airlines",
+   "n_est": 9,
+   "alpha": 30.0,
+   "r2": 0.334,
+   "cv_r2": -0.264,
+   "conf": 17660.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2025-12-31",
+   "bucket": "Personal Care Products",
+   "n_est": 8,
+   "alpha": 1.0,
+   "r2": 0.985,
+   "cv_r2": 0.666,
+   "conf": 9906.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2025-12-31",
+   "bucket": "Pharmaceuticals",
+   "n_est": 35,
+   "alpha": 30.0,
+   "r2": 0.142,
+   "cv_r2": -0.313,
+   "conf": 82350.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2025-12-31",
+   "bucket": "Property & Casualty Insurance",
+   "n_est": 22,
+   "alpha": 10.0,
+   "r2": 0.662,
+   "cv_r2": 0.233,
+   "conf": 45737.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2025-12-31",
+   "bucket": "Real Estate",
+   "n_est": 15,
+   "alpha": 30.0,
+   "r2": 0.266,
+   "cv_r2": -0.298,
+   "conf": 3318.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2025-12-31",
+   "bucket": "Real Estate Management & Development",
+   "n_est": 13,
+   "alpha": 30.0,
+   "r2": 0.336,
+   "cv_r2": -0.119,
+   "conf": 9476.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2025-12-31",
+   "bucket": "Research & Consulting Services",
+   "n_est": 12,
+   "alpha": 0.1,
+   "r2": 0.999,
+   "cv_r2": 0.416,
+   "conf": 58485.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2025-12-31",
+   "bucket": "Residential REITs",
+   "n_est": 9,
+   "alpha": 30.0,
+   "r2": 0.356,
+   "cv_r2": -0.381,
+   "conf": 6708.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2025-12-31",
+   "bucket": "Restaurants",
+   "n_est": 14,
+   "alpha": 10.0,
+   "r2": 0.612,
+   "cv_r2": -0.179,
+   "conf": 108117.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2025-12-31",
+   "bucket": "Semiconductor Materials & Equipment",
+   "n_est": 10,
+   "alpha": 30.0,
+   "r2": 0.254,
+   "cv_r2": -0.573,
+   "conf": 16678.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2025-12-31",
+   "bucket": "Semiconductors",
+   "n_est": 21,
+   "alpha": 10.0,
+   "r2": 0.697,
+   "cv_r2": 0.073,
+   "conf": 106303.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2025-12-31",
+   "bucket": "Soft Drinks & Non-alcoholic Beverages",
+   "n_est": 8,
+   "alpha": 30.0,
+   "r2": 0.54,
+   "cv_r2": -0.438,
+   "conf": 32092.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2025-12-31",
+   "bucket": "Specialized REITs",
+   "n_est": 9,
+   "alpha": 30.0,
+   "r2": 0.371,
+   "cv_r2": -0.308,
+   "conf": 15341.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2025-12-31",
+   "bucket": "Specialty Chemicals",
+   "n_est": 13,
+   "alpha": 30.0,
+   "r2": 0.201,
+   "cv_r2": -0.441,
+   "conf": 19307.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2025-12-31",
+   "bucket": "Specialty Retail",
+   "n_est": 20,
+   "alpha": 30.0,
+   "r2": 0.266,
+   "cv_r2": -0.156,
+   "conf": 82833.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2025-12-31",
+   "bucket": "Steel",
+   "n_est": 9,
+   "alpha": 30.0,
+   "r2": 0.473,
+   "cv_r2": 0.037,
+   "conf": 8701.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2025-12-31",
+   "bucket": "Systems Software",
+   "n_est": 12,
+   "alpha": 10.0,
+   "r2": 0.777,
+   "cv_r2": 0.096,
+   "conf": 36705.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2025-12-31",
+   "bucket": "Technology Hardware, Storage & Peripherals",
+   "n_est": 20,
+   "alpha": 3.0,
+   "r2": 0.62,
+   "cv_r2": 0.061,
+   "conf": 43740.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2025-12-31",
+   "bucket": "Trading Companies & Distributors",
+   "n_est": 17,
+   "alpha": 1.0,
+   "r2": 0.939,
+   "cv_r2": 0.196,
+   "conf": 23684.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2025-12-31",
+   "bucket": "Transaction & Payment Processing Services",
+   "n_est": 11,
+   "alpha": 0.1,
+   "r2": 0.999,
+   "cv_r2": 0.653,
+   "conf": 33055.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2025-12-31",
+   "bucket": "Wireless Telecommunication Services",
+   "n_est": 10,
+   "alpha": 3.0,
+   "r2": 0.865,
+   "cv_r2": 0.081,
+   "conf": 61353.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2026-06-30",
+   "bucket": "Aerospace & Defense",
+   "n_est": 27,
+   "alpha": 30.0,
+   "r2": 0.261,
+   "cv_r2": -0.129,
+   "conf": 74336.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2026-06-30",
+   "bucket": "Apparel, Accessories & Luxury Goods",
+   "n_est": 8,
+   "alpha": 3.0,
+   "r2": 0.882,
+   "cv_r2": 0.309,
+   "conf": 22284.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2026-06-30",
+   "bucket": "Application Software",
+   "n_est": 30,
+   "alpha": 30.0,
+   "r2": 0.398,
+   "cv_r2": 0.013,
+   "conf": 136757.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2026-06-30",
+   "bucket": "Asset Management & Custody Banks",
+   "n_est": 19,
+   "alpha": 30.0,
+   "r2": 0.166,
+   "cv_r2": -0.154,
+   "conf": 39468.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2026-06-30",
+   "bucket": "Automobile Components",
+   "n_est": 8,
+   "alpha": 1.0,
+   "r2": 0.981,
+   "cv_r2": 0.555,
+   "conf": 10786.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2026-06-30",
+   "bucket": "Automobile Manufacturers",
+   "n_est": 18,
+   "alpha": 3.0,
+   "r2": 0.679,
+   "cv_r2": 0.144,
+   "conf": 43519.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2026-06-30",
+   "bucket": "Biotechnology",
+   "n_est": 17,
+   "alpha": 30.0,
+   "r2": 0.183,
+   "cv_r2": -0.379,
+   "conf": 19190.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2026-06-30",
+   "bucket": "Broadline Retail",
+   "n_est": 12,
+   "alpha": 10.0,
+   "r2": 0.567,
+   "cv_r2": 0.09,
+   "conf": 29075.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2026-06-30",
+   "bucket": "Building Products",
+   "n_est": 13,
+   "alpha": 30.0,
+   "r2": 0.285,
+   "cv_r2": -0.306,
+   "conf": 21730.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2026-06-30",
+   "bucket": "Casinos & Gaming",
+   "n_est": 8,
+   "alpha": 10.0,
+   "r2": 0.766,
+   "cv_r2": -0.181,
+   "conf": 6528.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2026-06-30",
+   "bucket": "Chemicals",
+   "n_est": 20,
+   "alpha": 30.0,
+   "r2": 0.406,
+   "cv_r2": 0.071,
+   "conf": 23101.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2026-06-30",
+   "bucket": "Commercial Services & Supplies",
+   "n_est": 10,
+   "alpha": 30.0,
+   "r2": 0.155,
+   "cv_r2": -0.504,
+   "conf": 16958.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2026-06-30",
+   "bucket": "Communications Equipment",
+   "n_est": 8,
+   "alpha": 10.0,
+   "r2": 0.76,
+   "cv_r2": -0.059,
+   "conf": 20934.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2026-06-30",
+   "bucket": "Construction & Engineering",
+   "n_est": 16,
+   "alpha": 10.0,
+   "r2": 0.625,
+   "cv_r2": 0.132,
+   "conf": 37872.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2026-06-30",
+   "bucket": "Construction Machinery & Heavy Transportation Equipment",
+   "n_est": 15,
+   "alpha": 30.0,
+   "r2": 0.129,
+   "cv_r2": -0.586,
+   "conf": 29161.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2026-06-30",
+   "bucket": "Construction Materials",
+   "n_est": 8,
+   "alpha": 0.1,
+   "r2": 1.0,
+   "cv_r2": 0.296,
+   "conf": 7608.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2026-06-30",
+   "bucket": "Consumer Discretionary",
+   "n_est": 11,
+   "alpha": 30.0,
+   "r2": 0.458,
+   "cv_r2": -0.112,
+   "conf": 17093.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2026-06-30",
+   "bucket": "Consumer Staples",
+   "n_est": 22,
+   "alpha": 30.0,
+   "r2": 0.171,
+   "cv_r2": -0.296,
+   "conf": 29216.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2026-06-30",
+   "bucket": "Consumer Staples Merchandise Retail",
+   "n_est": 8,
+   "alpha": 30.0,
+   "r2": 0.37,
+   "cv_r2": -0.384,
+   "conf": 98452.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2026-06-30",
+   "bucket": "Diversified Banks",
+   "n_est": 104,
+   "alpha": 30.0,
+   "r2": 0.092,
+   "cv_r2": -0.084,
+   "conf": 327956.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2026-06-30",
+   "bucket": "Electrical Components & Equipment",
+   "n_est": 17,
+   "alpha": 30.0,
+   "r2": 0.243,
+   "cv_r2": -0.523,
+   "conf": 34160.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2026-06-30",
+   "bucket": "Electric Utilities",
+   "n_est": 32,
+   "alpha": 30.0,
+   "r2": 0.233,
+   "cv_r2": -0.255,
+   "conf": 22848.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2026-06-30",
+   "bucket": "Electronic Components",
+   "n_est": 10,
+   "alpha": 1.0,
+   "r2": 0.97,
+   "cv_r2": 0.333,
+   "conf": 5521.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2026-06-30",
+   "bucket": "Electronic Equipment & Instruments",
+   "n_est": 10,
+   "alpha": 30.0,
+   "r2": 0.326,
+   "cv_r2": -0.138,
+   "conf": 11164.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2026-06-30",
+   "bucket": "Entertainment",
+   "n_est": 9,
+   "alpha": 30.0,
+   "r2": 0.496,
+   "cv_r2": -0.32,
+   "conf": 31838.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2026-06-30",
+   "bucket": "Financial Exchanges & Data",
+   "n_est": 14,
+   "alpha": 3.0,
+   "r2": 0.933,
+   "cv_r2": 0.438,
+   "conf": 23792.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2026-06-30",
+   "bucket": "Financials",
+   "n_est": 23,
+   "alpha": 30.0,
+   "r2": 0.384,
+   "cv_r2": 0.107,
+   "conf": 88184.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2026-06-30",
+   "bucket": "Financial Services",
+   "n_est": 10,
+   "alpha": 30.0,
+   "r2": 0.536,
+   "cv_r2": -0.313,
+   "conf": 10487.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2026-06-30",
+   "bucket": "Food Retail",
+   "n_est": 10,
+   "alpha": 0.1,
+   "r2": 0.999,
+   "cv_r2": 0.48,
+   "conf": 90106.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2026-06-30",
+   "bucket": "global",
+   "n_est": 1246,
+   "alpha": 30.0,
+   "r2": 0.056,
+   "cv_r2": 0.037,
+   "conf": 3312031.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2026-06-30",
+   "bucket": "Ground Transportation",
+   "n_est": 8,
+   "alpha": 30.0,
+   "r2": 0.357,
+   "cv_r2": -0.309,
+   "conf": 19144.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2026-06-30",
+   "bucket": "Health Care Equipment",
+   "n_est": 25,
+   "alpha": 3.0,
+   "r2": 0.705,
+   "cv_r2": 0.157,
+   "conf": 63170.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2026-06-30",
+   "bucket": "Health Care Providers & Services",
+   "n_est": 17,
+   "alpha": 1.0,
+   "r2": 0.876,
+   "cv_r2": 0.131,
+   "conf": 93089.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2026-06-30",
+   "bucket": "Heavy Electrical Equipment",
+   "n_est": 9,
+   "alpha": 30.0,
+   "r2": 0.202,
+   "cv_r2": -0.919,
+   "conf": 19570.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2026-06-30",
+   "bucket": "Hotels, Resorts & Cruise Lines",
+   "n_est": 15,
+   "alpha": 30.0,
+   "r2": 0.238,
+   "cv_r2": -0.243,
+   "conf": 44942.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2026-06-30",
+   "bucket": "Household Durables",
+   "n_est": 12,
+   "alpha": 30.0,
+   "r2": 0.455,
+   "cv_r2": -0.221,
+   "conf": 13528.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2026-06-30",
+   "bucket": "Household Products",
+   "n_est": 8,
+   "alpha": 30.0,
+   "r2": 0.347,
+   "cv_r2": -0.417,
+   "conf": 38607.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2026-06-30",
+   "bucket": "Independent Power & Renewable Electricity Producers",
+   "n_est": 9,
+   "alpha": 30.0,
+   "r2": 0.46,
+   "cv_r2": -0.208,
+   "conf": 5076.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2026-06-30",
+   "bucket": "Industrial Conglomerates",
+   "n_est": 13,
+   "alpha": 30.0,
+   "r2": 0.321,
+   "cv_r2": -0.24,
+   "conf": 40751.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2026-06-30",
+   "bucket": "Industrial Machinery & Supplies & Components",
+   "n_est": 27,
+   "alpha": 30.0,
+   "r2": 0.18,
+   "cv_r2": -0.169,
+   "conf": 23998.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2026-06-30",
+   "bucket": "Industrials",
+   "n_est": 27,
+   "alpha": 30.0,
+   "r2": 0.116,
+   "cv_r2": -0.201,
+   "conf": 88806.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2026-06-30",
+   "bucket": "Integrated Oil & Gas",
+   "n_est": 16,
+   "alpha": 30.0,
+   "r2": 0.326,
+   "cv_r2": -0.462,
+   "conf": 37051.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2026-06-30",
+   "bucket": "Integrated Telecommunication Services",
+   "n_est": 22,
+   "alpha": 30.0,
+   "r2": 0.284,
+   "cv_r2": -0.129,
+   "conf": 100628.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2026-06-30",
+   "bucket": "Interactive Media & Services",
+   "n_est": 13,
+   "alpha": 0.3,
+   "r2": 0.981,
+   "cv_r2": -0.224,
+   "conf": 13570.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2026-06-30",
+   "bucket": "Internet Services & Infrastructure",
+   "n_est": 10,
+   "alpha": 3.0,
+   "r2": 0.877,
+   "cv_r2": 0.385,
+   "conf": 15386.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2026-06-30",
+   "bucket": "Investment Banking & Brokerage",
+   "n_est": 16,
+   "alpha": 30.0,
+   "r2": 0.325,
+   "cv_r2": -0.019,
+   "conf": 64758.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2026-06-30",
+   "bucket": "IT Consulting & Other Services",
+   "n_est": 16,
+   "alpha": 3.0,
+   "r2": 0.783,
+   "cv_r2": 0.16,
+   "conf": 214282.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2026-06-30",
+   "bucket": "Life & Health Insurance",
+   "n_est": 22,
+   "alpha": 30.0,
+   "r2": 0.261,
+   "cv_r2": -0.063,
+   "conf": 48036.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2026-06-30",
+   "bucket": "Life Sciences Tools & Services",
+   "n_est": 15,
+   "alpha": 30.0,
+   "r2": 0.25,
+   "cv_r2": -0.462,
+   "conf": 29346.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2026-06-30",
+   "bucket": "Media",
+   "n_est": 8,
+   "alpha": 30.0,
+   "r2": 0.414,
+   "cv_r2": -0.526,
+   "conf": 9585.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2026-06-30",
+   "bucket": "Metals & Mining",
+   "n_est": 15,
+   "alpha": 30.0,
+   "r2": 0.326,
+   "cv_r2": -0.133,
+   "conf": 13253.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2026-06-30",
+   "bucket": "Multi-line Insurance",
+   "n_est": 8,
+   "alpha": 10.0,
+   "r2": 0.688,
+   "cv_r2": -0.183,
+   "conf": 12141.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2026-06-30",
+   "bucket": "Multi-Utilities",
+   "n_est": 13,
+   "alpha": 0.1,
+   "r2": 0.998,
+   "cv_r2": 0.675,
+   "conf": 15431.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2026-06-30",
+   "bucket": "Oil & Gas Exploration & Production",
+   "n_est": 9,
+   "alpha": 30.0,
+   "r2": 0.454,
+   "cv_r2": -0.229,
+   "conf": 5156.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2026-06-30",
+   "bucket": "Oil & Gas Refining & Marketing",
+   "n_est": 8,
+   "alpha": 30.0,
+   "r2": 0.39,
+   "cv_r2": -0.44,
+   "conf": 12754.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2026-06-30",
+   "bucket": "Oil & Gas Storage & Transportation",
+   "n_est": 9,
+   "alpha": 30.0,
+   "r2": 0.552,
+   "cv_r2": -0.269,
+   "conf": 5843.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2026-06-30",
+   "bucket": "Packaged Foods & Meats",
+   "n_est": 22,
+   "alpha": 3.0,
+   "r2": 0.872,
+   "cv_r2": 0.428,
+   "conf": 29730.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2026-06-30",
+   "bucket": "Passenger Airlines",
+   "n_est": 9,
+   "alpha": 30.0,
+   "r2": 0.308,
+   "cv_r2": -0.308,
+   "conf": 18133.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2026-06-30",
+   "bucket": "Personal Care Products",
+   "n_est": 8,
+   "alpha": 3.0,
+   "r2": 0.942,
+   "cv_r2": 0.441,
+   "conf": 10295.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2026-06-30",
+   "bucket": "Pharmaceuticals",
+   "n_est": 35,
+   "alpha": 30.0,
+   "r2": 0.124,
+   "cv_r2": -0.317,
+   "conf": 84995.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2026-06-30",
+   "bucket": "Property & Casualty Insurance",
+   "n_est": 22,
+   "alpha": 30.0,
+   "r2": 0.424,
+   "cv_r2": 0.054,
+   "conf": 46787.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2026-06-30",
+   "bucket": "Real Estate",
+   "n_est": 14,
+   "alpha": 30.0,
+   "r2": 0.282,
+   "cv_r2": -0.233,
+   "conf": 3282.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2026-06-30",
+   "bucket": "Real Estate Management & Development",
+   "n_est": 14,
+   "alpha": 30.0,
+   "r2": 0.43,
+   "cv_r2": 0.029,
+   "conf": 10228.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2026-06-30",
+   "bucket": "Research & Consulting Services",
+   "n_est": 12,
+   "alpha": 30.0,
+   "r2": 0.297,
+   "cv_r2": -0.337,
+   "conf": 60227.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2026-06-30",
+   "bucket": "Residential REITs",
+   "n_est": 9,
+   "alpha": 30.0,
+   "r2": 0.424,
+   "cv_r2": -0.271,
+   "conf": 6855.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2026-06-30",
+   "bucket": "Restaurants",
+   "n_est": 16,
+   "alpha": 30.0,
+   "r2": 0.274,
+   "cv_r2": -0.361,
+   "conf": 112787.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2026-06-30",
+   "bucket": "Semiconductor Materials & Equipment",
+   "n_est": 10,
+   "alpha": 30.0,
+   "r2": 0.269,
+   "cv_r2": -0.561,
+   "conf": 17331.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2026-06-30",
+   "bucket": "Semiconductors",
+   "n_est": 22,
+   "alpha": 30.0,
+   "r2": 0.439,
+   "cv_r2": -0.007,
+   "conf": 109517.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2026-06-30",
+   "bucket": "Soft Drinks & Non-alcoholic Beverages",
+   "n_est": 8,
+   "alpha": 30.0,
+   "r2": 0.503,
+   "cv_r2": -0.527,
+   "conf": 32770.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2026-06-30",
+   "bucket": "Specialized REITs",
+   "n_est": 9,
+   "alpha": 10.0,
+   "r2": 0.647,
+   "cv_r2": -0.175,
+   "conf": 15798.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2026-06-30",
+   "bucket": "Specialty Chemicals",
+   "n_est": 14,
+   "alpha": 30.0,
+   "r2": 0.227,
+   "cv_r2": -0.311,
+   "conf": 19855.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2026-06-30",
+   "bucket": "Specialty Retail",
+   "n_est": 20,
+   "alpha": 30.0,
+   "r2": 0.206,
+   "cv_r2": -0.251,
+   "conf": 85034.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2026-06-30",
+   "bucket": "Steel",
+   "n_est": 10,
+   "alpha": 30.0,
+   "r2": 0.462,
+   "cv_r2": -0.042,
+   "conf": 9112.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2026-06-30",
+   "bucket": "Systems Software",
+   "n_est": 13,
+   "alpha": 30.0,
+   "r2": 0.154,
+   "cv_r2": -0.303,
+   "conf": 38586.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2026-06-30",
+   "bucket": "Technology Hardware, Storage & Peripherals",
+   "n_est": 20,
+   "alpha": 3.0,
+   "r2": 0.655,
+   "cv_r2": 0.002,
+   "conf": 45236.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2026-06-30",
+   "bucket": "Trading Companies & Distributors",
+   "n_est": 18,
+   "alpha": 30.0,
+   "r2": 0.416,
+   "cv_r2": -0.147,
+   "conf": 24324.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2026-06-30",
+   "bucket": "Transaction & Payment Processing Services",
+   "n_est": 12,
+   "alpha": 1.0,
+   "r2": 0.974,
+   "cv_r2": 0.493,
+   "conf": 34362.0,
+   "thin_vs_current": false
+  },
+  {
+   "window_end": "2026-06-30",
+   "bucket": "Wireless Telecommunication Services",
+   "n_est": 11,
+   "alpha": 1.0,
+   "r2": 0.929,
+   "cv_r2": 0.154,
+   "conf": 62802.0,
+   "thin_vs_current": false
+  }
+ ]
+}
