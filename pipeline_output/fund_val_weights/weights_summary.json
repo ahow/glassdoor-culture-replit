@@ -1,0 +1,934 @@
+{
+ "windows": [
+  "2015-12-31",
+  "2016-12-31",
+  "2017-12-31",
+  "2018-12-31",
+  "2019-12-31",
+  "2020-12-31",
+  "2021-12-31",
+  "2022-12-31",
+  "2023-12-31",
+  "2024-12-31",
+  "2025-12-31",
+  "2026-06-30"
+ ],
+ "adjacent_window_avg_pearson": 0.915,
+ "early_vs_late_pearson": 0.614,
+ "early_vs_late_spearman": 0.531,
+ "n_caveat": "correlations over n=12 dimensions",
+ "early_windows": [
+  "2015-12-31",
+  "2016-12-31",
+  "2017-12-31",
+  "2018-12-31",
+  "2019-12-31"
+ ],
+ "late_windows": [
+  "2022-12-31",
+  "2023-12-31",
+  "2024-12-31",
+  "2025-12-31",
+  "2026-06-30"
+ ],
+ "most_changed": [
+  {
+   "dimension": "b09",
+   "early_mean": -0.0312,
+   "late_mean": 0.0119,
+   "abs_change": 0.0431,
+   "boot_sd": 0.0097,
+   "sign_flip": true,
+   "material": true
+  },
+  {
+   "dimension": "b07",
+   "early_mean": 0.0433,
+   "late_mean": 0.0048,
+   "abs_change": 0.0386,
+   "boot_sd": 0.0086,
+   "sign_flip": false,
+   "material": true
+  },
+  {
+   "dimension": "b06",
+   "early_mean": 0.0018,
+   "late_mean": -0.0259,
+   "abs_change": 0.0277,
+   "boot_sd": 0.0086,
+   "sign_flip": true,
+   "material": true
+  },
+  {
+   "dimension": "b11",
+   "early_mean": -0.0216,
+   "late_mean": -0.0422,
+   "abs_change": 0.0206,
+   "boot_sd": 0.0087,
+   "sign_flip": false,
+   "material": true
+  },
+  {
+   "dimension": "b10",
+   "early_mean": -0.008,
+   "late_mean": 0.0047,
+   "abs_change": 0.0127,
+   "boot_sd": 0.0092,
+   "sign_flip": true,
+   "material": false
+  },
+  {
+   "dimension": "b04",
+   "early_mean": 0.0115,
+   "late_mean": 0.0233,
+   "abs_change": 0.0118,
+   "boot_sd": 0.008,
+   "sign_flip": false,
+   "material": false
+  },
+  {
+   "dimension": "b01",
+   "early_mean": 0.0102,
+   "late_mean": 0.0029,
+   "abs_change": 0.0073,
+   "boot_sd": 0.0092,
+   "sign_flip": false,
+   "material": false
+  },
+  {
+   "dimension": "b12",
+   "early_mean": -0.0197,
+   "late_mean": -0.0129,
+   "abs_change": 0.0068,
+   "boot_sd": 0.0081,
+   "sign_flip": false,
+   "material": false
+  },
+  {
+   "dimension": "b05",
+   "early_mean": -0.0004,
+   "late_mean": -0.0034,
+   "abs_change": 0.0029,
+   "boot_sd": 0.008,
+   "sign_flip": false,
+   "material": false
+  },
+  {
+   "dimension": "b02",
+   "early_mean": 0.0504,
+   "late_mean": 0.0531,
+   "abs_change": 0.0027,
+   "boot_sd": 0.0093,
+   "sign_flip": false,
+   "material": false
+  },
+  {
+   "dimension": "b08",
+   "early_mean": 0.0045,
+   "late_mean": 0.0063,
+   "abs_change": 0.0018,
+   "boot_sd": 0.0086,
+   "sign_flip": false,
+   "material": false
+  },
+  {
+   "dimension": "b03",
+   "early_mean": 0.0117,
+   "late_mean": 0.0119,
+   "abs_change": 0.0002,
+   "boot_sd": 0.008,
+   "sign_flip": false,
+   "material": false
+  }
+ ],
+ "bucket_early_late": [
+  {
+   "bucket": "Aerospace & Defense",
+   "early_late_corr": -0.129,
+   "n_early": 4,
+   "n_late": 4
+  },
+  {
+   "bucket": "Application Software",
+   "early_late_corr": 0.292,
+   "n_early": 4,
+   "n_late": 4
+  },
+  {
+   "bucket": "Asset Management & Custody Banks",
+   "early_late_corr": 0.604,
+   "n_early": 3,
+   "n_late": 4
+  },
+  {
+   "bucket": "Automobile Manufacturers",
+   "early_late_corr": 0.6,
+   "n_early": 4,
+   "n_late": 4
+  },
+  {
+   "bucket": "Biotechnology",
+   "early_late_corr": -0.182,
+   "n_early": 2,
+   "n_late": 4
+  },
+  {
+   "bucket": "Building Products",
+   "early_late_corr": 0.526,
+   "n_early": 2,
+   "n_late": 4
+  },
+  {
+   "bucket": "Chemicals",
+   "early_late_corr": 0.42,
+   "n_early": 2,
+   "n_late": 4
+  },
+  {
+   "bucket": "Commercial Services & Supplies",
+   "early_late_corr": 0.564,
+   "n_early": 2,
+   "n_late": 4
+  },
+  {
+   "bucket": "Construction & Engineering",
+   "early_late_corr": 0.261,
+   "n_early": 2,
+   "n_late": 4
+  },
+  {
+   "bucket": "Consumer Staples",
+   "early_late_corr": 0.139,
+   "n_early": 4,
+   "n_late": 4
+  },
+  {
+   "bucket": "Diversified Banks",
+   "early_late_corr": 0.009,
+   "n_early": 4,
+   "n_late": 4
+  },
+  {
+   "bucket": "Electric Utilities",
+   "early_late_corr": -0.06,
+   "n_early": 4,
+   "n_late": 4
+  },
+  {
+   "bucket": "Electrical Components & Equipment",
+   "early_late_corr": 0.2,
+   "n_early": 3,
+   "n_late": 4
+  },
+  {
+   "bucket": "Financial Exchanges & Data",
+   "early_late_corr": 0.371,
+   "n_early": 2,
+   "n_late": 4
+  },
+  {
+   "bucket": "Financials",
+   "early_late_corr": 0.379,
+   "n_early": 4,
+   "n_late": 4
+  },
+  {
+   "bucket": "Health Care Equipment",
+   "early_late_corr": 0.546,
+   "n_early": 4,
+   "n_late": 4
+  },
+  {
+   "bucket": "Health Care Providers & Services",
+   "early_late_corr": 0.283,
+   "n_early": 3,
+   "n_late": 4
+  },
+  {
+   "bucket": "Hotels, Resorts & Cruise Lines",
+   "early_late_corr": 0.644,
+   "n_early": 4,
+   "n_late": 4
+  },
+  {
+   "bucket": "Household Products",
+   "early_late_corr": 0.416,
+   "n_early": 1,
+   "n_late": 4
+  },
+  {
+   "bucket": "Industrial Machinery & Supplies & Components",
+   "early_late_corr": 0.434,
+   "n_early": 4,
+   "n_late": 4
+  },
+  {
+   "bucket": "Industrials",
+   "early_late_corr": 0.074,
+   "n_early": 4,
+   "n_late": 4
+  },
+  {
+   "bucket": "Integrated Oil & Gas",
+   "early_late_corr": 0.199,
+   "n_early": 4,
+   "n_late": 4
+  },
+  {
+   "bucket": "Integrated Telecommunication Services",
+   "early_late_corr": 0.175,
+   "n_early": 4,
+   "n_late": 4
+  },
+  {
+   "bucket": "Life & Health Insurance",
+   "early_late_corr": 0.036,
+   "n_early": 4,
+   "n_late": 4
+  },
+  {
+   "bucket": "Life Sciences Tools & Services",
+   "early_late_corr": 0.38,
+   "n_early": 3,
+   "n_late": 4
+  },
+  {
+   "bucket": "Metals & Mining",
+   "early_late_corr": 0.675,
+   "n_early": 4,
+   "n_late": 4
+  },
+  {
+   "bucket": "Multi-Utilities",
+   "early_late_corr": -0.312,
+   "n_early": 4,
+   "n_late": 4
+  },
+  {
+   "bucket": "Packaged Foods & Meats",
+   "early_late_corr": 0.108,
+   "n_early": 4,
+   "n_late": 4
+  },
+  {
+   "bucket": "Passenger Airlines",
+   "early_late_corr": 0.319,
+   "n_early": 1,
+   "n_late": 4
+  },
+  {
+   "bucket": "Pharmaceuticals",
+   "early_late_corr": 0.486,
+   "n_early": 4,
+   "n_late": 4
+  },
+  {
+   "bucket": "Property & Casualty Insurance",
+   "early_late_corr": 0.808,
+   "n_early": 4,
+   "n_late": 4
+  },
+  {
+   "bucket": "Research & Consulting Services",
+   "early_late_corr": 0.349,
+   "n_early": 4,
+   "n_late": 4
+  },
+  {
+   "bucket": "Residential REITs",
+   "early_late_corr": 0.721,
+   "n_early": 3,
+   "n_late": 4
+  },
+  {
+   "bucket": "Semiconductor Materials & Equipment",
+   "early_late_corr": 0.123,
+   "n_early": 1,
+   "n_late": 4
+  },
+  {
+   "bucket": "Semiconductors",
+   "early_late_corr": 0.748,
+   "n_early": 4,
+   "n_late": 4
+  },
+  {
+   "bucket": "Specialized REITs",
+   "early_late_corr": 0.364,
+   "n_early": 3,
+   "n_late": 4
+  },
+  {
+   "bucket": "Specialty Chemicals",
+   "early_late_corr": 0.555,
+   "n_early": 3,
+   "n_late": 4
+  },
+  {
+   "bucket": "Specialty Retail",
+   "early_late_corr": 0.188,
+   "n_early": 4,
+   "n_late": 4
+  },
+  {
+   "bucket": "Systems Software",
+   "early_late_corr": 0.779,
+   "n_early": 1,
+   "n_late": 4
+  },
+  {
+   "bucket": "Technology Hardware, Storage & Peripherals",
+   "early_late_corr": 0.317,
+   "n_early": 4,
+   "n_late": 4
+  },
+  {
+   "bucket": "Trading Companies & Distributors",
+   "early_late_corr": 0.034,
+   "n_early": 4,
+   "n_late": 4
+  },
+  {
+   "bucket": "Wireless Telecommunication Services",
+   "early_late_corr": 0.589,
+   "n_early": 1,
+   "n_late": 4
+  }
+ ],
+ "era_swap": {
+  "early_weights": {
+   "2016-2020": {
+    "q1_ann": 22.09,
+    "q4_ann": 8.74,
+    "spread_ann": 13.35
+   },
+   "2021-present": {
+    "q1_ann": 14.7,
+    "q4_ann": 15.02,
+    "spread_ann": -0.32
+   }
+  },
+  "late_weights": {
+   "2016-2020": {
+    "q1_ann": 19.86,
+    "q4_ann": 11.07,
+    "spread_ann": 8.79
+   },
+   "2021-present": {
+    "q1_ann": 21.36,
+    "q4_ann": 9.65,
+    "spread_ann": 11.71
+   }
+  }
+ },
+ "boot_sd": {
+  "2015-12-31": [
+   0.00981,
+   0.01052,
+   0.00875,
+   0.01082,
+   0.00921,
+   0.01044,
+   0.00852,
+   0.01047,
+   0.01001,
+   0.0093,
+   0.00902,
+   0.00989
+  ],
+  "2016-12-31": [
+   0.00997,
+   0.01152,
+   0.00896,
+   0.01047,
+   0.00921,
+   0.01056,
+   0.01049,
+   0.00996,
+   0.01116,
+   0.00957,
+   0.0103,
+   0.01037
+  ],
+  "2017-12-31": [
+   0.00696,
+   0.00715,
+   0.00686,
+   0.00714,
+   0.0073,
+   0.00773,
+   0.00792,
+   0.00714,
+   0.00842,
+   0.00857,
+   0.00692,
+   0.00629
+  ],
+  "2018-12-31": [
+   0.00768,
+   0.00823,
+   0.00775,
+   0.00697,
+   0.00604,
+   0.0077,
+   0.00711,
+   0.00749,
+   0.00806,
+   0.00726,
+   0.00773,
+   0.00658
+  ],
+  "2019-12-31": [
+   0.00743,
+   0.00787,
+   0.00706,
+   0.00689,
+   0.00648,
+   0.00739,
+   0.00759,
+   0.00696,
+   0.00811,
+   0.00699,
+   0.00769,
+   0.00624
+  ],
+  "2020-12-31": [
+   0.00875,
+   0.00852,
+   0.00726,
+   0.00781,
+   0.00633,
+   0.00878,
+   0.00926,
+   0.00824,
+   0.0094,
+   0.00857,
+   0.00796,
+   0.00791
+  ],
+  "2021-12-31": [
+   0.01088,
+   0.00987,
+   0.00818,
+   0.00745,
+   0.00899,
+   0.00911,
+   0.00907,
+   0.01068,
+   0.01155,
+   0.00991,
+   0.00958,
+   0.00851
+  ],
+  "2022-12-31": [
+   0.00946,
+   0.00959,
+   0.00851,
+   0.00771,
+   0.00817,
+   0.00859,
+   0.0094,
+   0.00944,
+   0.01099,
+   0.01051,
+   0.00968,
+   0.00814
+  ],
+  "2023-12-31": [
+   0.00916,
+   0.00882,
+   0.00805,
+   0.00658,
+   0.00725,
+   0.00829,
+   0.00808,
+   0.0075,
+   0.00901,
+   0.00825,
+   0.00842,
+   0.00751
+  ],
+  "2024-12-31": [
+   0.00921,
+   0.00812,
+   0.00689,
+   0.00669,
+   0.00789,
+   0.00732,
+   0.00793,
+   0.00674,
+   0.00844,
+   0.00849,
+   0.00847,
+   0.00682
+  ],
+  "2025-12-31": [
+   0.01024,
+   0.00997,
+   0.00878,
+   0.00828,
+   0.00953,
+   0.00841,
+   0.00873,
+   0.00876,
+   0.01051,
+   0.01178,
+   0.00892,
+   0.00968
+  ],
+  "2026-06-30": [
+   0.00994,
+   0.00992,
+   0.0082,
+   0.00803,
+   0.00807,
+   0.0082,
+   0.00811,
+   0.00814,
+   0.01024,
+   0.00957,
+   0.00864,
+   0.00846
+  ]
+ },
+ "pearson_matrix": [
+  [
+   1.0,
+   0.94,
+   0.87,
+   0.89,
+   0.865,
+   0.639,
+   0.772,
+   0.765,
+   0.535,
+   0.524,
+   0.199,
+   0.128
+  ],
+  [
+   0.94,
+   1.0,
+   0.929,
+   0.895,
+   0.837,
+   0.654,
+   0.81,
+   0.773,
+   0.636,
+   0.644,
+   0.33,
+   0.234
+  ],
+  [
+   0.87,
+   0.929,
+   1.0,
+   0.914,
+   0.892,
+   0.779,
+   0.862,
+   0.763,
+   0.709,
+   0.698,
+   0.267,
+   0.217
+  ],
+  [
+   0.89,
+   0.895,
+   0.914,
+   1.0,
+   0.907,
+   0.749,
+   0.787,
+   0.773,
+   0.624,
+   0.636,
+   0.273,
+   0.18
+  ],
+  [
+   0.865,
+   0.837,
+   0.892,
+   0.907,
+   1.0,
+   0.917,
+   0.93,
+   0.896,
+   0.691,
+   0.638,
+   0.125,
+   0.02
+  ],
+  [
+   0.639,
+   0.654,
+   0.779,
+   0.749,
+   0.917,
+   1.0,
+   0.936,
+   0.891,
+   0.793,
+   0.717,
+   0.18,
+   0.097
+  ],
+  [
+   0.772,
+   0.81,
+   0.862,
+   0.787,
+   0.93,
+   0.936,
+   1.0,
+   0.948,
+   0.851,
+   0.793,
+   0.303,
+   0.203
+  ],
+  [
+   0.765,
+   0.773,
+   0.763,
+   0.773,
+   0.896,
+   0.891,
+   0.948,
+   1.0,
+   0.856,
+   0.817,
+   0.435,
+   0.309
+  ],
+  [
+   0.535,
+   0.636,
+   0.709,
+   0.624,
+   0.691,
+   0.793,
+   0.851,
+   0.856,
+   1.0,
+   0.982,
+   0.673,
+   0.606
+  ],
+  [
+   0.524,
+   0.644,
+   0.698,
+   0.636,
+   0.638,
+   0.717,
+   0.793,
+   0.817,
+   0.982,
+   1.0,
+   0.777,
+   0.708
+  ],
+  [
+   0.199,
+   0.33,
+   0.267,
+   0.273,
+   0.125,
+   0.18,
+   0.303,
+   0.435,
+   0.673,
+   0.777,
+   1.0,
+   0.963
+  ],
+  [
+   0.128,
+   0.234,
+   0.217,
+   0.18,
+   0.02,
+   0.097,
+   0.203,
+   0.309,
+   0.606,
+   0.708,
+   0.963,
+   1.0
+  ]
+ ],
+ "spearman_matrix": [
+  [
+   1.0,
+   0.846,
+   0.783,
+   0.769,
+   0.818,
+   0.608,
+   0.636,
+   0.601,
+   0.448,
+   0.336,
+   0.056,
+   0.021
+  ],
+  [
+   0.846,
+   1.0,
+   0.895,
+   0.811,
+   0.846,
+   0.664,
+   0.727,
+   0.678,
+   0.559,
+   0.455,
+   0.049,
+   -0.035
+  ],
+  [
+   0.783,
+   0.895,
+   1.0,
+   0.867,
+   0.846,
+   0.755,
+   0.762,
+   0.748,
+   0.734,
+   0.664,
+   0.217,
+   0.21
+  ],
+  [
+   0.769,
+   0.811,
+   0.867,
+   1.0,
+   0.93,
+   0.811,
+   0.769,
+   0.748,
+   0.608,
+   0.573,
+   0.182,
+   0.049
+  ],
+  [
+   0.818,
+   0.846,
+   0.846,
+   0.93,
+   1.0,
+   0.916,
+   0.895,
+   0.867,
+   0.685,
+   0.58,
+   0.077,
+   -0.042
+  ],
+  [
+   0.608,
+   0.664,
+   0.755,
+   0.811,
+   0.916,
+   1.0,
+   0.902,
+   0.895,
+   0.699,
+   0.601,
+   0.042,
+   -0.035
+  ],
+  [
+   0.636,
+   0.727,
+   0.762,
+   0.769,
+   0.895,
+   0.902,
+   1.0,
+   0.979,
+   0.811,
+   0.706,
+   0.231,
+   0.133
+  ],
+  [
+   0.601,
+   0.678,
+   0.748,
+   0.748,
+   0.867,
+   0.895,
+   0.979,
+   1.0,
+   0.853,
+   0.762,
+   0.343,
+   0.245
+  ],
+  [
+   0.448,
+   0.559,
+   0.734,
+   0.608,
+   0.685,
+   0.699,
+   0.811,
+   0.853,
+   1.0,
+   0.965,
+   0.545,
+   0.531
+  ],
+  [
+   0.336,
+   0.455,
+   0.664,
+   0.573,
+   0.58,
+   0.601,
+   0.706,
+   0.762,
+   0.965,
+   1.0,
+   0.692,
+   0.657
+  ],
+  [
+   0.056,
+   0.049,
+   0.217,
+   0.182,
+   0.077,
+   0.042,
+   0.231,
+   0.343,
+   0.545,
+   0.692,
+   1.0,
+   0.937
+  ],
+  [
+   0.021,
+   -0.035,
+   0.21,
+   0.049,
+   -0.042,
+   -0.035,
+   0.133,
+   0.245,
+   0.531,
+   0.657,
+   0.937,
+   1.0
+  ]
+ ]
+}

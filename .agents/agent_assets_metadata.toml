@@ -120,3 +120,15 @@ id = "UUbDR45iJ0XkaKKnEG_1l"
 uri = "file://pipeline_output/backtest_variants/backtest_variants_package.zip"
 type = "unspecified"
 title = "Full package (PDF + charts + data files)"
+
+[[outputs]]
+id = "kSUk84eRpP4CCV0Zranvg"
+uri = "file://pipeline_output/fund_val_weights/fund_val_weights_report.pdf"
+type = "pdf"
+title = "Fundamentals, valuation & weight-consistency report (PDF)"
+
+[[outputs]]
+id = "k_YngfuZD-BuQmfIjzPnV"
+uri = "file://pipeline_output/fund_val_weights/fund_val_weights_package.zip"
+type = "unspecified"
+title = "Full package (PDF + 8 charts + all CSV/JSON data)"

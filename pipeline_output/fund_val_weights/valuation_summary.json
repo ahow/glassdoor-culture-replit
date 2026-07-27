@@ -1,0 +1,132 @@
+{
+ "decomposition": {
+  "2016-2020": {
+   "Q1": {
+    "price_return_ann_pct": 19.09,
+    "eps_growth_ann_pct": 6.83,
+    "ni_growth_ann_pct": 6.39,
+    "rerating_ann_pct": 4.8,
+    "n": 94
+   },
+   "Q2": {
+    "price_return_ann_pct": 13.9,
+    "eps_growth_ann_pct": 6.57,
+    "ni_growth_ann_pct": 6.49,
+    "rerating_ann_pct": 0.13,
+    "n": 92
+   },
+   "Q3": {
+    "price_return_ann_pct": 13.12,
+    "eps_growth_ann_pct": 5.3,
+    "ni_growth_ann_pct": 5.23,
+    "rerating_ann_pct": 1.67,
+    "n": 88
+   },
+   "Q4": {
+    "price_return_ann_pct": 11.17,
+    "eps_growth_ann_pct": 6.05,
+    "ni_growth_ann_pct": 5.77,
+    "rerating_ann_pct": 1.98,
+    "n": 85
+   }
+  },
+  "2021-present": {
+   "Q1": {
+    "price_return_ann_pct": 14.56,
+    "eps_growth_ann_pct": 13.18,
+    "ni_growth_ann_pct": 15.0,
+    "rerating_ann_pct": -3.28,
+    "n": 171
+   },
+   "Q2": {
+    "price_return_ann_pct": 14.43,
+    "eps_growth_ann_pct": 12.51,
+    "ni_growth_ann_pct": 12.91,
+    "rerating_ann_pct": -3.04,
+    "n": 169
+   },
+   "Q3": {
+    "price_return_ann_pct": 13.4,
+    "eps_growth_ann_pct": 11.54,
+    "ni_growth_ann_pct": 12.81,
+    "rerating_ann_pct": -2.88,
+    "n": 153
+   },
+   "Q4": {
+    "price_return_ann_pct": 15.5,
+    "eps_growth_ann_pct": 11.9,
+    "ni_growth_ann_pct": 12.41,
+    "rerating_ann_pct": -2.03,
+    "n": 140
+   }
+  }
+ },
+ "split_valuation": {
+  "2016-2020": {
+   "start": "2015-12-31",
+   "end": "2020-09-30",
+   "Q1": {
+    "start_median_pe": 20.92112081193362,
+    "end_median_pe": 26.8609202024939,
+    "start_excess_ep": -0.0023405976847879276,
+    "end_excess_ep": -0.0025193478258173727
+   },
+   "Q2": {
+    "start_median_pe": 19.905932840390868,
+    "end_median_pe": 23.532260523608606,
+    "start_excess_ep": 0.0,
+    "end_excess_ep": 0.0
+   },
+   "Q3": {
+    "start_median_pe": 20.13303598501025,
+    "end_median_pe": 20.495449659303755,
+    "start_excess_ep": 0.001010311205576122,
+    "end_excess_ep": 0.001508658944881858
+   },
+   "Q4": {
+    "start_median_pe": 20.266853725182337,
+    "end_median_pe": 21.612354183884975,
+    "start_excess_ep": 0.0005387311489256086,
+    "end_excess_ep": 0.0019021345298409105
+   }
+  },
+  "2021-present": {
+   "start": "2020-12-31",
+   "end": "2026-06-30",
+   "Q1": {
+    "start_median_pe": 30.761093090482362,
+    "end_median_pe": 27.131535523883958,
+    "start_excess_ep": -0.004529423947661338,
+    "end_excess_ep": -0.004304978250448316
+   },
+   "Q2": {
+    "start_median_pe": 23.231358071981486,
+    "end_median_pe": 22.590883866011808,
+    "start_excess_ep": 0.0,
+    "end_excess_ep": 0.000771678733459031
+   },
+   "Q3": {
+    "start_median_pe": 23.75160069312443,
+    "end_median_pe": 21.327649230763118,
+    "start_excess_ep": 0.000194479051063845,
+    "end_excess_ep": 0.0007464583706540155
+   },
+   "Q4": {
+    "start_median_pe": 24.47822850446005,
+    "end_median_pe": 18.483771874604752,
+    "start_excess_ep": 0.0009238749262776638,
+    "end_excess_ep": 0.002014533536482871
+   }
+  }
+ },
+ "current_state": {
+  "snapshot": "2026-06-30",
+  "q1_median_pe": 27.131535523883958,
+  "q4_median_pe": 18.483771874604752,
+  "q1_median_excess_ep": -0.004304978250448316,
+  "q4_median_excess_ep": 0.002014533536482871,
+  "q1_rel_pe_ratio": 1.4678570860940214,
+  "q1_rel_pe_percentile_of_history": 76.7,
+  "history_points": 43
+ }
+}
