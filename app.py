@@ -8,6 +8,7 @@ import re
 import json
 import logging
 import math
+import time
 import numpy as np
 import threading as _threading_module
 import psycopg2
@@ -1743,6 +1744,45 @@ def v2_backtest_company(company_name):
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+# --- In-process cache for the heavy backtest endpoints -------------------
+# Both /api/v2/backtest and /api/v2/peer-group-outperformance load the full
+# schroders_backtest_scores + backtest_quarter_prices tables and recompute
+# portfolio returns on every request. Results only change when
+# pipeline/backtest.py is re-run, which bumps the 'backtest_data_version'
+# key in app_config. We cache computed payloads per worker keyed on that
+# version (one cheap single-row query per request), with a time-based
+# backstop in case the version key is absent.
+_backtest_cache = {}
+_BACKTEST_CACHE_TTL = 600  # backstop when no version key exists (seconds)
+
+
+def _backtest_data_version(cur):
+    try:
+        cur.execute("SELECT value FROM app_config WHERE key = 'backtest_data_version'")
+        row = cur.fetchone()
+        return row[0] if row else None
+    except Exception:
+        try:
+            cur.connection.rollback()
+        except Exception:
+            pass
+        return None
+
+
+def _backtest_cache_get(key, version):
+    hit = _backtest_cache.get(key)
+    if not hit:
+        return None
+    cached_version, cached_at, payload = hit
+    if version is not None:
+        return payload if cached_version == version else None
+    return payload if (time.time() - cached_at) < _BACKTEST_CACHE_TTL else None
+
+
+def _backtest_cache_put(key, version, payload):
+    _backtest_cache[key] = (version, time.time(), payload)
+
+
 @app.route('/api/v2/backtest', methods=['GET'])
 def v2_backtest():
     """Cumulative return of quartile portfolios formed on point-in-time
@@ -1757,14 +1797,22 @@ def v2_backtest():
         conn = get_db_connection()
         cur = conn.cursor()
 
+        version = _backtest_data_version(cur)
+        cached = _backtest_cache_get('backtest', version)
+        if cached is not None:
+            conn.close()
+            return jsonify(cached)
+
         cur.execute("""
             SELECT snapshot_date, company_name, quartile
             FROM schroders_backtest_scores""")
         score_rows = cur.fetchall()
         if not score_rows:
             conn.close()
-            return jsonify({'success': True, 'available': False,
-                            'message': 'Backtest has not been run yet.'})
+            payload = {'success': True, 'available': False,
+                       'message': 'Backtest has not been run yet.'}
+            _backtest_cache_put('backtest', version, payload)
+            return jsonify(payload)
 
         allowed = None
         if gics_value:
@@ -1815,9 +1863,11 @@ def v2_backtest():
                 start_idx = i
                 break
         if start_idx is None:
-            return jsonify({'success': True, 'available': False,
-                            'message': 'Not enough companies with price data '
-                                       'for this filter to build quartile portfolios.'})
+            payload = {'success': True, 'available': False,
+                       'message': 'Not enough companies with price data '
+                                  'for this filter to build quartile portfolios.'}
+            _backtest_cache_put('backtest', version, payload)
+            return jsonify(payload)
 
         used = [s for s in snaps[start_idx:]
                 if any(holdings[s][q] for q in (1, 2, 3, 4))]
@@ -1873,12 +1923,14 @@ def v2_backtest():
         next_q_day = 31 if next_q_month in (3, 12) else 30
         labels = labels + [datetime(next_q_year, next_q_month, next_q_day).date().isoformat()]
 
-        return jsonify({'success': True, 'available': True,
-                        'labels': labels, 'series': series, 'stats': stats,
-                        'counts': counts,
-                        'first_snapshot': used[0].isoformat(),
-                        'last_snapshot': last.isoformat(),
-                        'n_snapshots': len(used)})
+        payload = {'success': True, 'available': True,
+                   'labels': labels, 'series': series, 'stats': stats,
+                   'counts': counts,
+                   'first_snapshot': used[0].isoformat(),
+                   'last_snapshot': last.isoformat(),
+                   'n_snapshots': len(used)}
+        _backtest_cache_put('backtest', version, payload)
+        return jsonify(payload)
     except Exception as e:
         logger.error(f"backtest endpoint error: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
@@ -1894,14 +1946,24 @@ def v2_peer_group_outperformance():
         min_members = int(request.args.get('min_members', 3))
         conn = get_db_connection()
         cur = conn.cursor()
+
+        version = _backtest_data_version(cur)
+        cache_key = ('peer-group-outperformance', min_members)
+        cached = _backtest_cache_get(cache_key, version)
+        if cached is not None:
+            conn.close()
+            return jsonify(cached)
+
         cur.execute("""
             SELECT snapshot_date, company_name, quartile, peer_bucket
             FROM schroders_backtest_scores""")
         score_rows = cur.fetchall()
         if not score_rows:
             conn.close()
-            return jsonify({'success': True, 'available': False,
-                            'message': 'Backtest has not been run yet.'})
+            payload = {'success': True, 'available': False,
+                       'message': 'Backtest has not been run yet.'}
+            _backtest_cache_put(cache_key, version, payload)
+            return jsonify(payload)
         cur.execute("""
             SELECT company_name, ticker FROM fmp_performance_metrics
             WHERE ticker IS NOT NULL AND ticker <> ''""")
@@ -1965,7 +2027,9 @@ def v2_peer_group_outperformance():
                 out[f'q{q}_outperformance'] = round(cagr - bench_cagr, 2)
             groups.append(out)
         groups.sort(key=lambda g: -(g.get('q1_outperformance') or 0))
-        return jsonify({'success': True, 'available': bool(groups), 'groups': groups})
+        payload = {'success': True, 'available': bool(groups), 'groups': groups}
+        _backtest_cache_put(cache_key, version, payload)
+        return jsonify(payload)
     except Exception as e:
         logger.error(f"peer-group-outperformance error: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500

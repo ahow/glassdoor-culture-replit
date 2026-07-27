@@ -47,6 +47,29 @@ def conn():
     return psycopg2.connect(os.environ['DATABASE_URL'])
 
 
+def bump_data_version():
+    """Bump the backtest data version in app_config so the dashboard's
+    in-process caches for /api/v2/backtest and
+    /api/v2/peer-group-outperformance are invalidated."""
+    c = conn()
+    cur = c.cursor()
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS app_config (
+            key VARCHAR(100) PRIMARY KEY,
+            value VARCHAR(255),
+            updated_at TIMESTAMP DEFAULT NOW()
+        )""")
+    cur.execute("""
+        INSERT INTO app_config (key, value)
+        VALUES ('backtest_data_version', %s)
+        ON CONFLICT (key) DO UPDATE
+        SET value = EXCLUDED.value, updated_at = NOW()""",
+        (str(time.time()),))
+    c.commit()
+    c.close()
+    print('backtest_data_version bumped (dashboard caches invalidated)')
+
+
 def quarter_ends(first=FIRST_SNAPSHOT, last=None):
     """All calendar quarter-end dates from `first` to the last COMPLETED
     quarter before today (or `last`)."""
@@ -331,10 +354,13 @@ if __name__ == '__main__':
     cmd = sys.argv[1] if len(sys.argv) > 1 else 'all'
     if cmd == 'scores':
         build_scores()
+        bump_data_version()
     elif cmd == 'prices':
         build_prices()
+        bump_data_version()
     elif cmd == 'all':
         build_scores()
         build_prices()
+        bump_data_version()
     else:
         print('unknown command', cmd)
