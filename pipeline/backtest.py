@@ -36,6 +36,11 @@ import requests
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from schroders_v2_keywords import SCHRODERS_V2_DIMENSIONS  # noqa: E402
+from backtest_payloads import (  # noqa: E402
+    compute_backtest_payload,
+    compute_peer_group_outperformance_payload,
+    write_cached_payload,
+)
 
 DIMS = SCHRODERS_V2_DIMENSIONS
 FIRST_SNAPSHOT = date(2015, 12, 31)
@@ -48,11 +53,23 @@ def conn():
 
 
 def bump_data_version():
-    """Bump the backtest data version in app_config so the dashboard's
-    in-process caches for /api/v2/backtest and
-    /api/v2/peer-group-outperformance are invalidated."""
+    """Precompute the dashboard payloads for /api/v2/backtest and
+    /api/v2/peer-group-outperformance into backtest_payload_cache, then
+    bump the backtest data version in app_config so the web dyno's
+    in-process caches are invalidated. Payloads are written BEFORE the
+    version bump so the endpoints never see a version without a
+    ready-made payload."""
+    version = str(time.time())
     c = conn()
     cur = c.cursor()
+
+    print('precomputing dashboard payloads...')
+    payload = compute_backtest_payload(cur)
+    write_cached_payload(cur, 'backtest', version, payload)
+    payload = compute_peer_group_outperformance_payload(cur, min_members=3)
+    write_cached_payload(cur, 'peer-group-outperformance:3', version, payload)
+    c.commit()
+
     cur.execute("""
         CREATE TABLE IF NOT EXISTS app_config (
             key VARCHAR(100) PRIMARY KEY,
@@ -64,10 +81,11 @@ def bump_data_version():
         VALUES ('backtest_data_version', %s)
         ON CONFLICT (key) DO UPDATE
         SET value = EXCLUDED.value, updated_at = NOW()""",
-        (str(time.time()),))
+        (version,))
     c.commit()
     c.close()
-    print('backtest_data_version bumped (dashboard caches invalidated)')
+    print('backtest_data_version bumped (dashboard caches invalidated; '
+          'precomputed payloads written)')
 
 
 def quarter_ends(first=FIRST_SNAPSHOT, last=None):
