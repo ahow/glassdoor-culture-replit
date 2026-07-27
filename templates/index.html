@@ -201,6 +201,15 @@
         }
         
         /* Hidden tab class for robust hiding */
+        .info-i {
+            display: inline-block;
+            width: 14px; height: 14px; line-height: 14px;
+            border-radius: 50%;
+            background: #cbd5e1; color: #1e293b;
+            font-size: 10px; font-style: normal; font-weight: 700;
+            text-align: center; cursor: help; margin-left: 4px;
+            vertical-align: middle;
+        }
         .tab-content.hidden-tab {
             display: none !important;
             visibility: hidden !important;
@@ -465,6 +474,7 @@
             <div style="margin-left: auto; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
                 <label style="font-size: 0.85rem; color: #64748b; font-weight: 500; white-space: nowrap;">GICS Level:</label>
                 <select id="gicsLevelFilter" onchange="onGicsLevelChange(this.value)" data-testid="select-gics-level" style="padding: 0.4rem 0.6rem; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.85rem; background: #f8fafc; color: #1e293b; cursor: pointer; min-width: 120px;">
+                    <option value="peer_group" selected>Peer Group</option>
                     <option value="sector">Sector</option>
                     <option value="industry">Industry</option>
                     <option value="sub_industry">Sub-Industry</option>
@@ -561,7 +571,7 @@
                         This dashboard analyses employee reviews published on Glassdoor to extract and visualise organisational culture signals for companies in the financial services sector. It covers <strong>2,442 MSCI-listed companies</strong> spanning 11 GICS sectors and 73 industries, plus 14 major unlisted asset managers, giving a universe of institutions from global investment banks and insurers to boutique asset managers and fintech firms.
                     </p>
                     <p style="font-size: 1rem; color: #475569; line-height: 1.8;">
-                        Culture is scored using the <strong>Schroders v2 framework</strong> — twelve bipolar dimensions scored from −1 to +1 with a data-mined dictionary — applied consistently across all companies so that direct, apples-to-apples comparisons are possible. Dimension scores are shrunk toward sector averages where evidence is thin, and combined into a single sector-relative <strong>Culture Factor</strong> with an explicit reliability tier per company. Intended for internal research use.
+                        Culture is scored using <strong>twelve bipolar dimensions</strong> scored from −1 to +1 with a data-mined dictionary — applied consistently across all companies so that direct, apples-to-apples comparisons are possible. Dimension scores are shrunk toward peer-group averages where evidence is thin, and combined into a single peer-relative <strong>Culture Factor</strong> with an explicit reliability tier per company. Intended for internal research use.
                     </p>
                 </div>
 
@@ -578,7 +588,7 @@
                         <div style="background: #f0fdf4; border-radius: 10px; padding: 1.1rem 1.25rem; border-left: 4px solid #22c55e;">
                             <div style="font-weight: 700; color: #15803d; font-size: 0.8rem; letter-spacing: 0.05em; margin-bottom: 0.4rem;">STEP 2</div>
                             <div style="font-weight: 600; color: #1e293b; margin-bottom: 0.35rem;">Keyword Scoring</div>
-                            <p style="color: #475569; font-size: 0.85rem; margin: 0;">Each review is scored against the Schroders v2 mined dictionary using a regex engine with negation handling. Every dimension is bipolar: matched terms pull the score towards −1 or +1. Scores are computed per review, averaged to company level, then shrunk toward the sector average in proportion to how thin the evidence is.</p>
+                            <p style="color: #475569; font-size: 0.85rem; margin: 0;">Each review is scored against a dictionary mined from the review corpus itself, using a regex engine with negation handling. Every dimension is bipolar: matched terms pull the score towards −1 or +1. Scores are computed per review, averaged to company level, then shrunk toward the sector average in proportion to how thin the evidence is.</p>
                         </div>
                         <div style="background: #fdf4ff; border-radius: 10px; padding: 1.1rem 1.25rem; border-left: 4px solid #a855f7;">
                             <div style="font-weight: 700; color: #7e22ce; font-size: 0.8rem; letter-spacing: 0.05em; margin-bottom: 0.4rem;">STEP 3</div>
@@ -595,16 +605,16 @@
                     <div style="background: #f8fafc; border-radius: 10px; padding: 1.1rem 1.5rem; border: 1px solid #e2e8f0;">
                         <h3 style="font-size: 0.95rem; color: #1e293b; margin-bottom: 0.6rem;">GICS Filtering</h3>
                         <p style="color: #475569; font-size: 0.875rem; line-height: 1.7; margin: 0;">
-                            The <strong>GICS filter</strong> in the top-right header controls which companies are included in every chart across the dashboard. GICS (Global Industry Classification Standard) is a four-level hierarchy: Sector → Industry → Sub-Industry → Company. You can filter to a broad <em>Sector</em> (e.g. "Financials"), a narrower <em>Industry</em> (e.g. "Capital Markets") or a precise <em>Sub-Industry</em> (e.g. "Asset Management &amp; Custody Banks"). Selecting "All" restores the full universe. Most analysis tabs update instantly when the filter changes.
+                            The <strong>GICS filter</strong> in the top-right header controls which companies are included in every chart across the dashboard. GICS (Global Industry Classification Standard) is a four-level hierarchy: Sector → Industry → Sub-Industry → Company. You can filter by <em>Peer Group</em> (the model's own comparison buckets — the default view), a broad <em>Sector</em> (e.g. "Financials"), a narrower <em>Industry</em> (e.g. "Capital Markets") or a precise <em>Sub-Industry</em> (e.g. "Asset Management &amp; Custody Banks"). Selecting "All" restores the full universe. Most analysis tabs update instantly when the filter changes.
                         </p>
                     </div>
                 </div>
 
                 <!-- Culture frameworks -->
                 <div class="chart-container" style="margin-bottom: 1.5rem;">
-                    <h2 class="chart-title">The Schroders v2 Culture Framework</h2>
+                    <h2 class="chart-title">The Culture Scoring Framework</h2>
                     <p style="color: #475569; font-size: 0.875rem; line-height: 1.7; margin-bottom: 0.75rem;">
-                        The only active framework. Twelve <em>bipolar</em> dimensions scored from <strong>−1 to +1</strong> using a dictionary mined from the review corpus itself. The sign indicates which pole dominates; zero means balanced. Earlier Hofstede and MIT frameworks have been retired from active analysis (they remain in the rollback snapshot).
+                        Twelve <em>bipolar</em> dimensions scored from <strong>−1 to +1</strong> using a dictionary mined from the review corpus itself. The sign indicates which pole dominates; zero means balanced.
                     </p>
                     <div style="background: #f8fafc; border-radius: 10px; padding: 1.25rem; border: 1px solid #e2e8f0;">
                         <table style="width: 100%; font-size: 0.82rem; border-collapse: collapse;">
@@ -632,7 +642,7 @@
                             <div style="display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.5rem;">
                                 <span style="background: #dbeafe; color: #1e40af; font-size: 0.75rem; font-weight: 700; padding: 0.2rem 0.55rem; border-radius: 20px;">Company Analysis</span>
                             </div>
-                            <p style="color: #475569; font-size: 0.85rem; line-height: 1.65; margin: 0;">Deep dive into a selected company's Schroders v2 culture profile with optional overlay of the sector or industry average. Good for a quick top-level culture summary of a single firm.</p>
+                            <p style="color: #475569; font-size: 0.85rem; line-height: 1.65; margin: 0;">Deep dive into a selected company's culture profile with optional overlay of the sector or industry average. Good for a quick top-level culture summary of a single firm.</p>
                         </div>
 
                         <div style="border: 1px solid #e2e8f0; border-radius: 10px; padding: 1rem 1.25rem;">
@@ -646,7 +656,7 @@
                             <div style="display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.5rem;">
                                 <span style="background: #ede9fe; color: #6d28d9; font-size: 0.75rem; font-weight: 700; padding: 0.2rem 0.55rem; border-radius: 20px;">Culture Dimensions</span>
                             </div>
-                            <p style="color: #475569; font-size: 0.85rem; line-height: 1.65; margin: 0;">Deep dive into a single company's twelve Schroders v2 bipolar dimensions, shown as a bar chart from −1 to +1 with evidence counts. Compare with an optional benchmark company.</p>
+                            <p style="color: #475569; font-size: 0.85rem; line-height: 1.65; margin: 0;">Deep dive into a single company's twelve bipolar culture dimensions, shown as a bar chart from −1 to +1 with evidence counts. Compare with an optional benchmark company.</p>
                         </div>
 
                         <div style="border: 1px solid #e2e8f0; border-radius: 10px; padding: 1rem 1.25rem;">
@@ -862,10 +872,6 @@
             <div id="schrodersProfileTab" class="tab-content">
                 <div class="chart-container">
                     <h3>Select Company</h3>
-                    <div style="margin-bottom: 1rem; display: flex; align-items: center; gap: 0.75rem;">
-                        <span style="font-size: 0.85rem; color: #64748b; font-weight: 600;">Framework:</span>
-                        <span id="schrodersV2Badge" data-testid="badge-framework-v2" style="font-size: 0.72rem; color: #7c3aed; background: #ede9fe; padding: 0.2rem 0.55rem; border-radius: 999px;">Schroders v2 — 12 bipolar dimensions, mined dictionary (only active framework)</span>
-                    </div>
                     <div class="controls-grid">
                         <div class="control-group">
                             <label for="schrodersCompanySelect">Company:</label>
@@ -912,58 +918,6 @@
                 <div id="schrodersMessage" style="text-align: center; color: #7f8c8d; padding: 3rem;">
                     Select a company to view its complete culture profile
                 </div>
-            </div>
-        </div>
-
-        <!-- Culture Factor tab: sector-relative factor scores, evidence tiers, stability -->
-        <div id="factorTab" class="tab-content hidden-tab" style="display: none;">
-            <div class="chart-container">
-                <h2 class="chart-title">Culture Factor — Sector-Relative Scores</h2>
-                <p style="color: #64748b; font-size: 0.88rem; margin-bottom: 1rem;">
-                    Each company's 12 Schroders v2 dimensions are shrunk toward its sector average
-                    (less evidence &rarr; more shrinkage), then combined into a single factor score using
-                    a ridge model fit against a composite financial-performance target within each peer group.
-                    Percentiles are relative to sector peers only. <strong>Reliability tier</strong> reflects
-                    evidence depth and bootstrap rank stability &mdash; treat Low / Insufficient rows as
-                    indicative only. Intended for internal research, not client-facing use.
-                </p>
-                <div style="overflow-x: auto;">
-                    <table id="factorScoresTable" data-testid="table-factor-scores" style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
-                        <thead>
-                            <tr style="background: #f1f5f9; text-align: left;">
-                                <th style="padding: 0.5rem 0.6rem;">Company</th>
-                                <th style="padding: 0.5rem 0.6rem;">Peer group</th>
-                                <th style="padding: 0.5rem 0.6rem;">Model used</th>
-                                <th style="padding: 0.5rem 0.6rem;">Sector z</th>
-                                <th style="padding: 0.5rem 0.6rem;">Sector %ile</th>
-                                <th style="padding: 0.5rem 0.6rem;">Reliability</th>
-                                <th style="padding: 0.5rem 0.6rem;">%ile SD (bootstrap)</th>
-                                <th style="padding: 0.5rem 0.6rem;">Tier A/B dims</th>
-                            </tr>
-                        </thead>
-                        <tbody id="factorScoresBody"></tbody>
-                    </table>
-                </div>
-                <p id="factorScoresMessage" style="text-align:center; color:#7f8c8d; padding:1.5rem;">Loading factor scores…</p>
-                <p id="factorTableFootnote" style="color: #94a3b8; font-size: 0.78rem; margin: 0.5rem 0 0 0; display: none;">
-                    * "Global model" means this company's peer group had too few usable companies for a reliable
-                    group-specific model, so its Culture Factor uses dimension weights estimated across <em>all</em> companies.
-                </p>
-            </div>
-
-            <div class="chart-container">
-                <h2 class="chart-title">Culture vs Subsequent Share-Price Performance</h2>
-                <p style="color: #64748b; font-size: 0.88rem; margin-bottom: 1rem;">
-                    Companies in the current filter are split into thirds by their Culture Factor percentile
-                    within their peer group. Bars show the average <strong>annualized share-price return</strong>
-                    of each third over the last 1, 3 and 5 years (listed companies with price history only;
-                    unlisted asset managers are excluded). Hover a bar to see how many companies it covers.
-                </p>
-                <div style="max-width: 760px; margin: 0 auto;">
-                    <canvas id="cultureReturnsChart" data-testid="chart-culture-returns" style="max-height: 360px;"></canvas>
-                </div>
-                <p id="cultureReturnsMessage" style="text-align:center; color:#7f8c8d; padding:1rem;">Loading performance comparison…</p>
-            </div>
 
             <div class="chart-container">
                 <h2 class="chart-title">Dimension Evidence Detail</h2>
@@ -979,20 +933,59 @@
                     <table id="evidenceTable" data-testid="table-evidence" style="width: 100%; border-collapse: collapse; font-size: 0.85rem; display: none;">
                         <thead>
                             <tr style="background: #f1f5f9; text-align: left;">
-                                <th style="padding: 0.5rem 0.6rem;">Dimension</th>
-                                <th style="padding: 0.5rem 0.6rem;">Tier</th>
-                                <th style="padding: 0.5rem 0.6rem;">Scored reviews</th>
-                                <th style="padding: 0.5rem 0.6rem;">Coverage</th>
-                                <th style="padding: 0.5rem 0.6rem;">Raw score</th>
-                                <th style="padding: 0.5rem 0.6rem;">Shrunk score</th>
-                                <th style="padding: 0.5rem 0.6rem;">Shrink weight</th>
-                                <th style="padding: 0.5rem 0.6rem;">Concentration</th>
+                                <th style="padding: 0.5rem 0.6rem;">Dimension<i class="info-i" title="One of the twelve bipolar culture dimensions.">i</i></th>
+                                <th style="padding: 0.5rem 0.6rem;">Tier<i class="info-i" title="Evidence tier from A (deep evidence) to D (thin), based on how many reviews scored this dimension and how concentrated they are.">i</i></th>
+                                <th style="padding: 0.5rem 0.6rem;">Scored reviews<i class="info-i" title="Number of reviews that actually contained signal for this dimension.">i</i></th>
+                                <th style="padding: 0.5rem 0.6rem;">Coverage<i class="info-i" title="Share of the company&#39;s reviews that scored this dimension.">i</i></th>
+                                <th style="padding: 0.5rem 0.6rem;">Raw score<i class="info-i" title="Average score from reviews before any adjustment (&minus;1 to +1).">i</i></th>
+                                <th style="padding: 0.5rem 0.6rem;">Shrunk score<i class="info-i" title="Score after thin evidence is pulled toward the peer-group average &mdash; this is what feeds the culture factor.">i</i></th>
+                                <th style="padding: 0.5rem 0.6rem;">Shrink weight<i class="info-i" title="How much of the raw score is kept: 1 = no shrinkage; lower values mean the score is pulled more toward the peer average.">i</i></th>
+                                <th style="padding: 0.5rem 0.6rem;">Concentration<i class="info-i" title="Flags when the evidence is dominated by a narrow time window or a small set of reviews.">i</i></th>
                             </tr>
                         </thead>
                         <tbody id="evidenceBody"></tbody>
                     </table>
                 </div>
             </div>
+            </div>
+        </div>
+
+        <!-- Culture Factor tab: sector-relative factor scores, evidence tiers, stability -->
+        <div id="factorTab" class="tab-content hidden-tab" style="display: none;">
+            <div class="chart-container">
+                <h2 class="chart-title">Culture Factor — Sector-Relative Scores</h2>
+                <p style="color: #64748b; font-size: 0.88rem; margin-bottom: 1rem;">
+                    Each company's 12 culture dimensions are shrunk toward its sector average
+                    (less evidence &rarr; more shrinkage), then combined into a single factor score using
+                    a ridge model fit against a composite financial-performance target within each peer group.
+                    Percentiles are relative to sector peers only. <strong>Reliability tier</strong> reflects
+                    evidence depth and bootstrap rank stability &mdash; treat Low / Insufficient rows as
+                    indicative only. Intended for internal research, not client-facing use.
+                </p>
+                <div style="overflow-x: auto;">
+                    <table id="factorScoresTable" data-testid="table-factor-scores" style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
+                        <thead>
+                            <tr style="background: #f1f5f9; text-align: left;">
+                                <th style="padding: 0.5rem 0.6rem;">Company</th>
+                                <th style="padding: 0.5rem 0.6rem;">Peer group<i class="info-i" title="The set of similar companies this company is compared against. All scores and percentiles are relative to this group.">i</i></th>
+                                <th style="padding: 0.5rem 0.6rem;">Model used<i class="info-i" title="Whether the score uses dimension weights estimated for this specific peer group, or the global model when the group was too small.">i</i></th>
+                                <th style="padding: 0.5rem 0.6rem;">Sector z<i class="info-i" title="Standardized culture factor relative to the peer group: 0 = average peer, +1 = one standard deviation above the peer average.">i</i></th>
+                                <th style="padding: 0.5rem 0.6rem;">Sector %ile<i class="info-i" title="Percentile rank within the peer group (100 = strongest culture score among peers).">i</i></th>
+                                <th style="padding: 0.5rem 0.6rem;">Reliability<i class="info-i" title="How trustworthy the score is (High / Medium / Low / Insufficient), based on evidence depth and how stable the ranking is when reviews are resampled.">i</i></th>
+                                <th style="padding: 0.5rem 0.6rem;">%ile SD (bootstrap)<i class="info-i" title="How much the percentile moves when the reviews are randomly resampled &mdash; lower means a more stable ranking.">i</i></th>
+                                <th style="padding: 0.5rem 0.6rem;">Tier A/B dims<i class="info-i" title="Number of the twelve dimensions backed by deep evidence (tier A or B). More dimensions means a better-supported score.">i</i></th>
+                            </tr>
+                        </thead>
+                        <tbody id="factorScoresBody"></tbody>
+                    </table>
+                </div>
+                <p id="factorScoresMessage" style="text-align:center; color:#7f8c8d; padding:1.5rem;">Loading factor scores…</p>
+                <p id="factorTableFootnote" style="color: #94a3b8; font-size: 0.78rem; margin: 0.5rem 0 0 0; display: none;">
+                    * "Global model" means this company's peer group had too few usable companies for a reliable
+                    group-specific model, so its Culture Factor uses dimension weights estimated across <em>all</em> companies.
+                </p>
+            </div>
+
         </div>
 
         <!-- Backtest Tab -->
@@ -1025,6 +1018,27 @@
                     </table>
                 </div>
                 <p id="backtestPeriod" style="text-align:center; color:#64748b; font-size:0.82rem; margin-bottom:1rem;" data-testid="text-backtest-period"></p>
+                <div style="border-top: 1px solid #e2e8f0; margin: 1.5rem 0; padding-top: 1.5rem;">
+                    <h2 class="chart-title">Culture Quartile Outperformance by Peer Group</h2>
+                    <p style="color: #64748b; font-size: 0.88rem; margin-bottom: 0.75rem;">
+                        For each peer group, the bar shows how much the selected culture quartile portfolio
+                        beat (or lagged) that peer group's own all-companies benchmark, measured as
+                        <strong>annualized return (CAGR) over the last 5 years</strong> of quarterly rebalanced
+                        portfolios. Only peer groups with at least 3 companies per quartile and 2+ years of data are shown.
+                    </p>
+                    <label for="peerOutperfQuartile" style="font-weight: 600; color: #1e293b; font-size: 0.85rem;">Quartile:</label>
+                    <select id="peerOutperfQuartile" data-testid="select-outperf-quartile" onchange="renderPeerOutperformance()"
+                            style="padding: 0.4rem 0.6rem; border: 1px solid #cbd5e1; border-radius: 6px; margin: 0 0 1rem 0.5rem;">
+                        <option value="1" selected>Q1 (strongest culture)</option>
+                        <option value="2">Q2</option>
+                        <option value="3">Q3</option>
+                        <option value="4">Q4 (weakest culture)</option>
+                    </select>
+                    <div style="max-width: 900px; margin: 0 auto 1rem auto; position: relative;">
+                        <canvas id="peerOutperfChart" data-testid="chart-peer-outperformance"></canvas>
+                    </div>
+                    <p id="peerOutperfMessage" style="text-align:center; color:#7f8c8d; padding:0.5rem; display:none;"></p>
+                </div>
                 <div style="background:#fffbeb; border:1px solid #fde68a; border-radius:8px; padding:0.9rem 1.1rem; max-width:900px; margin:0 auto;">
                     <p style="color:#92400e; font-size:0.8rem; margin:0;">
                         <strong>Important caveats:</strong> culture scores at each date use only reviews available
@@ -1042,23 +1056,52 @@
         <!-- Sector Comparison Tab -->
         <div id="sectorComparisonTab" class="tab-content hidden-tab" style="display: none;">
             <div class="chart-container">
-                <h2 class="chart-title">Model Fit &amp; Dimension Weights</h2>
+                <h2 class="chart-title">Peer Group Comparison</h2>
+                <p style="color: #64748b; font-size: 0.88rem; margin-bottom: 0.75rem;">
+                    Each bubble is a peer group. Choose what the axes and bubble size show &mdash; the chart
+                    updates instantly. If bubble size is left as "None", all bubbles are the same size.
+                </p>
+                <p style="color: #1e293b; font-size: 0.85rem; margin-bottom: 1rem;">
+                    <strong>Current filter:</strong> <span id="sectorCompFilterLabel" data-testid="text-sectorcomp-filter">All companies</span>
+                </p>
+                <div style="display: flex; flex-wrap: wrap; gap: 1rem; margin-bottom: 1rem;">
+                    <div>
+                        <label for="bubbleXSelect" style="font-weight: 600; color: #1e293b; font-size: 0.85rem;">X axis:</label>
+                        <select id="bubbleXSelect" data-testid="select-bubble-x" onchange="renderSectorCompBubble()"
+                                style="padding: 0.4rem 0.6rem; border: 1px solid #cbd5e1; border-radius: 6px; margin-left: 0.4rem;"></select>
+                    </div>
+                    <div>
+                        <label for="bubbleYSelect" style="font-weight: 600; color: #1e293b; font-size: 0.85rem;">Y axis:</label>
+                        <select id="bubbleYSelect" data-testid="select-bubble-y" onchange="renderSectorCompBubble()"
+                                style="padding: 0.4rem 0.6rem; border: 1px solid #cbd5e1; border-radius: 6px; margin-left: 0.4rem;"></select>
+                    </div>
+                    <div>
+                        <label for="bubbleSizeSelect" style="font-weight: 600; color: #1e293b; font-size: 0.85rem;">Bubble size:</label>
+                        <select id="bubbleSizeSelect" data-testid="select-bubble-size" onchange="renderSectorCompBubble()"
+                                style="padding: 0.4rem 0.6rem; border: 1px solid #cbd5e1; border-radius: 6px; margin-left: 0.4rem;"></select>
+                    </div>
+                </div>
+                <div style="max-width: 780px; margin: 0 auto 0.5rem auto;">
+                    <canvas id="sectorCompBubble" data-testid="chart-sectorcomp-bubble" style="max-height: 420px;"></canvas>
+                </div>
+                <p id="sectorCompBubbleMessage" style="text-align:center; color:#7f8c8d; padding:0.5rem; display:none;"></p>
+
+                <h3 style="color: #1e293b; font-size: 1rem; margin: 1.75rem 0 0.4rem 0;">All Peer Groups</h3>
                 <p style="color: #64748b; font-size: 0.88rem; margin-bottom: 1rem;">
-                    How strongly culture relates to financial performance within each peer group, and which
-                    dimensions the model weights most heavily. <strong>R&sup2;</strong> is the share of
-                    performance variation explained by the 12 culture dimensions among the companies each
-                    model was estimated on &mdash; higher values indicate a stronger culture&ndash;performance
-                    relationship in that peer group.
+                    How strongly culture relates to financial performance within each peer group.
+                    <strong>R&sup2;</strong> is the share of performance variation explained by the twelve
+                    culture dimensions among the companies each model was estimated on. Click a row to see
+                    that group's dimension weights below.
                 </p>
                 <div style="overflow-x: auto; margin-bottom: 1.25rem;">
                     <table id="modelFitTable" data-testid="table-model-fit" style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
                         <thead>
                             <tr style="background: #f1f5f9; text-align: left;">
-                                <th style="padding: 0.5rem 0.6rem;">Peer group</th>
-                                <th style="padding: 0.5rem 0.6rem;">Model used</th>
-                                <th style="padding: 0.5rem 0.6rem; text-align: right;">Companies</th>
-                                <th style="padding: 0.5rem 0.6rem; text-align: right;">R&sup2;</th>
-                                <th style="padding: 0.5rem 0.6rem; text-align: right;">Ridge &alpha;</th>
+                                <th style="padding: 0.5rem 0.6rem;">Peer group<i class="info-i" title="The set of similar companies whose culture and performance are compared together.">i</i></th>
+                                <th style="padding: 0.5rem 0.6rem;">Model used<i class="info-i" title="Whether the group uses dimension weights estimated for this specific peer group, or the global model when the group was too small.">i</i></th>
+                                <th style="padding: 0.5rem 0.6rem; text-align: right;">Companies<i class="info-i" title="Number of companies the model was estimated on.">i</i></th>
+                                <th style="padding: 0.5rem 0.6rem; text-align: right;">R&sup2;<i class="info-i" title="Share of performance variation explained by the twelve culture dimensions in this group (0 to 1). Higher = stronger culture-performance relationship.">i</i></th>
+                                <th style="padding: 0.5rem 0.6rem; text-align: right;">Ridge &alpha;<i class="info-i" title="Regularization strength chosen for the model - a technical setting that prevents overfitting on small groups.">i</i></th>
                             </tr>
                         </thead>
                         <tbody id="modelFitBody"></tbody>
@@ -1069,26 +1112,11 @@
                     group-specific model, so they borrow the model estimated across <em>all</em> companies.
                     For those rows the "Companies" figure is the size of that global estimation set, not the peer group.
                 </p>
-                <div style="max-width: 720px; margin: 0 auto 1.5rem auto;">
-                    <canvas id="modelFitScatter" data-testid="chart-model-fit-scatter" style="max-height: 340px;"></canvas>
-                </div>
-                <h3 style="color: #1e293b; font-size: 1rem; margin: 1.5rem 0 0.4rem 0;">Culture Payoff vs Strength of Relationship</h3>
-                <p style="color: #64748b; font-size: 0.88rem; margin-bottom: 1rem;">
-                    Each bubble is a peer group. The <strong>vertical axis</strong> shows the regression
-                    coefficient &mdash; how much composite performance improves for each 1 standard-deviation
-                    improvement in culture. The <strong>horizontal axis</strong> shows the R&sup2; of that same
-                    regression &mdash; how strong/consistent the relationship is within the group. Groups in the
-                    top-right combine a big payoff with a reliable relationship. Bubble size = companies with
-                    both culture and financial data. This is a descriptive, in-sample relationship &mdash;
-                    it shows association within each peer group, not causation.
+                <h3 style="color: #1e293b; font-size: 1rem; margin: 1.5rem 0 0.4rem 0;">Dimension Weights</h3>
+                <p style="font-weight: 600; color: #1e293b; font-size: 0.85rem; margin-bottom: 1rem;">
+                    Peer group: <span id="weightsPeerLabel" data-testid="text-weights-peer" style="color: #7c3aed;">&mdash;</span>
+                    <span style="font-weight: 400; color: #94a3b8; font-size: 0.78rem;">(follows the top filter when a peer group is selected; click a row above to view another group)</span>
                 </p>
-                <div style="max-width: 720px; margin: 0 auto 1.5rem auto;">
-                    <canvas id="slopeScatter" data-testid="chart-slope-scatter" style="max-height: 340px;"></canvas>
-                </div>
-                <p id="slopeScatterMessage" style="text-align:center; color:#7f8c8d; padding:0.5rem; display:none;"></p>
-                <label for="weightsPeerSelect" style="font-weight: 600; color: #1e293b; font-size: 0.85rem;">Dimension weights for peer group:</label>
-                <select id="weightsPeerSelect" data-testid="select-weights-peer" onchange="renderDimensionWeights(this.value)"
-                        style="padding: 0.4rem 0.6rem; border: 1px solid #cbd5e1; border-radius: 6px; margin: 0 0 1rem 0.5rem;"></select>
                 <div style="overflow-x: auto;">
                     <table id="dimWeightsTable" data-testid="table-dim-weights" style="width: 100%; border-collapse: collapse; font-size: 0.85rem; display: none;">
                         <thead>
@@ -1359,92 +1387,37 @@
                 </div>
                 
                 <div id="analysisContent" style="display: none;">
-                    <!-- Culture Scores Display -->
+                    <!-- Culture Score Display -->
                     <div id="cultureScoresSection" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
-                        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1.25rem;">
-                            <p style="font-size: 0.85rem; font-weight: 500; margin-bottom: 0.5rem; color: #64748b;">Hofstede Score</p>
-                            <p id="hofstedeScoreValue" style="font-size: 1.75rem; font-weight: 700; margin: 0;">--</p>
-                            <p id="hofstedeConfidence" style="font-size: 0.7rem; font-weight: 500; margin-top: 0.25rem; color: #94a3b8;"></p>
-                            <div style="margin-top: 0.75rem; height: 120px; background: #f1f5f9; border-radius: 6px; padding: 0.5rem;">
-                                <canvas id="hofstedeTrendChart"></canvas>
-                            </div>
-                        </div>
-                        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1.25rem;">
-                            <p style="font-size: 0.85rem; font-weight: 500; margin-bottom: 0.5rem; color: #64748b;">MIT Big 9 Score</p>
-                            <p id="mitScoreValue" style="font-size: 1.75rem; font-weight: 700; margin: 0;">--</p>
-                            <p id="mitConfidence" style="font-size: 0.7rem; font-weight: 500; margin-top: 0.25rem; color: #94a3b8;"></p>
-                            <div style="margin-top: 0.75rem; height: 120px; background: #f1f5f9; border-radius: 6px; padding: 0.5rem;">
-                                <canvas id="mitTrendChart"></canvas>
-                            </div>
-                        </div>
-                        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1.25rem;">
-                            <p style="font-size: 0.85rem; font-weight: 500; margin-bottom: 0.5rem; color: #64748b;">Schroders Score</p>
-                            <p id="schrodersScoreValue" style="font-size: 1.75rem; font-weight: 700; margin: 0;">--</p>
+                        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1.25rem; max-width: 320px;">
+                            <p style="font-size: 0.85rem; font-weight: 500; margin-bottom: 0.5rem; color: #64748b;">Culture Score</p>
+                            <p id="schrodersScoreValue" data-testid="text-culture-score" style="font-size: 1.75rem; font-weight: 700; margin: 0;">--</p>
                             <p id="schrodersConfidence" style="font-size: 0.7rem; font-weight: 500; margin-top: 0.25rem; color: #94a3b8;"></p>
-                        </div>
-                        <div id="combinedScoreCard" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1.25rem;">
-                            <p style="font-size: 0.85rem; font-weight: 500; margin-bottom: 0.5rem; color: #64748b;">Combined Score</p>
-                            <p id="combinedScoreValue" style="font-size: 1.75rem; font-weight: 700; margin: 0;">--</p>
-                            <p id="combinedConfidence" style="font-size: 0.7rem; font-weight: 500; margin-top: 0.25rem; color: #94a3b8;"></p>
-                            <div style="margin-top: 0.75rem; height: 120px; background: #f1f5f9; border-radius: 6px; padding: 0.5rem;">
-                                <canvas id="combinedTrendChart"></canvas>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(500px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
-                        <div class="chart-container" style="background: #f8fafc; border: 1px solid #e2e8f0;">
-                            <h3 style="color: #3b82f6; margin-bottom: 0.5rem; font-size: 1.1rem; font-weight: 600;">Hofstede Dimensions</h3>
-                            <p style="color: #64748b; font-size: 0.85rem; margin-bottom: 1rem;">Company score vs industry average. Bar color indicates correlation with performance (green = positive, red = negative).</p>
-                            <canvas id="analysisHofstedeChart" style="max-height: 350px;"></canvas>
-                        </div>
-                        <div class="chart-container" style="background: #f8fafc; border: 1px solid #e2e8f0;">
-                            <h3 style="color: #6366f1; margin-bottom: 0.5rem; font-size: 1.1rem; font-weight: 600;">MIT Big 9 Dimensions</h3>
-                            <p style="color: #64748b; font-size: 0.85rem; margin-bottom: 1rem;">Company score vs industry average. Bar color indicates correlation with performance (green = positive, red = negative).</p>
-                            <canvas id="analysisMitChart" style="max-height: 350px;"></canvas>
                         </div>
                     </div>
 
-                    <div style="margin-bottom: 2rem;">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
                         <div class="chart-container" style="background: #f8fafc; border: 1px solid #e2e8f0;">
-                            <h3 style="color: #8b5cf6; margin-bottom: 0.5rem; font-size: 1.1rem; font-weight: 600;">Schroders Dimensions</h3>
-                            <p style="color: #64748b; font-size: 0.85rem; margin-bottom: 1rem;">Eighteen dimensions scored 0-10 (higher = more of that attribute). Company score vs industry average.</p>
-                            <div style="position: relative; height: 680px;">
+                            <h3 style="color: #8b5cf6; margin-bottom: 0.5rem; font-size: 1.1rem; font-weight: 600;">Culture Dimensions</h3>
+                            <p style="color: #64748b; font-size: 0.85rem; margin-bottom: 1rem;">Dimensions scored 0-10 (higher = more of that attribute). Company score vs industry average.</p>
+                            <div style="position: relative; height: 560px;">
                                 <canvas id="analysisSchrodersChart"></canvas>
                             </div>
                         </div>
+                        <div class="chart-container" style="background: #f8fafc; border: 1px solid #e2e8f0;">
+                            <h3 style="color: #0ea5e9; margin-bottom: 0.5rem; font-size: 1.1rem; font-weight: 600;">Culture Score Over Time</h3>
+                            <p style="color: #64748b; font-size: 0.85rem; margin-bottom: 1rem;">Point-in-time culture score percentile within the company's peer group at each quarter-end, using only reviews posted by that date.</p>
+                            <div style="position: relative; height: 560px;">
+                                <canvas id="analysisPitChart" data-testid="chart-pit-timeseries"></canvas>
+                            </div>
+                            <p id="analysisPitMessage" style="display: none; color: #94a3b8; font-size: 0.85rem; text-align: center; margin-top: 0.5rem;"></p>
+                        </div>
                     </div>
-                    
+
                     <div class="chart-container" style="margin-top: 2rem;">
                         <h3 style="color: #1e293b; margin-bottom: 0.5rem; font-size: 1.1rem; font-weight: 600;">Culture Rating Trend</h3>
                         <p style="color: #64748b; font-size: 0.85rem; margin-bottom: 1rem;">Quarterly overall culture rating for the selected company compared to industry average.</p>
                         <canvas id="analysisTrendChart" style="max-height: 300px;"></canvas>
-                    </div>
-                    
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)); gap: 1.5rem; margin-top: 2rem;">
-                        <div class="chart-container" style="background: #f8fafc; border: 1px solid #e2e8f0;">
-                            <h3 style="color: #3b82f6; margin-bottom: 0.5rem; font-size: 1.1rem; font-weight: 600;">Hofstede: Deviation vs Performance Impact</h3>
-                            <p style="color: #64748b; font-size: 0.85rem; margin-bottom: 1rem;">X-axis: difference from industry avg. Y-axis: correlation with performance. Top-right = outperform in dimensions that matter.</p>
-                            <canvas id="analysisHofstedeScatter" style="max-height: 320px;"></canvas>
-                        </div>
-                        <div class="chart-container" style="background: #f8fafc; border: 1px solid #e2e8f0;">
-                            <h3 style="color: #6366f1; margin-bottom: 0.5rem; font-size: 1.1rem; font-weight: 600;">MIT Big 9: Deviation vs Performance Impact</h3>
-                            <p style="color: #64748b; font-size: 0.85rem; margin-bottom: 1rem;">X-axis: difference from industry avg. Y-axis: correlation with performance. Top-right = outperform in dimensions that matter.</p>
-                            <canvas id="analysisMitScatter" style="max-height: 320px;"></canvas>
-                        </div>
-                    </div>
-                    
-                    <div style="background: #f8fafc; border-radius: 10px; padding: 1.25rem; border: 1px solid #e2e8f0; margin-top: 2rem;">
-                        <h3 style="color: #1e293b; margin-bottom: 0.75rem; font-size: 1rem; font-weight: 600;">Reading This Analysis</h3>
-                        <ul style="color: #64748b; font-size: 0.9rem; margin: 0; padding-left: 1.5rem; line-height: 1.7;">
-                            <li><strong>Culture Scores:</strong> Calculated as the sum of (correlation strength x deviation from industry average) for each dimension. Positive scores indicate culture aligned with performance drivers.</li>
-                            <li>Grouped bars show company score (solid) vs industry average (striped pattern)</li>
-                            <li>Green-tinted dimensions have positive correlation with business performance</li>
-                            <li>Red-tinted dimensions have negative correlation with business performance</li>
-                            <li>The trend chart shows how the company's culture rating compares to the industry over time</li>
-                            <li>Scatter plots show where company differs from average (X) and how important that dimension is (Y)</li>
-                            <li>Top-right quadrant: company excels in dimensions that positively impact performance</li>
-                        </ul>
                     </div>
                 </div>
                 
@@ -1818,7 +1791,8 @@
         // Debug: Version check - look for this in browser console
         console.log('Dashboard version: 2026-02-01-v19-sector');
         
-        let currentGicsLevel = 'sector';
+        let currentGicsLevel = 'peer_group';
+        let gicsPeerGroups = [];
         let currentGicsValue = '';
         let currentSector = '';
         // Company selection shared across all tabs (Company Analysis, Quarterly Trends, Hofstede, MIT)
@@ -1893,6 +1867,7 @@
                         const data = await response.json();
                         if (data.success && data.hierarchy && Object.keys(data.hierarchy).length > 0) {
                             gicsHierarchy = data.hierarchy;
+                            gicsPeerGroups = data.peer_groups || [];
                             populateGicsValues(currentGicsLevel);
                             return true;
                         }
@@ -1913,7 +1888,9 @@
             select.innerHTML = '<option value="">All</option>';
             
             let values = [];
-            if (level === 'sector') {
+            if (level === 'peer_group') {
+                values = gicsPeerGroups.slice();
+            } else if (level === 'sector') {
                 values = Object.keys(gicsHierarchy).sort();
             } else if (level === 'industry') {
                 for (const sector in gicsHierarchy) {
@@ -2022,7 +1999,8 @@
             const headerP = document.querySelector('.header p');
             if (headerP) {
                 if (value) {
-                    const levelLabel = currentGicsLevel === 'sub_industry' ? 'Sub-Industry' : 
+                    const levelLabel = currentGicsLevel === 'sub_industry' ? 'Sub-Industry' :
+                                       currentGicsLevel === 'peer_group' ? 'Peer Group' :
                                        currentGicsLevel.charAt(0).toUpperCase() + currentGicsLevel.slice(1);
                     headerP.textContent = `${value} (${levelLabel}) - Employee Review Analysis`;
                 } else {
@@ -2178,6 +2156,7 @@
                 loadCultureCompanies('mit');
             } else if (tab === 'schroders') {
                 loadCultureCompanies('schroders');
+                populateEvidenceSelect();
             } else if (tab === 'factor') {
                 loadFactorScores();
             } else if (tab === 'sectorComparison') {
@@ -2701,8 +2680,48 @@
 
         let _factorRequestId = 0;
 
+        async function populateEvidenceSelect() {
+            const sel = document.getElementById('evidenceCompanySelect');
+            if (!sel) return;
+            try {
+                if (!_factorScoresData) {
+                    const d = await (await fetch('/api/v2/factor-scores')).json();
+                    if (d.success && d.companies) _factorScoresData = d;
+                }
+                if (!_factorScoresData) return;
+                const current = sel.value;
+                while (sel.options.length > 1) sel.remove(1);
+                _factorScoresData.companies.forEach(c => {
+                    const opt = document.createElement('option');
+                    opt.value = c.company_name;
+                    opt.textContent = c.company_name;
+                    sel.appendChild(opt);
+                });
+                if (current) sel.value = current;
+            } catch (e) {
+                console.error('populateEvidenceSelect error:', e);
+            }
+        }
+
+        function openEvidenceDetail(companyName) {
+            // Switch to the Culture Dimensions tab and show the evidence table for this company
+            const buttons = document.querySelectorAll('.main-tab-button');
+            for (const btn of buttons) {
+                if ((btn.getAttribute('onclick') || '').includes("switchMainTab('schroders'")) {
+                    btn.click();
+                    break;
+                }
+            }
+            populateEvidenceSelect().then(() => {
+                const sel = document.getElementById('evidenceCompanySelect');
+                if (sel) sel.value = companyName;
+                loadEvidenceDetail(companyName);
+                const table = document.getElementById('evidenceTable');
+                if (table) table.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            });
+        }
+
         async function loadFactorScores() {
-            loadCultureReturns();
             const filterKey = currentGicsValue ? (currentGicsLevel + '|' + currentGicsValue) : '';
             if (_factorScoresData && _factorRenderedFilter === filterKey) return;
             const reqId = ++_factorRequestId;
@@ -2755,8 +2774,7 @@
                         tr.setAttribute('data-testid', 'row-factor-' + i);
                         tr.style.cssText = 'border-bottom: 1px solid #e2e8f0; cursor: pointer;';
                         tr.addEventListener('click', () => {
-                            if (sel) sel.value = c.company_name;
-                            loadEvidenceDetail(c.company_name);
+                            openEvidenceDetail(c.company_name);
                         });
                         const z = c.schroders_factor_sector_z;
                         const p = c.schroders_factor_sector_pctile;
@@ -2784,68 +2802,158 @@
         }
 
         let _slopeData = null;
-        let _slopeScatterChart = null;
+        let _sectorCompChart = null;
 
-        function loadSlopeChart() {
-            if (_slopeData) { renderSlopeChart(); return; }
-            fetch('/api/v2/culture-performance-slope')
-                .then(r => r.json())
-                .then(d => {
-                    if (!d.success || !d.groups || !d.groups.length) {
-                        const m = document.getElementById('slopeScatterMessage');
-                        m.textContent = 'No regression data available yet.';
-                        m.style.display = 'block';
-                        return;
-                    }
-                    _slopeData = d.groups;
-                    renderSlopeChart();
-                })
-                .catch(() => {
-                    const m = document.getElementById('slopeScatterMessage');
-                    m.textContent = 'Failed to load regression data.';
-                    m.style.display = 'block';
+        const BUBBLE_MEASURES = {
+            model_r2:   { label: 'Model R² (culture–performance fit)', fmt: v => v.toFixed(2) },
+            n_model:    { label: 'Companies in model', fmt: v => String(Math.round(v)) },
+            slope:      { label: 'Culture payoff (performance per 1 SD culture)', fmt: v => v.toFixed(2) },
+            slope_r2:   { label: 'Payoff regression R²', fmt: v => v.toFixed(2) },
+            n_pairs:    { label: 'Companies with culture + financial data', fmt: v => String(Math.round(v)) },
+            q1_out:     { label: 'Q1 outperformance vs benchmark (5-yr CAGR, % pts)', fmt: v => (v >= 0 ? '+' : '') + v.toFixed(2) },
+            q4_out:     { label: 'Q4 outperformance vs benchmark (5-yr CAGR, % pts)', fmt: v => (v >= 0 ? '+' : '') + v.toFixed(2) },
+            bench_cagr: { label: 'Peer-group benchmark 5-yr CAGR (%)', fmt: v => v.toFixed(2) }
+        };
+
+        function _buildPeerGroupMeasures() {
+            // Merge model-weights meta, slope regression and quartile outperformance per peer group
+            const out = {};
+            if (_modelWeightsData) {
+                _modelWeightsData.forEach(w => {
+                    if (!out[w.peer_bucket]) out[w.peer_bucket] = { peer_bucket: w.peer_bucket };
+                    const g = out[w.peer_bucket];
+                    if (g.model_r2 === undefined && w.model_r2_in_sample != null) g.model_r2 = Number(w.model_r2_in_sample);
+                    if (g.n_model === undefined && w.n_companies_model != null) g.n_model = Number(w.n_companies_model);
+                    g._model_level = w.sector_model_level_used;
                 });
+            }
+            if (_slopeData) {
+                _slopeData.forEach(r => {
+                    if (!out[r.peer_bucket]) out[r.peer_bucket] = { peer_bucket: r.peer_bucket };
+                    out[r.peer_bucket].slope = r.slope;
+                    out[r.peer_bucket].slope_r2 = r.r2;
+                    out[r.peer_bucket].n_pairs = r.n;
+                });
+            }
+            if (_peerOutperfData) {
+                _peerOutperfData.forEach(r => {
+                    if (!out[r.peer_bucket]) out[r.peer_bucket] = { peer_bucket: r.peer_bucket };
+                    out[r.peer_bucket].q1_out = r.q1_outperformance;
+                    out[r.peer_bucket].q4_out = r.q4_outperformance;
+                    out[r.peer_bucket].bench_cagr = r.benchmark_cagr;
+                });
+            }
+            return out;
         }
 
-        function renderSlopeChart() {
-            const canvas = document.getElementById('slopeScatter');
-            if (!canvas || typeof Chart === 'undefined' || !_slopeData) return;
-            if (_slopeScatterChart) { _slopeScatterChart.destroy(); _slopeScatterChart = null; }
+        function _initBubbleSelects() {
+            const xSel = document.getElementById('bubbleXSelect');
+            const ySel = document.getElementById('bubbleYSelect');
+            const sSel = document.getElementById('bubbleSizeSelect');
+            if (!xSel || xSel.options.length) return;
+            Object.keys(BUBBLE_MEASURES).forEach(k => {
+                [xSel, ySel].forEach(sel => {
+                    const o = document.createElement('option');
+                    o.value = k; o.textContent = BUBBLE_MEASURES[k].label;
+                    sel.appendChild(o);
+                });
+            });
+            const none = document.createElement('option');
+            none.value = ''; none.textContent = 'None (same size)';
+            sSel.appendChild(none);
+            Object.keys(BUBBLE_MEASURES).forEach(k => {
+                const o = document.createElement('option');
+                o.value = k; o.textContent = BUBBLE_MEASURES[k].label;
+                sSel.appendChild(o);
+            });
+            xSel.value = 'model_r2';
+            ySel.value = 'q1_out';
+            sSel.value = 'n_model';
+        }
+
+        function updateSectorCompFilterLabel() {
+            const el = document.getElementById('sectorCompFilterLabel');
+            if (!el) return;
+            if (!currentGicsValue) { el.textContent = 'All companies'; return; }
+            const levelNames = { peer_group: 'Peer group', sector: 'Sector', industry: 'Industry', sub_industry: 'Sub-industry' };
+            el.textContent = (levelNames[currentGicsLevel] || currentGicsLevel) + ': ' + currentGicsValue;
+        }
+
+        function renderSectorCompBubble() {
+            const canvas = document.getElementById('sectorCompBubble');
+            const msg = document.getElementById('sectorCompBubbleMessage');
+            if (!canvas || typeof Chart === 'undefined') return;
+            _initBubbleSelects();
+            updateSectorCompFilterLabel();
+            const xKey = (document.getElementById('bubbleXSelect') || {}).value || 'model_r2';
+            const yKey = (document.getElementById('bubbleYSelect') || {}).value || 'q1_out';
+            const sKey = (document.getElementById('bubbleSizeSelect') || {}).value || '';
+            const measures = _buildPeerGroupMeasures();
             const amMode = window._extractionGroup === 'asset_managers';
-            const pts = _slopeData.filter(g => {
+            const rows = Object.values(measures).filter(g => {
                 const isAM = g.peer_bucket === 'Asset Management/Other';
-                return amMode ? isAM : !isAM;
-            }).map(g => ({
-                x: g.r2,
-                y: g.slope,
-                r: Math.max(6, Math.min(28, 4 + Math.sqrt(g.n || 1) * 1.6)),
+                if (amMode ? !isAM : isAM) return false;
+                if (g.peer_bucket === 'global') return false;
+                return g[xKey] !== null && g[xKey] !== undefined &&
+                       g[yKey] !== null && g[yKey] !== undefined &&
+                       (!sKey || (g[sKey] !== null && g[sKey] !== undefined));
+            });
+            if (_sectorCompChart) { _sectorCompChart.destroy(); _sectorCompChart = null; }
+            if (!rows.length) {
+                if (msg) { msg.textContent = 'No peer groups have data for this combination of measures yet.'; msg.style.display = 'block'; }
+                return;
+            }
+            if (msg) msg.style.display = 'none';
+            let sMin = 0, sMax = 1;
+            if (sKey) {
+                const vals = rows.map(g => g[sKey]);
+                sMin = Math.min(...vals); sMax = Math.max(...vals);
+            }
+            const pts = rows.map(g => ({
+                x: g[xKey],
+                y: g[yKey],
+                r: sKey && sMax > sMin ? 6 + 20 * ((g[sKey] - sMin) / (sMax - sMin)) : 10,
                 label: g.peer_bucket,
-                n: g.n
+                sizeVal: sKey ? g[sKey] : null
             }));
-            _slopeScatterChart = new Chart(canvas.getContext('2d'), {
+            _sectorCompChart = new Chart(canvas.getContext('2d'), {
                 type: 'bubble',
                 data: { datasets: [{
                     data: pts,
-                    backgroundColor: 'rgba(16, 185, 129, 0.35)',
-                    borderColor: 'rgba(5, 150, 105, 0.9)',
-                    borderWidth: 1
+                    backgroundColor: 'rgba(37, 99, 235, 0.35)',
+                    borderColor: 'rgba(37, 99, 235, 0.9)',
+                    borderWidth: 1.5
                 }] },
                 options: {
                     responsive: true,
                     plugins: {
                         legend: { display: false },
-                        title: { display: true, text: 'Culture payoff (regression coefficient) vs strength (R²) by peer group' },
                         tooltip: { callbacks: { label: ctx => {
                             const p = ctx.raw;
-                            return p.label + ': payoff ' + p.y.toFixed(2) + ' per 1 SD culture, R² ' + p.x.toFixed(2) + ', ' + p.n + ' companies';
+                            const parts = [p.label,
+                                BUBBLE_MEASURES[xKey].label + ': ' + BUBBLE_MEASURES[xKey].fmt(p.x),
+                                BUBBLE_MEASURES[yKey].label + ': ' + BUBBLE_MEASURES[yKey].fmt(p.y)];
+                            if (sKey && p.sizeVal != null) parts.push(BUBBLE_MEASURES[sKey].label + ': ' + BUBBLE_MEASURES[sKey].fmt(p.sizeVal));
+                            return parts;
                         } } }
                     },
                     scales: {
-                        x: { title: { display: true, text: 'R² (strength of culture–performance relationship)' }, min: 0 },
-                        y: { title: { display: true, text: 'Coefficient (performance improvement per 1 SD of culture)' } }
+                        x: { title: { display: true, text: BUBBLE_MEASURES[xKey].label } },
+                        y: { title: { display: true, text: BUBBLE_MEASURES[yKey].label } }
                     }
                 }
             });
+        }
+
+        function loadSlopeChart() {
+            const done = () => renderSectorCompBubble();
+            const p1 = _slopeData ? Promise.resolve() :
+                fetch('/api/v2/culture-performance-slope').then(r => r.json())
+                    .then(d => { if (d.success && d.groups) _slopeData = d.groups; }).catch(() => {});
+            const p2 = _peerOutperfData ? Promise.resolve() :
+                fetch('/api/v2/peer-group-outperformance').then(r => r.json())
+                    .then(d => { if (d.success && d.groups) _peerOutperfData = d.groups; }).catch(() => {});
+            Promise.all([p1, p2]).then(done);
         }
 
         let _backtestChart = null;
@@ -2857,11 +2965,9 @@
             const period = document.getElementById('backtestPeriod');
             loading.style.display = 'block';
             msg.style.display = 'none';
-            let url = '/api/v2/backtest';
-            if (currentGicsValue) {
-                url += `?gics_level=${encodeURIComponent(currentGicsLevel)}&gics_value=${encodeURIComponent(currentGicsValue)}`;
-            }
-            fetch(url)
+            // Backtest is always run on the full universe (ignores the top filter)
+            loadPeerOutperformance();
+            fetch('/api/v2/backtest')
                 .then(r => r.json())
                 .then(d => {
                     loading.style.display = 'none';
@@ -2945,6 +3051,74 @@
                 `Portfolios formed quarterly from ${d.first_snapshot} to ${d.last_snapshot} (${d.n_snapshots} quarters).`;
         }
 
+        let _peerOutperfData = null;
+        let _peerOutperfChart = null;
+
+        function loadPeerOutperformance() {
+            if (_peerOutperfData) { renderPeerOutperformance(); return; }
+            fetch('/api/v2/peer-group-outperformance')
+                .then(r => r.json())
+                .then(d => {
+                    const m = document.getElementById('peerOutperfMessage');
+                    if (!d.success || !d.available || !d.groups || !d.groups.length) {
+                        if (m) { m.textContent = d.message || 'Not enough backtest data for per-peer-group results.'; m.style.display = 'block'; }
+                        return;
+                    }
+                    if (m) m.style.display = 'none';
+                    _peerOutperfData = d.groups;
+                    renderPeerOutperformance();
+                })
+                .catch(() => {
+                    const m = document.getElementById('peerOutperfMessage');
+                    if (m) { m.textContent = 'Failed to load peer-group outperformance.'; m.style.display = 'block'; }
+                });
+        }
+
+        function renderPeerOutperformance() {
+            if (!_peerOutperfData) return;
+            const canvas = document.getElementById('peerOutperfChart');
+            if (!canvas || typeof Chart === 'undefined') return;
+            const q = (document.getElementById('peerOutperfQuartile') || { value: '1' }).value;
+            const key = 'q' + q + '_outperformance';
+            const rows = _peerOutperfData
+                .filter(g => g[key] !== null && g[key] !== undefined)
+                .slice()
+                .sort((a, b) => b[key] - a[key]);
+            if (_peerOutperfChart) { _peerOutperfChart.destroy(); _peerOutperfChart = null; }
+            canvas.parentElement.style.height = Math.max(220, rows.length * 26 + 80) + 'px';
+            _peerOutperfChart = new Chart(canvas.getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: rows.map(g => g.peer_bucket),
+                    datasets: [{
+                        label: 'Q' + q + ' outperformance vs peer-group benchmark (5-yr CAGR, % pts)',
+                        data: rows.map(g => g[key]),
+                        backgroundColor: rows.map(g => g[key] >= 0 ? 'rgba(22, 163, 74, 0.65)' : 'rgba(220, 38, 38, 0.65)'),
+                        borderColor: rows.map(g => g[key] >= 0 ? 'rgba(22, 163, 74, 1)' : 'rgba(220, 38, 38, 1)'),
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: { callbacks: { label: ctx => {
+                            const g = rows[ctx.dataIndex];
+                            return ['Q' + q + ' outperformance: ' + (g[key] >= 0 ? '+' : '') + g[key].toFixed(2) + '% pts / yr',
+                                    'Q' + q + ' CAGR: ' + g['q' + q + '_cagr'].toFixed(2) + '%, benchmark: ' + g.benchmark_cagr.toFixed(2) + '%',
+                                    'Avg companies/quarter: ' + g.avg_companies + ', quarters used: ' + g.n_quarters];
+                        } } }
+                    },
+                    scales: {
+                        x: { title: { display: true, text: 'Annualized outperformance vs peer-group benchmark (% points)' } },
+                        y: { ticks: { font: { size: 10 }, autoSkip: false } }
+                    }
+                }
+            });
+        }
+
         function loadModelFit() {
             loadSlopeChart();
             const msg = document.getElementById('modelFitMessage');
@@ -2972,7 +3146,6 @@
             return m.sector_model_level_used || '';
         }
 
-        let _modelFitScatterChart = null;
 
         function renderModelFit() {
             if (!_modelWeightsData) return;
@@ -3002,8 +3175,9 @@
                 const tr = document.createElement('tr');
                 tr.style.cssText = 'border-bottom: 1px solid #e2e8f0; cursor: pointer;';
                 tr.addEventListener('click', () => {
-                    const sel = document.getElementById('weightsPeerSelect');
-                    if (sel) { sel.value = g; renderDimensionWeights(g); }
+                    const lbl = document.getElementById('weightsPeerLabel');
+                    if (lbl) lbl.textContent = g;
+                    renderDimensionWeights(g);
                 });
                 tr.appendChild(_td(g, 'font-weight: 600;'));
                 tr.appendChild(_td(_modelLabel(m)));
@@ -3014,115 +3188,23 @@
             });
             const foot = document.getElementById('modelFitFootnote');
             if (foot) foot.style.display = anyFallback ? 'block' : 'none';
-            // Peer-group selector for dimension weights
-            const sel = document.getElementById('weightsPeerSelect');
-            if (sel) {
-                sel.textContent = '';
-                names.forEach(g => {
-                    const opt = document.createElement('option');
-                    opt.value = g;
-                    opt.textContent = g;
-                    sel.appendChild(opt);
-                });
-                if (sel.options.length) renderDimensionWeights(sel.value);
-                else document.getElementById('dimWeightsTable').style.display = 'none';
+            // Dimension weights: follow the top filter when a peer group is selected there
+            let weightsGroup = null;
+            if (currentGicsLevel === 'peer_group' && currentGicsValue && groups[currentGicsValue]) {
+                weightsGroup = currentGicsValue;
+            } else if (names.length) {
+                weightsGroup = names[0];
             }
-            // Bubble chart: model fit per peer group (bubble size = companies in model)
-            const canvas = document.getElementById('modelFitScatter');
-            if (canvas && typeof Chart !== 'undefined') {
-                if (_modelFitScatterChart) { _modelFitScatterChart.destroy(); _modelFitScatterChart = null; }
-                const pts = names.filter(g => !_modelLabel(groups[g].meta).endsWith('*')).map(g => {
-                    const m = groups[g].meta;
-                    return {
-                        x: m.n_companies_model == null ? 0 : Number(m.n_companies_model),
-                        y: m.model_r2_in_sample == null ? 0 : Number(m.model_r2_in_sample),
-                        r: Math.max(6, Math.min(28, 4 + Math.sqrt(m.n_companies_model || 1) * 1.6)),
-                        label: g,
-                        n: m.n_companies_model
-                    };
-                });
-                _modelFitScatterChart = new Chart(canvas.getContext('2d'), {
-                    type: 'bubble',
-                    data: { datasets: [{
-                        data: pts,
-                        backgroundColor: 'rgba(37, 99, 235, 0.35)',
-                        borderColor: 'rgba(37, 99, 235, 0.9)',
-                        borderWidth: 1.5
-                    }] },
-                    options: {
-                        responsive: true,
-                        plugins: {
-                            legend: { display: false },
-                            title: { display: true, text: 'Model fit by peer group — group-specific models only (bubble size = companies in model)' },
-                            tooltip: { callbacks: { label: ctx => {
-                                const p = ctx.raw;
-                                return p.label + ': R² ' + p.y.toFixed(2) + ', ' + p.n + ' companies';
-                            } } }
-                        },
-                        scales: {
-                            x: { title: { display: true, text: 'Companies in model' } },
-                            y: { title: { display: true, text: 'R² (culture–performance fit)' } }
-                        }
-                    }
-                });
+            const lbl = document.getElementById('weightsPeerLabel');
+            if (weightsGroup) {
+                if (lbl) lbl.textContent = weightsGroup;
+                renderDimensionWeights(weightsGroup);
+            } else {
+                if (lbl) lbl.textContent = '\u2014';
+                document.getElementById('dimWeightsTable').style.display = 'none';
             }
-        }
-
-        let _cultureReturnsChart = null;
-        let _cultureReturnsRequestId = 0;
-
-        function loadCultureReturns() {
-            const msg = document.getElementById('cultureReturnsMessage');
-            if (!msg) return;
-            const reqId = ++_cultureReturnsRequestId;
-            msg.style.display = 'block';
-            msg.textContent = 'Loading performance comparison…';
-            const params = getSectorParam();
-            fetch('/api/v2/culture-performance-groups' + (params ? '?' + params : ''))
-                .then(r => r.json())
-                .then(d => {
-                    if (reqId !== _cultureReturnsRequestId) return;
-                    if (!d.success || !d.groups) {
-                        msg.textContent = 'No performance comparison available.';
-                        return;
-                    }
-                    if (!d.companies_with_prices) {
-                        if (_cultureReturnsChart) { _cultureReturnsChart.destroy(); _cultureReturnsChart = null; }
-                        msg.textContent = 'No listed companies with price history in the current filter.';
-                        return;
-                    }
-                    msg.style.display = 'none';
-                    const horizons = ['1', '3', '5'];
-                    const labels = ['1 year', '3 years', '5 years'];
-                    const colors = { 'Top third': '#16a34a', 'Middle third': '#94a3b8', 'Bottom third': '#dc2626' };
-                    const datasets = d.groups.map(g => ({
-                        label: g.group + ' by Culture Factor',
-                        data: horizons.map(h => g.horizons[h] && g.horizons[h].avg_return != null ? g.horizons[h].avg_return : null),
-                        backgroundColor: colors[g.group] || '#64748b',
-                        _counts: horizons.map(h => g.horizons[h] ? g.horizons[h].n : 0)
-                    }));
-                    const canvas = document.getElementById('cultureReturnsChart');
-                    if (_cultureReturnsChart) { _cultureReturnsChart.destroy(); _cultureReturnsChart = null; }
-                    _cultureReturnsChart = new Chart(canvas.getContext('2d'), {
-                        type: 'bar',
-                        data: { labels: labels, datasets: datasets },
-                        options: {
-                            responsive: true,
-                            plugins: {
-                                tooltip: { callbacks: { label: ctx => {
-                                    const n = ctx.dataset._counts[ctx.dataIndex];
-                                    return ctx.dataset.label + ': ' + (ctx.raw == null ? 'n/a' : ctx.raw.toFixed(1) + '% p.a.') + ' (' + n + ' companies)';
-                                } } }
-                            },
-                            scales: {
-                                y: { title: { display: true, text: 'Avg annualized share-price return (%)' } }
-                            }
-                        }
-                    });
-                })
-                .catch(() => {
-                    if (reqId === _cultureReturnsRequestId) msg.textContent = 'Failed to load performance comparison.';
-                });
+            // Configurable bubble chart at the top of the page
+            renderSectorCompBubble();
         }
 
         function renderDimensionWeights(peerBucket) {
@@ -3137,16 +3219,16 @@
                     const info = SCHRODERS_V2_DIM_INFO[w.dimension] || {};
                     const name = info.title || info.name || w.dimension;
                     const wt = w.dimension_weight_final;
-                    const dir = wt == null ? '—'
-                        : wt >= 0 ? ('Higher "' + (info.right_label || 'right pole') + '" → better performance')
-                                  : ('Higher "' + (info.left_label || 'left pole') + '" → better performance');
+                    const dir = wt == null ? '\u2014'
+                        : wt >= 0 ? ('Higher "' + (info.right_label || 'right pole') + '" \u2192 better performance')
+                                  : ('Higher "' + (info.left_label || 'left pole') + '" \u2192 better performance');
                     const tr = document.createElement('tr');
                     tr.style.cssText = 'border-bottom: 1px solid #e2e8f0;';
                     tr.appendChild(_td(name, 'font-weight: 600;'));
-                    tr.appendChild(_td(wt == null ? '—' : (wt >= 0 ? '+' : '') + Number(wt).toFixed(3),
+                    tr.appendChild(_td(wt == null ? '\u2014' : (wt >= 0 ? '+' : '') + Number(wt).toFixed(3),
                         'text-align: right; font-weight: 600; color: ' + (wt >= 0 ? '#2563eb' : '#7c3aed') + ';'));
                     tr.appendChild(_td(dir, 'color: #64748b;'));
-                    tr.appendChild(_td(w.coefficient_stability_sd == null ? '—' : '±' + Number(w.coefficient_stability_sd).toFixed(3), 'text-align: right; color: #64748b;'));
+                    tr.appendChild(_td(w.coefficient_stability_sd == null ? '\u2014' : '\u00b1' + Number(w.coefficient_stability_sd).toFixed(3), 'text-align: right; color: #64748b;'));
                     body.appendChild(tr);
                 });
             table.style.display = 'table';
@@ -4197,10 +4279,34 @@
             });
         }
         
+        function openCompanyAnalysis(name) {
+            _selectedCompany = name;
+            const buttons = document.querySelectorAll('.main-tab-button');
+            for (const btn of buttons) {
+                if ((btn.getAttribute('onclick') || '').includes("switchMainTab('analysis'")) {
+                    btn.click();
+                    break;
+                }
+            }
+            // If the company dropdown is already populated, preselect and load directly
+            const select = document.getElementById('analysisCompany');
+            if (select) {
+                for (let opt of select.options) {
+                    if (opt.value === name) {
+                        if (select.value !== name) {
+                            select.value = name;
+                        }
+                        loadCompanyAnalysis();
+                        break;
+                    }
+                }
+            }
+        }
+
         function createCompanyList(companies) {
             const html = companies.map(c => `
                 <div class="company-item">
-                    <div class="company-name">${c.name || c.company_name}</div>
+                    <div class="company-name"><a href="#" onclick="openCompanyAnalysis('${(c.name || c.company_name).replace(/'/g, "\\'")}'); return false;" data-testid="link-company-${(c.name || c.company_name)}" style="color: #2563eb; text-decoration: none;">${c.name || c.company_name}</a></div>
                     <div class="company-stats">
                         <span>${(c.count || c.total_reviews || 0).toLocaleString()} reviews</span>
                         <span>${(parseFloat(c.avg_rating || c.overall_rating) || 0).toFixed(2)} / 5.0</span>
@@ -5280,12 +5386,8 @@
         // ============================================================================
         
         let analysisCompaniesLoaded = false;
-        window.analysisHofstedeChart = null;
-        window.analysisMitChart = null;
         window.analysisSchrodersChart = null;
         window.analysisTrendChart = null;
-        window.analysisHofstedeScatter = null;
-        window.analysisMitScatter = null;
         
         async function loadAnalysisCompanies() {
             if (analysisCompaniesLoaded) return;
@@ -5337,15 +5439,15 @@
             document.getElementById('analysisContent').style.display = 'none';
             
             try {
-                const [analysisResponse, trendResponse, scoreTrendResponse] = await Promise.all([
+                const [analysisResponse, trendResponse, pitResponse] = await Promise.all([
                     fetch(buildUrl('/api/company-analysis/' + encodeURIComponent(companyName))),
                     fetch(buildUrl('/api/company-culture-trend/' + encodeURIComponent(companyName))),
-                    fetch('/api/company-culture-score-trend/' + encodeURIComponent(companyName))
+                    fetch('/api/v2/backtest-company/' + encodeURIComponent(companyName))
                 ]);
                 
                 const analysisData = await safeJson(analysisResponse);
                 const trendData = await safeJson(trendResponse);
-                const scoreTrendData = await safeJson(scoreTrendResponse);
+                const pitData = await safeJson(pitResponse);
                 
                 if (!analysisData.success) {
                     document.getElementById('analysisLoading').textContent = 'Error loading company data';
@@ -5353,7 +5455,7 @@
                 }
                 
                 renderAnalysisCharts(analysisData, trendData);
-                renderCultureScoreTrends(scoreTrendData);
+                renderPitTimeseries(pitData);
                 
                 document.getElementById('analysisLoading').style.display = 'none';
                 document.getElementById('analysisContent').style.display = 'block';
@@ -5365,250 +5467,19 @@
         }
         
         function renderAnalysisCharts(analysisData, trendData) {
-            // Update culture scores display
+            // Culture score card (Schroders framework score, displayed as "Culture Score")
             if (analysisData.culture_scores) {
-                const hofScore = analysisData.culture_scores.hofstede || 0;
-                const mitScore = analysisData.culture_scores.mit || 0;
-                const combinedScore = analysisData.culture_scores.combined || 0;
-                
-                // Get confidence scores
-                const hofConf = analysisData.culture_scores.hofstede_confidence || 0;
-                const mitConf = analysisData.culture_scores.mit_confidence || 0;
-                const combinedConf = analysisData.culture_scores.combined_confidence || 0;
-                
-                // Format scores with + sign for positive
                 const formatScore = (score) => (score >= 0 ? '+' : '') + score.toFixed(2);
-                
-                // Helper to get color based on score value (green for positive, red for negative)
                 const getScoreColor = (score) => score >= 0 ? '#10b981' : '#ef4444';
-                
-                // Set score values with performance-based coloring
-                const hofstedeEl = document.getElementById('hofstedeScoreValue');
-                hofstedeEl.textContent = formatScore(hofScore);
-                hofstedeEl.style.color = getScoreColor(hofScore);
-                
-                const mitEl = document.getElementById('mitScoreValue');
-                mitEl.textContent = formatScore(mitScore);
-                mitEl.style.color = getScoreColor(mitScore);
-                
-                const combinedEl = document.getElementById('combinedScoreValue');
-                combinedEl.textContent = formatScore(combinedScore);
-                combinedEl.style.color = getScoreColor(combinedScore);
-                
                 const schrodersScore = analysisData.culture_scores.schroders || 0;
                 const schrodersConf = analysisData.culture_scores.schroders_confidence || 0;
                 const schrodersEl = document.getElementById('schrodersScoreValue');
                 schrodersEl.textContent = formatScore(schrodersScore);
                 schrodersEl.style.color = getScoreColor(schrodersScore);
-                
-                // Display confidence scores
-                document.getElementById('hofstedeConfidence').textContent = '(' + Math.round(hofConf) + '% confidence)';
-                document.getElementById('mitConfidence').textContent = '(' + Math.round(mitConf) + '% confidence)';
                 document.getElementById('schrodersConfidence').textContent = '(' + Math.round(schrodersConf) + '% confidence)';
-                document.getElementById('combinedConfidence').textContent = '(' + Math.round(combinedConf) + '% confidence)';
             }
-            
-            const formatDimension = (dim) => {
-                const names = {
-                    'process_results': 'Process vs Results',
-                    'job_employee': 'Job vs Employee',
-                    'professional_parochial': 'Professional vs Parochial',
-                    'open_closed': 'Open vs Closed',
-                    'tight_loose': 'Tight vs Loose',
-                    'pragmatic_normative': 'Pragmatic vs Normative',
-                    'agility': 'Agility',
-                    'collaboration': 'Collaboration',
-                    'customer_orientation': 'Customer Orientation',
-                    'diversity': 'Diversity',
-                    'execution': 'Execution',
-                    'innovation': 'Innovation',
-                    'integrity': 'Integrity',
-                    'performance': 'Performance',
-                    'respect': 'Respect'
-                };
-                return names[dim] || dim;
-            };
-            
-            // Hofstede Chart - Grouped bar with correlation-based colors
-            const hofstedeDims = Object.keys(analysisData.company.hofstede);
-            const hofstedeCompanyVals = hofstedeDims.map(d => analysisData.company.hofstede[d] || 0);
-            const hofstedeIndustryVals = hofstedeDims.map(d => analysisData.industry_average.hofstede[d] || 0);
-            const hofstedeCorrelations = hofstedeDims.map(d => analysisData.correlations.hofstede[d] || 0);
-            
-            // Hofstede pole labels: left pole (-1) and right pole (+1) for each dimension
-            const hofstedePoles = {
-                'process_results': { left: 'Process', right: 'Results' },
-                'job_employee': { left: 'Job', right: 'Employee' },
-                'professional_parochial': { left: 'Professional', right: 'Parochial' },
-                'open_closed': { left: 'Open', right: 'Closed' },
-                'tight_loose': { left: 'Tight', right: 'Loose' },
-                'pragmatic_normative': { left: 'Pragmatic', right: 'Normative' }
-            };
-            
-            const hofstedeCtx = document.getElementById('analysisHofstedeChart').getContext('2d');
-            if (window.analysisHofstedeChart) window.analysisHofstedeChart.destroy();
-            
-            window.analysisHofstedeChart = new Chart(hofstedeCtx, {
-                type: 'bar',
-                data: {
-                    labels: hofstedeDims.map(formatDimension),
-                    datasets: [
-                        {
-                            label: analysisData.company_name,
-                            data: hofstedeCompanyVals,
-                            backgroundColor: hofstedeCorrelations.map(c => getCorrelationColor(c, 0.8)),
-                            borderColor: hofstedeCorrelations.map(c => getCorrelationColor(c, 1)),
-                            borderWidth: 1
-                        },
-                        {
-                            label: 'Industry Average',
-                            data: hofstedeIndustryVals,
-                            backgroundColor: 'rgba(148, 163, 184, 0.5)',
-                            borderColor: 'rgba(148, 163, 184, 1)',
-                            borderWidth: 1,
-                            borderDash: [5, 5]
-                        }
-                    ]
-                },
-                options: {
-                    indexAxis: 'y',
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { position: 'top' },
-                        tooltip: {
-                            callbacks: {
-                                afterLabel: function(context) {
-                                    if (context.datasetIndex === 0) {
-                                        const corr = hofstedeCorrelations[context.dataIndex];
-                                        return 'Performance correlation: ' + (corr >= 0 ? '+' : '') + corr.toFixed(2);
-                                    }
-                                    return '';
-                                }
-                            }
-                        }
-                    },
-                    scales: {
-                        x: { 
-                            min: -1, 
-                            max: 1,
-                            title: { 
-                                display: true, 
-                                text: 'Score (-1 to +1)',
-                                padding: { top: 10 }
-                            },
-                            ticks: {
-                                callback: function(value) {
-                                    if (value === -1) return '';
-                                    if (value === 1) return '';
-                                    return value;
-                                }
-                            }
-                        },
-                        y: { grid: { display: false } }
-                    }
-                },
-                plugins: [{
-                    id: 'poleLabels',
-                    afterDraw: function(chart) {
-                        const ctx = chart.ctx;
-                        const xAxis = chart.scales.x;
-                        const yAxis = chart.scales.y;
-                        
-                        ctx.save();
-                        ctx.font = '11px Inter, sans-serif';
-                        ctx.fillStyle = '#64748b';
-                        
-                        // Draw left pole labels at x = -1 position
-                        const leftX = xAxis.getPixelForValue(-0.95);
-                        // Draw right pole labels at x = +1 position
-                        const rightX = xAxis.getPixelForValue(0.95);
-                        
-                        hofstedeDims.forEach((dim, index) => {
-                            const poles = hofstedePoles[dim];
-                            if (poles) {
-                                const y = yAxis.getPixelForValue(index);
-                                
-                                // Left pole label
-                                ctx.textAlign = 'left';
-                                ctx.fillText(poles.left, leftX, y + 4);
-                                
-                                // Right pole label
-                                ctx.textAlign = 'right';
-                                ctx.fillText(poles.right, rightX, y + 4);
-                            }
-                        });
-                        
-                        ctx.restore();
-                    }
-                }]
-            });
-            
-            // MIT Chart - Grouped bar with correlation-based colors
-            const mitDims = Object.keys(analysisData.company.mit);
-            // Sector-relative normalized values (best in sector = 10); just guard > 10
-            function scaleMitVal(raw) {
-                return raw > 10 ? raw / 10 : raw;
-            }
-            const mitCompanyVals = mitDims.map(d => scaleMitVal(analysisData.company.mit[d] || 0));
-            const mitIndustryVals = mitDims.map(d => scaleMitVal(analysisData.industry_average.mit[d] || 0));
-            const mitCorrelations = mitDims.map(d => analysisData.correlations.mit[d] || 0);
-            
-            const mitCtx = document.getElementById('analysisMitChart').getContext('2d');
-            if (window.analysisMitChart) window.analysisMitChart.destroy();
-            
-            window.analysisMitChart = new Chart(mitCtx, {
-                type: 'bar',
-                data: {
-                    labels: mitDims.map(formatDimension),
-                    datasets: [
-                        {
-                            label: analysisData.company_name,
-                            data: mitCompanyVals,
-                            backgroundColor: mitCorrelations.map(c => getCorrelationColor(c, 0.8)),
-                            borderColor: mitCorrelations.map(c => getCorrelationColor(c, 1)),
-                            borderWidth: 1
-                        },
-                        {
-                            label: 'Industry Average',
-                            data: mitIndustryVals,
-                            backgroundColor: 'rgba(148, 163, 184, 0.5)',
-                            borderColor: 'rgba(148, 163, 184, 1)',
-                            borderWidth: 1,
-                            borderDash: [5, 5]
-                        }
-                    ]
-                },
-                options: {
-                    indexAxis: 'y',
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { position: 'top' },
-                        tooltip: {
-                            callbacks: {
-                                afterLabel: function(context) {
-                                    if (context.datasetIndex === 0) {
-                                        const corr = mitCorrelations[context.dataIndex];
-                                        return 'Performance correlation: ' + (corr >= 0 ? '+' : '') + corr.toFixed(2);
-                                    }
-                                    return '';
-                                }
-                            }
-                        }
-                    },
-                    scales: {
-                        x: { 
-                            min: 0, 
-                            max: 10,
-                            title: { display: true, text: 'Score (0 to 10)' }
-                        },
-                        y: { grid: { display: false } }
-                    }
-                }
-            });
-            
-            // Schroders Chart - horizontal bars (0-10), higher = more of that attribute
+
+            // Culture Dimensions chart - horizontal bars (0-10), higher = more of that attribute
             const schrodersCanvas = document.getElementById('analysisSchrodersChart');
             if (schrodersCanvas && analysisData.company.schroders) {
                 const schrodersDimsAll = Object.keys(analysisData.company.schroders);
@@ -5623,10 +5494,10 @@
                     return (v !== null && v !== undefined) ? schrodersToTen(v) : 0;
                 });
                 const schrodersCorrelations = schrodersDims.map(d => (analysisData.correlations.schroders || {})[d] || 0);
-                
+
                 const schrodersCtx = schrodersCanvas.getContext('2d');
-                if (window.analysisSchrodersChart) window.analysisSchrodersChart.destroy();
-                
+                if (window.analysisSchrodersChart && typeof window.analysisSchrodersChart.destroy === 'function') window.analysisSchrodersChart.destroy();
+
                 window.analysisSchrodersChart = new Chart(schrodersCtx, {
                     type: 'bar',
                     data: {
@@ -5678,13 +5549,12 @@
                     }
                 });
             }
-            
+
             // Trend Chart - Line chart for culture rating over time
             if (trendData && trendData.success) {
                 const companyTrend = trendData.company_trend || [];
                 const industryTrend = trendData.industry_trend || [];
-                
-                // Merge periods and sort
+
                 const allPeriods = new Set([
                     ...companyTrend.map(t => t.period),
                     ...industryTrend.map(t => t.period)
@@ -5694,7 +5564,7 @@
                     const [qb, yb] = b.replace('Q', '').split(' ');
                     return (parseInt(ya) * 4 + parseInt(qa)) - (parseInt(yb) * 4 + parseInt(qb));
                 });
-                
+
                 const companyData = sortedPeriods.map(p => {
                     const point = companyTrend.find(t => t.period === p);
                     return point ? point.rating : null;
@@ -5703,10 +5573,10 @@
                     const point = industryTrend.find(t => t.period === p);
                     return point ? point.rating : null;
                 });
-                
+
                 const trendCtx = document.getElementById('analysisTrendChart').getContext('2d');
-                if (window.analysisTrendChart) window.analysisTrendChart.destroy();
-                
+                if (window.analysisTrendChart && typeof window.analysisTrendChart.destroy === 'function') window.analysisTrendChart.destroy();
+
                 window.analysisTrendChart = new Chart(trendCtx, {
                     type: 'line',
                     data: {
@@ -5752,360 +5622,79 @@
                     }
                 });
             }
-            
-            // ========== SCATTER PLOTS: Deviation vs Performance Impact ==========
-            const hofstedeCorrelationsMap = analysisData.correlations?.hofstede || {};
-            const mitCorrelationsMap = analysisData.correlations?.mit || {};
-            
-            // Hofstede dimension labels for display
-            const hofstedeDimLabels = {
-                'process_results': 'Process vs Results',
-                'job_employee': 'Job vs Employee',
-                'professional_parochial': 'Professional vs Parochial',
-                'open_closed': 'Open vs Closed',
-                'tight_loose': 'Tight vs Loose',
-                'pragmatic_normative': 'Pragmatic vs Normative'
-            };
-            
-            // MIT dimension labels for display
-            const mitDimLabels = {
-                'agility': 'Agility',
-                'collaboration': 'Collaboration',
-                'customer_orientation': 'Customer Orient.',
-                'diversity': 'Diversity',
-                'execution': 'Execution',
-                'innovation': 'Innovation',
-                'integrity': 'Integrity',
-                'performance': 'Performance',
-                'respect': 'Respect'
-            };
-            
-            // Prepare Hofstede scatter data
-            const hofstedeScatterData = Object.keys(hofstedeDimLabels).map(dim => {
-                const companyVal = analysisData.company?.hofstede?.[dim] || 0;
-                const industryVal = analysisData.industry_average?.hofstede?.[dim] || 0;
-                const deviation = companyVal - industryVal;
-                const correlation = hofstedeCorrelationsMap[dim] || 0;
-                return {
-                    x: deviation,
-                    y: correlation,
-                    label: hofstedeDimLabels[dim]
-                };
-            });
-            
-            // Prepare MIT scatter data
-            const mitScatterData = Object.keys(mitDimLabels).map(dim => {
-                const companyVal = analysisData.company?.mit?.[dim] || 0;
-                const industryVal = analysisData.industry_average?.mit?.[dim] || 0;
-                const deviation = companyVal - industryVal;
-                const correlation = mitCorrelationsMap[dim] || 0;
-                return {
-                    x: deviation,
-                    y: correlation,
-                    label: mitDimLabels[dim]
-                };
-            });
-            
-            // Render Hofstede Scatter Plot
-            const hofstedeScatterCtx = document.getElementById('analysisHofstedeScatter').getContext('2d');
-            if (window.analysisHofstedeScatter) window.analysisHofstedeScatter.destroy();
-            
-            window.analysisHofstedeScatter = new Chart(hofstedeScatterCtx, {
-                type: 'scatter',
-                data: {
-                    datasets: [{
-                        label: 'Hofstede Dimensions',
-                        data: hofstedeScatterData,
-                        backgroundColor: hofstedeScatterData.map(d => 
-                            d.x >= 0 && d.y >= 0 ? 'rgba(34, 197, 94, 0.7)' :  // Top-right: green
-                            d.x < 0 && d.y >= 0 ? 'rgba(234, 179, 8, 0.7)' :   // Top-left: yellow
-                            d.x >= 0 && d.y < 0 ? 'rgba(249, 115, 22, 0.7)' :  // Bottom-right: orange
-                            'rgba(239, 68, 68, 0.7)'                            // Bottom-left: red
-                        ),
-                        borderColor: hofstedeScatterData.map(d => 
-                            d.x >= 0 && d.y >= 0 ? 'rgba(34, 197, 94, 1)' :
-                            d.x < 0 && d.y >= 0 ? 'rgba(234, 179, 8, 1)' :
-                            d.x >= 0 && d.y < 0 ? 'rgba(249, 115, 22, 1)' :
-                            'rgba(239, 68, 68, 1)'
-                        ),
-                        borderWidth: 2,
-                        pointRadius: 10,
-                        pointHoverRadius: 14
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { display: false },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    const point = context.raw;
-                                    return [
-                                        point.label,
-                                        `Deviation: ${point.x >= 0 ? '+' : ''}${point.x.toFixed(2)}`,
-                                        `Correlation: ${point.y >= 0 ? '+' : ''}${point.y.toFixed(3)}`
-                                    ];
-                                }
-                            }
-                        }
-                    },
-                    scales: {
-                        x: {
-                            title: { display: true, text: 'Deviation from Industry Average' },
-                            grid: { color: 'rgba(0,0,0,0.05)' }
-                        },
-                        y: {
-                            title: { display: true, text: 'Correlation with Performance' },
-                            grid: { color: 'rgba(0,0,0,0.05)' }
-                        }
-                    }
-                },
-                plugins: [{
-                    id: 'quadrantLines',
-                    beforeDraw: function(chart) {
-                        const ctx = chart.ctx;
-                        const xAxis = chart.scales.x;
-                        const yAxis = chart.scales.y;
-                        
-                        ctx.save();
-                        ctx.strokeStyle = 'rgba(0, 0, 0, 0.2)';
-                        ctx.lineWidth = 1;
-                        ctx.setLineDash([5, 5]);
-                        
-                        // Vertical line at x=0
-                        const x0 = xAxis.getPixelForValue(0);
-                        ctx.beginPath();
-                        ctx.moveTo(x0, yAxis.top);
-                        ctx.lineTo(x0, yAxis.bottom);
-                        ctx.stroke();
-                        
-                        // Horizontal line at y=0
-                        const y0 = yAxis.getPixelForValue(0);
-                        ctx.beginPath();
-                        ctx.moveTo(xAxis.left, y0);
-                        ctx.lineTo(xAxis.right, y0);
-                        ctx.stroke();
-                        
-                        ctx.restore();
-                    }
-                }]
-            });
-            
-            // Render MIT Scatter Plot
-            const mitScatterCtx = document.getElementById('analysisMitScatter').getContext('2d');
-            if (window.analysisMitScatter) window.analysisMitScatter.destroy();
-            
-            window.analysisMitScatter = new Chart(mitScatterCtx, {
-                type: 'scatter',
-                data: {
-                    datasets: [{
-                        label: 'MIT Big 9 Dimensions',
-                        data: mitScatterData,
-                        backgroundColor: mitScatterData.map(d => 
-                            d.x >= 0 && d.y >= 0 ? 'rgba(34, 197, 94, 0.7)' :
-                            d.x < 0 && d.y >= 0 ? 'rgba(234, 179, 8, 0.7)' :
-                            d.x >= 0 && d.y < 0 ? 'rgba(249, 115, 22, 0.7)' :
-                            'rgba(239, 68, 68, 0.7)'
-                        ),
-                        borderColor: mitScatterData.map(d => 
-                            d.x >= 0 && d.y >= 0 ? 'rgba(34, 197, 94, 1)' :
-                            d.x < 0 && d.y >= 0 ? 'rgba(234, 179, 8, 1)' :
-                            d.x >= 0 && d.y < 0 ? 'rgba(249, 115, 22, 1)' :
-                            'rgba(239, 68, 68, 1)'
-                        ),
-                        borderWidth: 2,
-                        pointRadius: 10,
-                        pointHoverRadius: 14
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { display: false },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    const point = context.raw;
-                                    return [
-                                        point.label,
-                                        `Deviation: ${point.x >= 0 ? '+' : ''}${point.x.toFixed(2)}`,
-                                        `Correlation: ${point.y >= 0 ? '+' : ''}${point.y.toFixed(3)}`
-                                    ];
-                                }
-                            }
-                        }
-                    },
-                    scales: {
-                        x: {
-                            title: { display: true, text: 'Deviation from Industry Average' },
-                            grid: { color: 'rgba(0,0,0,0.05)' }
-                        },
-                        y: {
-                            title: { display: true, text: 'Correlation with Performance' },
-                            grid: { color: 'rgba(0,0,0,0.05)' }
-                        }
-                    }
-                },
-                plugins: [{
-                    id: 'quadrantLines',
-                    beforeDraw: function(chart) {
-                        const ctx = chart.ctx;
-                        const xAxis = chart.scales.x;
-                        const yAxis = chart.scales.y;
-                        
-                        ctx.save();
-                        ctx.strokeStyle = 'rgba(0, 0, 0, 0.2)';
-                        ctx.lineWidth = 1;
-                        ctx.setLineDash([5, 5]);
-                        
-                        const x0 = xAxis.getPixelForValue(0);
-                        ctx.beginPath();
-                        ctx.moveTo(x0, yAxis.top);
-                        ctx.lineTo(x0, yAxis.bottom);
-                        ctx.stroke();
-                        
-                        const y0 = yAxis.getPixelForValue(0);
-                        ctx.beginPath();
-                        ctx.moveTo(xAxis.left, y0);
-                        ctx.lineTo(xAxis.right, y0);
-                        ctx.stroke();
-                        
-                        ctx.restore();
-                    }
-                }]
-            });
         }
-        
-        function renderCultureScoreTrends(scoreTrendData) {
-            // Render mini trend charts for culture scores
-            if (!scoreTrendData || !scoreTrendData.success || !scoreTrendData.trends || scoreTrendData.trends.length === 0) {
-                // Hide or show "No data" in trend areas
+
+        window.analysisPitChart = null;
+        function renderPitTimeseries(pitData) {
+            const canvas = document.getElementById('analysisPitChart');
+            const msg = document.getElementById('analysisPitMessage');
+            if (!canvas) return;
+            if (window.analysisPitChart && typeof window.analysisPitChart.destroy === 'function') {
+                window.analysisPitChart.destroy();
+                window.analysisPitChart = null;
+            }
+            const series = (pitData && pitData.success) ? (pitData.series || []) : [];
+            if (series.length === 0) {
+                canvas.style.display = 'none';
+                if (msg) {
+                    msg.textContent = 'No point-in-time history available for this company (needs enough dated reviews at past quarter-ends).';
+                    msg.style.display = 'block';
+                }
                 return;
             }
-            
-            const trends = scoreTrendData.trends;
-            const years = trends.map(t => t.year.toString());
-            const hofstedeScores = trends.map(t => t.hofstede_score);
-            const mitScores = trends.map(t => t.mit_score);
-            const combinedScores = trends.map(t => t.combined_score);
-            
-            // Get latest scores for coloring (use the most recent year's score)
-            const latestHofstede = hofstedeScores[hofstedeScores.length - 1] || 0;
-            const latestMit = mitScores[mitScores.length - 1] || 0;
-            const latestCombined = combinedScores[combinedScores.length - 1] || 0;
-            
-            // Color based on latest score value (green for positive, red for negative)
-            const getChartColor = (score) => score >= 0 ? '#10b981' : '#ef4444';
-            const getChartBgColor = (score) => score >= 0 ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)';
-            
-            // Shared mini chart options
-            const miniChartOptions = {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false },
-                    tooltip: {
-                        enabled: true,
-                        displayColors: false,
-                        callbacks: {
-                            title: function(context) {
-                                return context[0].label;
-                            },
-                            label: function(context) {
-                                const val = context.raw;
-                                return (val >= 0 ? '+' : '') + val.toFixed(2);
+            canvas.style.display = 'block';
+            if (msg) msg.style.display = 'none';
+
+            const labels = series.map(p => p.date);
+            const pctiles = series.map(p => p.pctile !== null && p.pctile !== undefined ? Math.round(p.pctile * 10) / 10 : null);
+
+            window.analysisPitChart = new Chart(canvas.getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Peer-group percentile',
+                        data: pctiles,
+                        borderColor: 'rgba(14, 165, 233, 1)',
+                        backgroundColor: 'rgba(14, 165, 233, 0.1)',
+                        fill: true,
+                        tension: 0.3,
+                        spanGaps: true,
+                        pointRadius: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top' },
+                        tooltip: {
+                            callbacks: {
+                                afterLabel: function(context) {
+                                    const p = series[context.dataIndex];
+                                    const parts = [];
+                                    if (p.quartile) parts.push('Quartile: Q' + p.quartile);
+                                    if (p.n_total_reviews) parts.push('Reviews to date: ' + p.n_total_reviews.toLocaleString());
+                                    return parts;
+                                }
                             }
                         }
-                    }
-                },
-                scales: {
-                    x: {
-                        display: true,
-                        ticks: { 
-                            color: '#64748b', 
-                            font: { size: 9 },
-                            maxRotation: 0
-                        },
-                        grid: { display: false }
                     },
-                    y: {
-                        display: false,
-                        grid: { display: false }
+                    scales: {
+                        y: {
+                            min: 0,
+                            max: 100,
+                            title: { display: true, text: 'Percentile within peer group' }
+                        },
+                        x: {
+                            ticks: { maxTicksLimit: 12 },
+                            title: { display: true, text: 'Quarter-end' }
+                        }
                     }
-                },
-                elements: {
-                    point: { radius: 3, hoverRadius: 5 },
-                    line: { borderWidth: 2, tension: 0.3 }
                 }
-            };
-            
-            // Hofstede trend chart
-            const hofstedeTrendCtx = document.getElementById('hofstedeTrendChart').getContext('2d');
-            if (window.hofstedeTrendChart && typeof window.hofstedeTrendChart.destroy === 'function') {
-                window.hofstedeTrendChart.destroy();
-            }
-            
-            window.hofstedeTrendChart = new Chart(hofstedeTrendCtx, {
-                type: 'line',
-                data: {
-                    labels: years,
-                    datasets: [{
-                        data: hofstedeScores,
-                        borderColor: getChartColor(latestHofstede),
-                        backgroundColor: getChartBgColor(latestHofstede),
-                        fill: true,
-                        pointBackgroundColor: getChartColor(latestHofstede)
-                    }]
-                },
-                options: miniChartOptions
-            });
-            
-            // MIT trend chart
-            const mitTrendCtx = document.getElementById('mitTrendChart').getContext('2d');
-            if (window.mitTrendChart && typeof window.mitTrendChart.destroy === 'function') {
-                window.mitTrendChart.destroy();
-            }
-            
-            window.mitTrendChart = new Chart(mitTrendCtx, {
-                type: 'line',
-                data: {
-                    labels: years,
-                    datasets: [{
-                        data: mitScores,
-                        borderColor: getChartColor(latestMit),
-                        backgroundColor: getChartBgColor(latestMit),
-                        fill: true,
-                        pointBackgroundColor: getChartColor(latestMit)
-                    }]
-                },
-                options: miniChartOptions
-            });
-            
-            // Combined trend chart
-            const combinedTrendCtx = document.getElementById('combinedTrendChart').getContext('2d');
-            if (window.combinedTrendChart && typeof window.combinedTrendChart.destroy === 'function') {
-                window.combinedTrendChart.destroy();
-            }
-            
-            window.combinedTrendChart = new Chart(combinedTrendCtx, {
-                type: 'line',
-                data: {
-                    labels: years,
-                    datasets: [{
-                        data: combinedScores,
-                        borderColor: getChartColor(latestCombined),
-                        backgroundColor: getChartBgColor(latestCombined),
-                        fill: true,
-                        pointBackgroundColor: getChartColor(latestCombined)
-                    }]
-                },
-                options: miniChartOptions
             });
         }
-        
+
         function loadExportCompanyList() {
             const container = document.getElementById('exportCompanyList');
             if (!container) return;

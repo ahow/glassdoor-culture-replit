@@ -354,6 +354,9 @@ def get_companies_for_sector(sector=None, gics_level='sector', gics_value=None):
                 return [c for c in all_companies if _company_gics_map.get(c, {}).get('industry') == filter_value]
             elif gics_level == 'sub_industry':
                 return [c for c in all_companies if _company_gics_map.get(c, {}).get('sub_industry') == filter_value]
+            elif gics_level == 'peer_group':
+                pb = get_company_peer_bucket_map()
+                return [c for c in all_companies if pb.get(c) == filter_value]
             else:
                 return [c for c in all_companies if _company_sector_map.get(c) == filter_value]
         return all_companies
@@ -364,6 +367,38 @@ def get_companies_for_sector(sector=None, gics_level='sector', gics_value=None):
         except:
             pass
         return []
+
+
+_peer_bucket_map_cache = {'map': None, 'loaded_at': 0}
+
+
+def get_company_peer_bucket_map():
+    """company_name -> peer_bucket from schroders_company_factor_scores (5-min cache)."""
+    import time as _time
+    cache = _peer_bucket_map_cache
+    if cache['map'] is not None and _time.time() - cache['loaded_at'] < 300:
+        return cache['map']
+    conn = get_db_connection()
+    if not conn:
+        return cache['map'] or {}
+    try:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT company_name, peer_bucket FROM schroders_company_factor_scores
+            WHERE peer_bucket IS NOT NULL""")
+        m = {row[0]: row[1] for row in cursor.fetchall()}
+        cursor.close()
+        conn.close()
+        cache['map'] = m
+        cache['loaded_at'] = _time.time()
+        return m
+    except Exception as e:
+        logger.error(f"Error loading peer bucket map: {e}")
+        try:
+            conn.close()
+        except:
+            pass
+        return cache['map'] or {}
 
 
 _v2_scored_companies_cache = {'names': None, 'loaded_at': 0}
@@ -421,6 +456,9 @@ def get_all_gics_values(gics_level):
     global _company_sector_map_loaded
     if not _company_sector_map_loaded:
         _build_company_sector_map()
+
+    if gics_level == 'peer_group':
+        return sorted(set(get_company_peer_bucket_map().values()))
 
     key_map = {'sector': 'sector', 'industry': 'industry', 'sub_industry': 'sub_industry'}
     key = key_map.get(gics_level, 'sector')
@@ -1675,15 +1713,47 @@ def v2_culture_performance_slope():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+@app.route('/api/v2/backtest-company/<path:company_name>', methods=['GET'])
+def v2_backtest_company(company_name):
+    """Point-in-time culture score history for one company from the
+    quarterly backtest snapshots (schroders_backtest_scores)."""
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT snapshot_date, factor_raw, pctile, quartile,
+                   n_dims_ab, n_total_reviews, peer_bucket
+            FROM schroders_backtest_scores
+            WHERE company_name = %s
+            ORDER BY snapshot_date""", (company_name,))
+        rows = cur.fetchall()
+        conn.close()
+        series = [{
+            'date': r[0].isoformat(),
+            'factor_raw': round(float(r[1]), 4) if r[1] is not None else None,
+            'pctile': round(float(r[2]), 4) if r[2] is not None else None,
+            'quartile': r[3],
+            'n_dims_ab': r[4],
+            'n_total_reviews': r[5],
+            'peer_bucket': r[6]
+        } for r in rows]
+        return jsonify({'success': True, 'company': company_name, 'series': series})
+    except Exception as e:
+        logger.error(f"backtest-company error: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 @app.route('/api/v2/backtest', methods=['GET'])
 def v2_backtest():
     """Cumulative return of quartile portfolios formed on point-in-time
     culture-factor scores. Quartiles are re-formed each quarter within peer
     buckets; portfolios are equal-weighted; benchmark = all scored companies
-    with price data (equal weight). Respects the global GICS filter."""
+    with price data (equal weight). Always global: GICS filter params are
+    ignored (quartiles are formed across the full universe, so filtered
+    subsets would not be meaningful portfolios)."""
     try:
-        gics_level = request.args.get('gics_level', 'sector')
-        gics_value = request.args.get('gics_value') or request.args.get('sector')
+        gics_level = None
+        gics_value = None
         conn = get_db_connection()
         cur = conn.cursor()
 
@@ -1798,6 +1868,93 @@ def v2_backtest():
                         'n_snapshots': len(used)})
     except Exception as e:
         logger.error(f"backtest endpoint error: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/v2/peer-group-outperformance', methods=['GET'])
+def v2_peer_group_outperformance():
+    """Per peer group: annualized return (CAGR) of each culture quartile
+    portfolio over (up to) the last 5 years of backtest snapshots, minus the
+    peer group's own all-companies benchmark. Quartile portfolios are
+    equal-weighted and re-formed quarterly, same as /api/v2/backtest."""
+    try:
+        min_members = int(request.args.get('min_members', 3))
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT snapshot_date, company_name, quartile, peer_bucket
+            FROM schroders_backtest_scores""")
+        score_rows = cur.fetchall()
+        if not score_rows:
+            conn.close()
+            return jsonify({'success': True, 'available': False,
+                            'message': 'Backtest has not been run yet.'})
+        cur.execute("""
+            SELECT company_name, ticker FROM fmp_performance_metrics
+            WHERE ticker IS NOT NULL AND ticker <> ''""")
+        tick = {c: t for c, t in cur.fetchall()}
+        cur.execute("SELECT ticker, quarter_end, close FROM backtest_quarter_prices")
+        px = {}
+        for t, qe, cl in cur.fetchall():
+            if cl and cl > 0:
+                px.setdefault(t, {})[qe] = float(cl)
+        conn.close()
+
+        qret = {}
+        for t, series in px.items():
+            ds = sorted(series)
+            for a, b in zip(ds, ds[1:]):
+                if 80 <= (b - a).days <= 100:
+                    qret.setdefault(t, {})[a] = series[b] / series[a] - 1.0
+
+        snaps = sorted({r[0] for r in score_rows})
+        # last 5 years = 20 formation quarters (each earns the following quarter)
+        used_snaps = snaps[-20:] if len(snaps) > 20 else snaps
+
+        # bucket -> snap -> quartile -> [returns]
+        data = {}
+        for snap, comp, quart, bucket in score_rows:
+            if snap not in set(used_snaps) or not bucket:
+                continue
+            t = tick.get(comp)
+            r = qret.get(t, {}).get(snap) if t else None
+            if r is None:
+                continue
+            data.setdefault(bucket, {}).setdefault(snap, {1: [], 2: [], 3: [], 4: []})[quart].append(r)
+
+        groups = []
+        for bucket, by_snap in data.items():
+            snaps_b = sorted(by_snap)
+            # require every used snapshot to have enough members in each quartile? Too strict.
+            # Use snapshots where the requested structure holds for all quartiles.
+            valid = [s for s in snaps_b
+                     if all(len(by_snap[s][q]) >= min_members for q in (1, 2, 3, 4))]
+            if len(valid) < 8:   # need at least 2 years of quarters
+                continue
+            years = len(valid) / 4.0
+            out = {'peer_bucket': bucket, 'n_quarters': len(valid),
+                   'avg_companies': round(sum(
+                       sum(len(by_snap[s][q]) for q in (1, 2, 3, 4)) for s in valid
+                   ) / len(valid), 1)}
+            bench_cum = 1.0
+            for s in valid:
+                all_r = [r for q in (1, 2, 3, 4) for r in by_snap[s][q]]
+                bench_cum *= 1.0 + (sum(all_r) / len(all_r) if all_r else 0.0)
+            bench_cagr = (bench_cum ** (1.0 / years) - 1.0) * 100
+            out['benchmark_cagr'] = round(bench_cagr, 2)
+            for q in (1, 2, 3, 4):
+                cum = 1.0
+                for s in valid:
+                    rets = by_snap[s][q]
+                    cum *= 1.0 + (sum(rets) / len(rets) if rets else 0.0)
+                cagr = (cum ** (1.0 / years) - 1.0) * 100
+                out[f'q{q}_cagr'] = round(cagr, 2)
+                out[f'q{q}_outperformance'] = round(cagr - bench_cagr, 2)
+            groups.append(out)
+        groups.sort(key=lambda g: -(g.get('q1_outperformance') or 0))
+        return jsonify({'success': True, 'available': bool(groups), 'groups': groups})
+    except Exception as e:
+        logger.error(f"peer-group-outperformance error: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
@@ -2630,7 +2787,7 @@ def get_gics_filter_params():
     """Extract GICS filtering parameters from request args."""
     gics_level = request.args.get('gics_level', 'sector')
     gics_value = request.args.get('gics_value') or request.args.get('sector')
-    if gics_level not in ('sector', 'industry', 'sub_industry'):
+    if gics_level not in ('sector', 'industry', 'sub_industry', 'peer_group'):
         gics_level = 'sector'
     return gics_level, gics_value
 
@@ -2677,10 +2834,13 @@ def get_gics_hierarchy():
         for industry, sub_industries in sorted(industries.items()):
             hierarchy_serializable[sector][industry] = sorted(sub_industries)
     
+    peer_groups = sorted(set(get_company_peer_bucket_map().values()))
+
     return jsonify({
         'success': True,
         'hierarchy': hierarchy_serializable,
         'sectors': sorted(hierarchy.keys()),
+        'peer_groups': peer_groups,
         'industry_count': len(industry_list),
         'sub_industry_count': len(sub_industry_list)
     })
