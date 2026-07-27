@@ -108,3 +108,15 @@ id = "mW1aaCv3epa6dV68ZJC1J"
 uri = "file://pipeline_output/backtest_variants/results.json"
 type = "unspecified"
 title = "Full results payload (JSON)"
+
+[[outputs]]
+id = "WKG9-mzQLBDHCyZ1UVTo8"
+uri = "file://pipeline_output/backtest_variants/backtest_variants_report.pdf"
+type = "pdf"
+title = "Backtest variants report (single shareable PDF)"
+
+[[outputs]]
+id = "UUbDR45iJ0XkaKKnEG_1l"
+uri = "file://pipeline_output/backtest_variants/backtest_variants_package.zip"
+type = "unspecified"
+title = "Full package (PDF + charts + data files)"

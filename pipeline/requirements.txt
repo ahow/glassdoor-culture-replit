@@ -8,3 +8,4 @@ pandas
 scipy
 psycopg2-binary
 matplotlib
+weasyprint>=69.0
