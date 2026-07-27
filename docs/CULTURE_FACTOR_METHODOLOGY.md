@@ -3,7 +3,7 @@
 **System:** Culture Analytics Dashboard (culturescoring.com)
 **Framework:** Schroders v2 (12 bipolar culture dimensions)
 **Pipeline:** `pipeline/factor_build.py` (Python, PostgreSQL, NumPy)
-**Last updated:** 26 July 2026 (adequacy-based peer buckets — global fallback for named groups eliminated)
+**Last updated:** 27 July 2026 (quartile backtest with Q1−Q4 spread and per-quarter membership counts; precomputed backtest payload cache)
 
 This document describes, end to end, how a company's Culture Factor score is
 produced from raw Glassdoor reviews. It is written for a developer who needs
@@ -366,7 +366,18 @@ factor:
   full universe and filtered subsets would not be meaningful portfolios.
   Price-only returns in local currency, no transaction costs — a
   descriptive sanity check, shown in the "Backtest" dashboard tab with
-  explicit caveats.
+  explicit caveats. The stats table reports, per quartile and for the
+  benchmark, cumulative and annualized returns plus average companies
+  per quarter, and includes an explicit **Q1 − Q4 spread** row
+  (cumulative and annualized). The API also returns per-snapshot
+  quartile membership counts, surfaced in the chart tooltips.
+- **Performance/caching:** the heavy portfolio computations live in
+  `backtest_payloads.py`. After each pipeline run, `pipeline/backtest.py`
+  precomputes the `/api/v2/backtest` and `/api/v2/peer-group-outperformance`
+  payloads into the `backtest_payload_cache` table *before* bumping
+  `backtest_data_version` in `app_config`, so the web tier serves a
+  ready-made JSON blob; endpoints also keep a per-worker in-process cache
+  keyed on the data version and write back on a compute miss.
 - **Peer-group outperformance:** `/api/v2/peer-group-outperformance`
   reports, per peer bucket over (up to) the last 20 quarterly snapshots,
   each quartile portfolio's CAGR minus the bucket's own all-companies

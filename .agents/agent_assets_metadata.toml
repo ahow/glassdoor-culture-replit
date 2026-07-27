@@ -60,3 +60,9 @@ id = "AtiJ2wOFZeqdKRiJ8579o"
 uri = "file://docs/CULTURE_FACTOR_METHODOLOGY.md"
 type = "text"
 title = "Culture Factor Methodology (updated)"
+
+[[outputs]]
+id = "LUBr_jHEE-KHvCHrPg8OS"
+uri = "file://docs/Culture_Factor_Methodology.docx"
+type = "word_document"
+title = "Culture Factor Methodology (updated 27 Jul 2026)"
