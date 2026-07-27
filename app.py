@@ -1675,6 +1675,132 @@ def v2_culture_performance_slope():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+@app.route('/api/v2/backtest', methods=['GET'])
+def v2_backtest():
+    """Cumulative return of quartile portfolios formed on point-in-time
+    culture-factor scores. Quartiles are re-formed each quarter within peer
+    buckets; portfolios are equal-weighted; benchmark = all scored companies
+    with price data (equal weight). Respects the global GICS filter."""
+    try:
+        gics_level = request.args.get('gics_level', 'sector')
+        gics_value = request.args.get('gics_value') or request.args.get('sector')
+        conn = get_db_connection()
+        cur = conn.cursor()
+
+        cur.execute("""
+            SELECT snapshot_date, company_name, quartile
+            FROM schroders_backtest_scores""")
+        score_rows = cur.fetchall()
+        if not score_rows:
+            conn.close()
+            return jsonify({'success': True, 'available': False,
+                            'message': 'Backtest has not been run yet.'})
+
+        allowed = None
+        if gics_value:
+            allowed = set(get_companies_for_sector(None, gics_level, gics_value))
+
+        cur.execute("""
+            SELECT company_name, ticker FROM fmp_performance_metrics
+            WHERE ticker IS NOT NULL AND ticker <> ''""")
+        tick = {c: t for c, t in cur.fetchall()}
+
+        cur.execute("SELECT ticker, quarter_end, close FROM backtest_quarter_prices")
+        px = {}
+        for t, qe, cl in cur.fetchall():
+            if cl and cl > 0:
+                px.setdefault(t, {})[qe] = float(cl)
+        conn.close()
+
+        # quarterly return per ticker: quarter_end -> return over NEXT quarter
+        qret = {}
+        for t, series in px.items():
+            ds = sorted(series)
+            for a, b in zip(ds, ds[1:]):
+                # consecutive calendar quarters only (~90 days apart)
+                if 80 <= (b - a).days <= 100:
+                    qret.setdefault(t, {})[a] = series[b] / series[a] - 1.0
+
+        # snapshot -> quartile -> list of returns
+        snaps = sorted({r[0] for r in score_rows})
+        holdings = {s: {1: [], 2: [], 3: [], 4: []} for s in snaps}
+        bench = {s: [] for s in snaps}
+        n_members = {s: {1: 0, 2: 0, 3: 0, 4: 0} for s in snaps}
+        for snap, comp, quart in score_rows:
+            if allowed is not None and comp not in allowed:
+                continue
+            t = tick.get(comp)
+            r = qret.get(t, {}).get(snap) if t else None
+            if r is None:
+                continue
+            holdings[snap][quart].append(r)
+            n_members[snap][quart] += 1
+            bench[snap].append(r)
+
+        min_members = 3
+        # start at the first snapshot where every quartile has enough members
+        start_idx = None
+        for i, s in enumerate(snaps):
+            if all(len(holdings[s][q]) >= min_members for q in (1, 2, 3, 4)):
+                start_idx = i
+                break
+        if start_idx is None:
+            return jsonify({'success': True, 'available': False,
+                            'message': 'Not enough companies with price data '
+                                       'for this filter to build quartile portfolios.'})
+
+        used = [s for s in snaps[start_idx:]
+                if any(holdings[s][q] for q in (1, 2, 3, 4))]
+        labels = [s.isoformat() for s in used]
+        series = {}
+        stats = []
+        for q in (1, 2, 3, 4):
+            cum, vals, ns = 100.0, [100.0], []
+            for s in used:
+                rets = holdings[s][q]
+                r = (sum(rets) / len(rets)) if rets else 0.0
+                cum *= (1.0 + r)
+                vals.append(cum)
+                ns.append(len(rets))
+            series[f'Q{q}'] = vals
+            years = len(used) / 4.0
+            ann = ((cum / 100.0) ** (1.0 / years) - 1.0) * 100 if years > 0 else None
+            stats.append({'quartile': f'Q{q}',
+                          'cumulative_return_pct': round(cum - 100.0, 1),
+                          'annualized_return_pct': round(ann, 2) if ann is not None else None,
+                          'avg_companies': round(sum(ns) / len(ns), 1) if ns else 0})
+        cum, vals = 100.0, [100.0]
+        for s in used:
+            rets = bench[s]
+            r = (sum(rets) / len(rets)) if rets else 0.0
+            cum *= (1.0 + r)
+            vals.append(cum)
+        series['Benchmark'] = vals
+        years = len(used) / 4.0
+        ann_b = ((cum / 100.0) ** (1.0 / years) - 1.0) * 100 if years > 0 else None
+        stats.append({'quartile': 'All companies',
+                      'cumulative_return_pct': round(cum - 100.0, 1),
+                      'annualized_return_pct': round(ann_b, 2) if ann_b is not None else None,
+                      'avg_companies': round(sum(len(bench[s]) for s in used) / len(used), 1)})
+
+        # x-axis: portfolio formation date plus one extra point (end of last quarter)
+        last = used[-1]
+        next_q_month = last.month + 3
+        next_q_year = last.year + (1 if next_q_month > 12 else 0)
+        next_q_month = next_q_month - 12 if next_q_month > 12 else next_q_month
+        next_q_day = 31 if next_q_month in (3, 12) else 30
+        labels = labels + [datetime(next_q_year, next_q_month, next_q_day).date().isoformat()]
+
+        return jsonify({'success': True, 'available': True,
+                        'labels': labels, 'series': series, 'stats': stats,
+                        'first_snapshot': used[0].isoformat(),
+                        'last_snapshot': last.isoformat(),
+                        'n_snapshots': len(used)})
+    except Exception as e:
+        logger.error(f"backtest endpoint error: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 @app.route('/api/warm-cache', methods=['POST'])
 def warm_cache():
     """Warm the metrics cache for uncached companies (batch of 20 at a time)"""

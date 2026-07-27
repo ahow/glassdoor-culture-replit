@@ -334,7 +334,39 @@ composite performance target (same definition as `perf_targets()`) on
 relationship. Minimum 5 companies per bucket; descriptive/in-sample only,
 not causal or out-of-sample evidence.
 
-## 13. Operational notes
+## 13. Quartile backtest (added 2026-07-27)
+
+`pipeline/backtest.py` provides a point-in-time backtest of the culture
+factor:
+
+- **Snapshots:** every calendar quarter-end from 2015-12-31 to the last
+  completed quarter.
+- **Point-in-time evidence:** per company × dimension, only reviews with
+  `review_datetime` on or before the snapshot are counted (quarterly
+  pre-aggregation of `review_culture_scores` joined to `reviews`, then
+  cumulative sums). Evidence tiers use the same §6 rules; shrinkage uses
+  the same `w = n/(n+50)` toward the *point-in-time* bucket prior.
+- **Model:** today's production weights and peer buckets
+  (`schroders_sector_model_weights`, `schroders_company_factor_scores`) —
+  a documented look-ahead, since historical financials to re-estimate the
+  model at each date are unavailable. The universe is today's scored
+  companies (survivorship bias).
+- **Eligibility:** ≥ 4 Tier A/B dimensions at the snapshot.
+- **Ranking:** percentile within the current peer bucket among eligible
+  companies at each snapshot; quartiles from the percentile (Q1 = top).
+  Output: `schroders_backtest_scores`.
+- **Prices:** `backtest_quarter_prices` caches quarter-end adjusted closes
+  per ticker from FMP (`historical-price-eod/full`); a ticker is refetched
+  whenever it lacks the latest completed quarter.
+- **Portfolios:** `/api/v2/backtest` compounds equal-weighted quarterly
+  returns per quartile (rebalanced each quarter) and an all-companies
+  benchmark; the series starts at the first snapshot where every quartile
+  has ≥ 3 members with prices; respects the dashboard GICS filter.
+  Price-only returns in local currency, no transaction costs — a
+  descriptive sanity check, shown in the "Backtest" dashboard tab with
+  explicit caveats.
+
+## 14. Operational notes
 
 - **Determinism:** fixed RNG seed (7) for bootstraps; sorted iteration in
   bucket assignment; LOO-CV is deterministic. Re-running `model` on the

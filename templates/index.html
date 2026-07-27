@@ -512,6 +512,7 @@
             <button class="main-tab-button" onclick="switchMainTab('schroders', event)">Culture Dimensions</button>
             <button class="main-tab-button" onclick="switchMainTab('factor', event)">Culture Factor</button>
             <button class="main-tab-button" onclick="switchMainTab('sectorComparison', event)" data-testid="tab-sector-comparison">Sector Comparison</button>
+            <button class="main-tab-button" onclick="switchMainTab('backtest', event)" data-testid="tab-backtest">Backtest</button>
             <!-- Schroders-only rebuild (2026-07-21): Hofstede, MIT, Performance Insights,
                  Culture vs Performance and Correlation Analysis tabs are inactive
                  (they are built on the retired Hofstede/MIT frameworks). Restore via
@@ -990,6 +991,50 @@
                         </thead>
                         <tbody id="evidenceBody"></tbody>
                     </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Backtest Tab -->
+        <div id="backtestTab" class="tab-content hidden-tab" style="display: none;">
+            <div class="chart-container">
+                <h2 class="chart-title">Culture Quartile Backtest &mdash; Cumulative Share-Price Return</h2>
+                <p style="color: #64748b; font-size: 0.88rem; margin-bottom: 1rem;">
+                    At the end of every quarter, companies are scored using <strong>only the reviews
+                    posted up to that date</strong> and sorted into quartiles within their peer group
+                    (Q1 = strongest culture, Q4 = weakest). Each quartile is held as an equal-weighted
+                    portfolio for the following quarter, then re-formed. The chart shows the growth of
+                    100 invested in each quartile, next to a benchmark of all scored companies.
+                </p>
+                <div id="backtestLoading" class="loading" style="display:none;"><h2>Running backtest query&hellip;</h2></div>
+                <p id="backtestMessage" style="text-align:center; color:#7f8c8d; padding:0.75rem; display:none;" data-testid="text-backtest-message"></p>
+                <div style="max-width: 900px; margin: 0 auto 1.5rem auto;">
+                    <canvas id="backtestChart" data-testid="chart-backtest" style="max-height: 420px;"></canvas>
+                </div>
+                <div style="overflow-x: auto; margin-bottom: 1rem;">
+                    <table id="backtestStatsTable" data-testid="table-backtest-stats" style="width: 100%; max-width: 720px; margin: 0 auto; border-collapse: collapse; font-size: 0.85rem; display: none;">
+                        <thead>
+                            <tr style="background: #f1f5f9; text-align: left;">
+                                <th style="padding: 0.5rem 0.6rem;">Portfolio</th>
+                                <th style="padding: 0.5rem 0.6rem; text-align: right;">Cumulative return</th>
+                                <th style="padding: 0.5rem 0.6rem; text-align: right;">Annualized return</th>
+                                <th style="padding: 0.5rem 0.6rem; text-align: right;">Avg companies/quarter</th>
+                            </tr>
+                        </thead>
+                        <tbody id="backtestStatsBody"></tbody>
+                    </table>
+                </div>
+                <p id="backtestPeriod" style="text-align:center; color:#64748b; font-size:0.82rem; margin-bottom:1rem;" data-testid="text-backtest-period"></p>
+                <div style="background:#fffbeb; border:1px solid #fde68a; border-radius:8px; padding:0.9rem 1.1rem; max-width:900px; margin:0 auto;">
+                    <p style="color:#92400e; font-size:0.8rem; margin:0;">
+                        <strong>Important caveats:</strong> culture scores at each date use only reviews available
+                        by then, but the <em>model weights and peer groups are today's</em> (the financial data
+                        needed to estimate historical weights isn't available), which introduces look-ahead bias.
+                        The universe is today's scored companies, so failed/delisted firms are missing
+                        (survivorship bias). Returns are price-only in local currency (adjusted closes where
+                        available), equal-weighted, with no transaction costs. Treat this as a descriptive
+                        sanity check, not investable performance.
+                    </p>
                 </div>
             </div>
         </div>
@@ -1989,6 +2034,9 @@
             insightsLoaded = false;
             // Kick off background pre-warm so peer averages are always complete
             triggerPrewarm(currentGicsLevel, value);
+            // Reload backtest if that tab is currently visible
+            const btTab = document.getElementById('backtestTab');
+            if (btTab && btTab.style.display !== 'none') loadBacktest();
             await loadData();
             loadCompaniesForTrends();
             await loadCultureCompanies('schroders');
@@ -2074,7 +2122,7 @@
             console.log('switchMainTab called with tab:', tab);
             
             // Hide all tabs using both inline styles AND CSS class
-            const tabs = ['overviewTab', 'companiesTab', 'analysisTab', 'trendsTab', 'hofstedeTab', 'mitTab', 'schrodersTab', 'factorTab', 'sectorComparisonTab', 'insightsTab', 'culturePerfTab', 'corrAnalysisTab', 'exportDataTab', 'dataStatusTab', 'extractionMgrTab', 'usersTab'];
+            const tabs = ['overviewTab', 'companiesTab', 'analysisTab', 'trendsTab', 'hofstedeTab', 'mitTab', 'schrodersTab', 'factorTab', 'sectorComparisonTab', 'backtestTab', 'insightsTab', 'culturePerfTab', 'corrAnalysisTab', 'exportDataTab', 'dataStatusTab', 'extractionMgrTab', 'usersTab'];
             tabs.forEach(tabId => {
                 const el = document.getElementById(tabId);
                 if (el) {
@@ -2099,6 +2147,7 @@
                 'schroders': 'schrodersTab',
                 'factor': 'factorTab',
                 'sectorComparison': 'sectorComparisonTab',
+                'backtest': 'backtestTab',
                 'insights': 'insightsTab',
                 'culturePerf': 'culturePerfTab',
                 'corrAnalysis': 'corrAnalysisTab',
@@ -2133,6 +2182,8 @@
                 loadFactorScores();
             } else if (tab === 'sectorComparison') {
                 loadModelFit();
+            } else if (tab === 'backtest') {
+                loadBacktest();
             } else if (tab === 'insights') {
                 loadPerformanceInsights();
             } else if (tab === 'culturePerf') {
@@ -2795,6 +2846,103 @@
                     }
                 }
             });
+        }
+
+        let _backtestChart = null;
+
+        function loadBacktest() {
+            const loading = document.getElementById('backtestLoading');
+            const msg = document.getElementById('backtestMessage');
+            const table = document.getElementById('backtestStatsTable');
+            const period = document.getElementById('backtestPeriod');
+            loading.style.display = 'block';
+            msg.style.display = 'none';
+            let url = '/api/v2/backtest';
+            if (currentGicsValue) {
+                url += `?gics_level=${encodeURIComponent(currentGicsLevel)}&gics_value=${encodeURIComponent(currentGicsValue)}`;
+            }
+            fetch(url)
+                .then(r => r.json())
+                .then(d => {
+                    loading.style.display = 'none';
+                    if (!d.success || !d.available) {
+                        if (_backtestChart) { _backtestChart.destroy(); _backtestChart = null; }
+                        table.style.display = 'none';
+                        period.textContent = '';
+                        msg.textContent = d.message || d.error || 'Backtest data is not available.';
+                        msg.style.display = 'block';
+                        return;
+                    }
+                    renderBacktest(d);
+                })
+                .catch(() => {
+                    loading.style.display = 'none';
+                    msg.textContent = 'Failed to load backtest data.';
+                    msg.style.display = 'block';
+                });
+        }
+
+        function renderBacktest(d) {
+            const colors = {
+                'Q1': '#16a34a', 'Q2': '#3b82f6', 'Q3': '#f59e0b',
+                'Q4': '#dc2626', 'Benchmark': '#64748b'
+            };
+            const labelNames = {
+                'Q1': 'Q1 (strongest culture)', 'Q2': 'Q2', 'Q3': 'Q3',
+                'Q4': 'Q4 (weakest culture)', 'Benchmark': 'All companies'
+            };
+            const datasets = Object.keys(d.series).map(k => ({
+                label: labelNames[k] || k,
+                data: d.series[k],
+                borderColor: colors[k] || '#94a3b8',
+                backgroundColor: 'transparent',
+                borderWidth: k === 'Benchmark' ? 2 : 2.5,
+                borderDash: k === 'Benchmark' ? [6, 4] : [],
+                pointRadius: 0,
+                pointHitRadius: 6,
+                tension: 0.15
+            }));
+            const ctx = document.getElementById('backtestChart').getContext('2d');
+            if (_backtestChart) _backtestChart.destroy();
+            _backtestChart = new Chart(ctx, {
+                type: 'line',
+                data: { labels: d.labels, datasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: { position: 'bottom' },
+                        tooltip: {
+                            callbacks: {
+                                label: (c) => `${c.dataset.label}: ${c.parsed.y.toFixed(1)}`
+                            }
+                        }
+                    },
+                    scales: {
+                        y: { title: { display: true, text: 'Growth of 100' } },
+                        x: { ticks: { maxTicksLimit: 14 } }
+                    }
+                }
+            });
+            const body = document.getElementById('backtestStatsBody');
+            body.innerHTML = '';
+            d.stats.forEach(s => {
+                const tr = document.createElement('tr');
+                tr.setAttribute('data-testid', `row-backtest-${s.quartile.replace(/\s+/g, '-').toLowerCase()}`);
+                tr.style.borderBottom = '1px solid #f1f5f9';
+                const cum = s.cumulative_return_pct;
+                const ann = s.annualized_return_pct;
+                tr.innerHTML = `
+                    <td style="padding:0.45rem 0.6rem; font-weight:500;">${labelNames[s.quartile] || s.quartile}</td>
+                    <td style="padding:0.45rem 0.6rem; text-align:right;">${cum != null ? (cum >= 0 ? '+' : '') + cum.toFixed(1) + '%' : '—'}</td>
+                    <td style="padding:0.45rem 0.6rem; text-align:right;">${ann != null ? (ann >= 0 ? '+' : '') + ann.toFixed(2) + '%' : '—'}</td>
+                    <td style="padding:0.45rem 0.6rem; text-align:right;">${s.avg_companies}</td>`;
+                body.appendChild(tr);
+            });
+            document.getElementById('backtestStatsTable').style.display = 'table';
+            document.getElementById('backtestPeriod').textContent =
+                `Portfolios formed quarterly from ${d.first_snapshot} to ${d.last_snapshot} (${d.n_snapshots} quarters).`;
         }
 
         function loadModelFit() {
