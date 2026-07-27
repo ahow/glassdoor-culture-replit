@@ -99,7 +99,7 @@ def build_scores():
     cur.execute("""
         SELECT s.company_name, date_trunc('quarter', r.review_datetime)::date, count(*)
         FROM review_culture_scores s
-        JOIN reviews r ON s.review_id = r.review_id
+        JOIN reviews r ON s.review_id = r.id
         WHERE s.company_name IS NOT NULL AND r.review_datetime IS NOT NULL
         GROUP BY 1, 2""")
     totals_q = defaultdict(dict)      # comp -> {qstart: n}
@@ -115,7 +115,7 @@ def build_scores():
                    count(s.schroders_v2_{d}_score),
                    sum(s.schroders_v2_{d}_score)
             FROM review_culture_scores s
-            JOIN reviews r ON s.review_id = r.review_id
+            JOIN reviews r ON s.review_id = r.id
             WHERE s.company_name IS NOT NULL AND r.review_datetime IS NOT NULL
               AND s.schroders_v2_{d}_score IS NOT NULL
             GROUP BY 1, 2""")

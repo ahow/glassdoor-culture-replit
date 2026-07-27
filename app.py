@@ -588,7 +588,7 @@ def get_company_metrics(company_name, employee_filter='all'):
         if employee_filter == 'current':
             culture_join = """
                 FROM review_culture_scores rcs
-                JOIN reviews r ON rcs.review_id = r.review_id
+                JOIN reviews r ON rcs.review_id = r.id
                 WHERE rcs.company_name = %s AND r.is_current_employee = TRUE
             """
         else:
