@@ -1856,13 +1856,28 @@ def v2_backtest_series():
             return jsonify(cached)
         payload = read_cached_payload(cur, f'bt-series:{measure}:{weights}',
                                       version)
+        if payload is None and measure == 'tsr' and weights == 'C':
+            # Guaranteed default path: fall back to the standard backtest
+            # payload (precomputed by pipeline/backtest.py, or computed on
+            # the fly) so the default chart is never empty even if
+            # pipeline/backtest_dashboard.py payloads has not been run.
+            payload = read_cached_payload(cur, 'backtest', version) \
+                if version is not None else None
+            if payload is None:
+                payload = compute_backtest_payload(cur)
+            if payload.get('available'):
+                payload = dict(payload)
+                payload['measure'] = 'tsr'
+                payload['weights'] = 'C'
+                payload['weights_label'] = 'Current weights'
         conn.close()
         if payload is None:
             return jsonify({'success': True, 'available': False,
                             'message': 'This combination has not been '
                                        'computed yet. Run pipeline/'
                                        'backtest_dashboard.py payloads.'})
-        _backtest_cache_put(cache_key, version, payload)
+        if payload.get('available'):
+            _backtest_cache_put(cache_key, version, payload)
         return jsonify(payload)
     except Exception as e:
         logger.error(f"backtest-series endpoint error: {e}")
