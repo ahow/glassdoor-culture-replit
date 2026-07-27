@@ -1824,6 +1824,9 @@ def v2_backtest():
         labels = [s.isoformat() for s in used]
         series = {}
         stats = []
+        counts = {}
+        q_cum = {}
+        q_ann = {}
         for q in (1, 2, 3, 4):
             cum, vals, ns = 100.0, [100.0], []
             for s in used:
@@ -1833,12 +1836,21 @@ def v2_backtest():
                 vals.append(cum)
                 ns.append(len(rets))
             series[f'Q{q}'] = vals
+            counts[f'Q{q}'] = ns
             years = len(used) / 4.0
             ann = ((cum / 100.0) ** (1.0 / years) - 1.0) * 100 if years > 0 else None
+            q_cum[q] = cum - 100.0
+            q_ann[q] = ann
             stats.append({'quartile': f'Q{q}',
                           'cumulative_return_pct': round(cum - 100.0, 1),
                           'annualized_return_pct': round(ann, 2) if ann is not None else None,
                           'avg_companies': round(sum(ns) / len(ns), 1) if ns else 0})
+        # Q1 minus Q4 spread
+        spread_ann = (q_ann[1] - q_ann[4]) if (q_ann[1] is not None and q_ann[4] is not None) else None
+        stats.append({'quartile': 'Q1 − Q4 spread',
+                      'cumulative_return_pct': round(q_cum[1] - q_cum[4], 1),
+                      'annualized_return_pct': round(spread_ann, 2) if spread_ann is not None else None,
+                      'avg_companies': None})
         cum, vals = 100.0, [100.0]
         for s in used:
             rets = bench[s]
@@ -1863,6 +1875,7 @@ def v2_backtest():
 
         return jsonify({'success': True, 'available': True,
                         'labels': labels, 'series': series, 'stats': stats,
+                        'counts': counts,
                         'first_snapshot': used[0].isoformat(),
                         'last_snapshot': last.isoformat(),
                         'n_snapshots': len(used)})

@@ -3023,7 +3023,15 @@
                         legend: { position: 'bottom' },
                         tooltip: {
                             callbacks: {
-                                label: (c) => `${c.dataset.label}: ${c.parsed.y.toFixed(1)}`
+                                label: (c) => {
+                                    let txt = `${c.dataset.label}: ${c.parsed.y.toFixed(1)}`;
+                                    const key = Object.keys(d.series).find(k => (labelNames[k] || k) === c.dataset.label);
+                                    if (d.counts && d.counts[key] && c.dataIndex > 0) {
+                                        const n = d.counts[key][c.dataIndex - 1];
+                                        if (n != null) txt += ` (${n} companies)`;
+                                    }
+                                    return txt;
+                                }
                             }
                         }
                     },
@@ -3039,13 +3047,15 @@
                 const tr = document.createElement('tr');
                 tr.setAttribute('data-testid', `row-backtest-${s.quartile.replace(/\s+/g, '-').toLowerCase()}`);
                 tr.style.borderBottom = '1px solid #f1f5f9';
+                const isSpread = s.quartile.indexOf('spread') !== -1;
+                if (isSpread) tr.style.background = '#f8fafc';
                 const cum = s.cumulative_return_pct;
                 const ann = s.annualized_return_pct;
                 tr.innerHTML = `
-                    <td style="padding:0.45rem 0.6rem; font-weight:500;">${labelNames[s.quartile] || s.quartile}</td>
-                    <td style="padding:0.45rem 0.6rem; text-align:right;">${cum != null ? (cum >= 0 ? '+' : '') + cum.toFixed(1) + '%' : '—'}</td>
-                    <td style="padding:0.45rem 0.6rem; text-align:right;">${ann != null ? (ann >= 0 ? '+' : '') + ann.toFixed(2) + '%' : '—'}</td>
-                    <td style="padding:0.45rem 0.6rem; text-align:right;">${s.avg_companies}</td>`;
+                    <td style="padding:0.45rem 0.6rem; font-weight:${isSpread ? '700' : '500'};">${labelNames[s.quartile] || s.quartile}</td>
+                    <td style="padding:0.45rem 0.6rem; text-align:right;${isSpread ? ' font-weight:700;' : ''}">${cum != null ? (cum >= 0 ? '+' : '') + cum.toFixed(1) + '%' : '—'}</td>
+                    <td style="padding:0.45rem 0.6rem; text-align:right;${isSpread ? ' font-weight:700;' : ''}">${ann != null ? (ann >= 0 ? '+' : '') + ann.toFixed(2) + '%' : '—'}</td>
+                    <td style="padding:0.45rem 0.6rem; text-align:right;">${s.avg_companies != null ? s.avg_companies : '—'}</td>`;
                 body.appendChild(tr);
             });
             document.getElementById('backtestStatsTable').style.display = 'table';
