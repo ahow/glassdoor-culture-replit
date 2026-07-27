@@ -361,10 +361,18 @@ factor:
 - **Portfolios:** `/api/v2/backtest` compounds equal-weighted quarterly
   returns per quartile (rebalanced each quarter) and an all-companies
   benchmark; the series starts at the first snapshot where every quartile
-  has ≥ 3 members with prices; respects the dashboard GICS filter.
+  has ≥ 3 members with prices. The backtest is **always global**: GICS
+  filter parameters are ignored, because quartiles are formed across the
+  full universe and filtered subsets would not be meaningful portfolios.
   Price-only returns in local currency, no transaction costs — a
   descriptive sanity check, shown in the "Backtest" dashboard tab with
   explicit caveats.
+- **Peer-group outperformance:** `/api/v2/peer-group-outperformance`
+  reports, per peer bucket over (up to) the last 20 quarterly snapshots,
+  each quartile portfolio's CAGR minus the bucket's own all-companies
+  benchmark CAGR (≥ 3 members per quartile per snapshot, ≥ 8 valid
+  quarters). Shown as a horizontal bar chart on the Backtest tab and as
+  selectable measures in the Sector Comparison bubble chart.
 
 ## 14. Operational notes
 
